@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Set
 import re
 from bs4 import BeautifulSoup
+from parliament_session import ParliamentSession
 
 class HansardAPI:
     BASE_URL = "https://sprs.parl.gov.sg/search/getHansardReport/"
@@ -16,13 +17,11 @@ class HansardAPI:
     # WS: Written Statement
     # BI: 
     QUESTION_SECTION_TYPES = {'OA', 'WA', 'WANA'}
-    OFFICE_HOLDER_TITLES = ['Minister', 'Senior Minister', 'Minister of State',
-                    'Parliamentary Secretary', 'Senior Parliamentary Secretary']
     
     def __init__(self):
         self.session = requests.Session()
     
-    def fetch_by_date(self, date_str: str) -> Optional[Dict]:
+    def fetch_by_date(self, date_str: str) -> Optional[ParliamentSession]:
         # date_str format: 'DD-MM-YYYY' (e.g., '14-01-2026')
         url = f"{self.BASE_URL}?sittingDate={date_str}"
         
@@ -32,7 +31,16 @@ class HansardAPI:
             data = response.json()
             if not (data.get('takesSectionVOList') or data.get('htmlFullContent')):
                 return None
-            return data
+            
+            parliament_session = ParliamentSession(date_str)
+            parliament_session.set_metadata(self.get_session_metadata(data))
+            parliament_session.set_attendance(data['attendanceList'])
+            
+            # Parse sections if available (new format)
+            if data.get('takesSectionVOList'):
+                parliament_session.set_sections(data['takesSectionVOList'])
+            
+            return parliament_session
         except requests.exceptions.RequestException as e:
             print(f"Error fetching {date_str}: {e}")
             return None
@@ -278,26 +286,10 @@ if __name__ == '__main__':
     print("=" * 60)
     print("Testing NEW format (14-01-2026)")
     print("=" * 60)
-    data_new = api.fetch_by_date('14-01-2026')
+    session_new = api.fetch_by_date('14-01-2026')
     
-    if data_new:
-        print(f"Format detected: {api.detect_format(data_new)}")
-        metadata = api.get_session_metadata(data_new)
-        print(f"\nMetadata:")
-        for key, value in metadata.items():
-            print(f"  {key}: {value}")
-        
-        sections = api.parse_sections(data_new)
-        print(f"\nFound {len(sections)} question sections\n")
-        
-        for idx, section in enumerate(sections[:2]):  # Show first 2
-            print(f"--- Section {idx+1} ---")
-            print(f"Type: {section['section_type']}")
-            print(f"Title: {section['section_title']}")
-            print(f"Speakers ({len(section['speakers'])}): {', '.join(section['speakers'])}")
-            print(f"Content (plain): {section['content_plain'][:200]}...")
-            print(f"Content (HTML) length: {len(section['content_html'])} chars")
-            print()
+    if session_new:
+        session_new.print_sections()
     
     # Test old format
     # print("\n" + "=" * 60)
