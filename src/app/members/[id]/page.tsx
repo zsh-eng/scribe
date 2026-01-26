@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
-import SectionCard from '@/components/SectionCard'
+import QuestionCard from '@/components/QuestionCard'
 import type { Section } from '@/types'
 
 interface MemberDetail {
@@ -68,16 +68,16 @@ export default function MemberDetailPage({
 
             <section>
                 <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-white">
-                    Parliamentary Appearances ({member.sections.length})
+                    Parliamentary Questions ({member.sections.length})
                 </h2>
                 {member.sections.length === 0 ? (
                     <p className="py-8 text-center text-zinc-500 dark:text-zinc-400">
-                        No recorded appearances
+                        No recorded questions
                     </p>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2">
                         {member.sections.map((section) => (
-                            <SectionCard key={section.id} section={section} showSpeakers={false} />
+                            <QuestionCard key={section.id} question={section} showSpeakers={false} />
                         ))}
                     </div>
                 )}

@@ -7,7 +7,7 @@ export default function Navbar() {
     const pathname = usePathname()
 
     const navLinks = [
-        { href: '/', label: 'Home' },
+        { href: '/', label: 'Questions' },
         { href: '/members', label: 'Members' },
         { href: '/ministries', label: 'Ministries' },
     ]
@@ -24,8 +24,8 @@ export default function Navbar() {
                             key={link.href}
                             href={link.href}
                             className={`text-sm font-medium transition-colors ${pathname === link.href
-                                    ? 'text-blue-600 dark:text-blue-400'
-                                    : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
+                                ? 'text-blue-600 dark:text-blue-400'
+                                : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white'
                                 }`}
                         >
                             {link.label}

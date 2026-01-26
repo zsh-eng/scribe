@@ -4,8 +4,8 @@ from bs4 import BeautifulSoup
 from typing import List, Dict, Optional, Set
 from util import parse_mp_name, extract_name_from_speaker_text, clean_html_for_display, strip_all_html, extract_name_from_br_text
 
-# OA: Oral Answers to Oral Questions
-# WANA: Written Answers to Oral Questions not answered by end of Question Time
+# OA: Oral Answer to Oral Question
+# WANA: Written Answer to Oral Question not answered by end of Question Time
 # WA: Written Answer
 # OS: Oral Statement
 # BP: Bill

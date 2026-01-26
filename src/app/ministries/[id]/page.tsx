@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, use } from 'react'
-import SectionCard from '@/components/SectionCard'
+import QuestionCard from '@/components/QuestionCard'
 import type { Section } from '@/types'
 
 interface MinistryDetail {
@@ -68,16 +68,16 @@ export default function MinistryDetailPage({
 
             <section>
                 <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-white">
-                    Related Sections ({ministry.sections.length})
+                    Related Questions ({ministry.sections.length})
                 </h2>
                 {ministry.sections.length === 0 ? (
                     <p className="py-8 text-center text-zinc-500 dark:text-zinc-400">
-                        No sections found for this ministry
+                        No questions found for this ministry
                     </p>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2">
                         {ministry.sections.map((section) => (
-                            <SectionCard key={section.id} section={section} />
+                            <QuestionCard key={section.id} question={section} />
                         ))}
                     </div>
                 )}
