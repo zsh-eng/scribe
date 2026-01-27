@@ -10,7 +10,7 @@ from util import parse_mp_name, extract_name_from_speaker_text, clean_html_for_d
 # OS: Oral Statement
 # BP: Bill
 # WS: Written Statement
-# BI: 
+# BI: Bill 
 QUESTION_SECTION_TYPES = {'OA', 'WA', 'WANA'}
 
 
