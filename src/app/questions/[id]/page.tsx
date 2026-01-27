@@ -77,19 +77,25 @@ export default function QuestionDetailPage({
                         <span className="rounded bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                             {typeLabel}
                         </span>
-                        {question.ministry && (
-                            <span className="rounded bg-green-100 px-3 py-1 text-sm font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        {question.ministry && question.ministryId && (
+                            <Link
+                                href={`/ministries/${question.ministryId}`}
+                                className="rounded bg-green-100 px-3 py-1 text-sm font-medium text-green-700 transition-colors hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
+                            >
                                 {question.ministryName || question.ministry}
-                            </span>
+                            </Link>
                         )}
-                        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                        <Link
+                            href={`/sessions/${question.sessionId}`}
+                            className="text-sm text-zinc-500 transition-colors hover:text-blue-600 hover:underline dark:text-zinc-400 dark:hover:text-blue-400"
+                        >
                             {new Date(question.sessionDate).toLocaleDateString('en-SG', {
                                 weekday: 'long',
                                 year: 'numeric',
                                 month: 'long',
                                 day: 'numeric',
                             })}
-                        </span>
+                        </Link>
                     </div>
                     <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
                         {question.sectionTitle}
