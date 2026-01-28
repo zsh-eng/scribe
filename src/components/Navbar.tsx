@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useCallback } from 'react'
+import { useState, useCallback } from 'react'
 
 // Map routes to their API endpoints for prefetching
 const prefetchMap: Record<string, string> = {
@@ -15,6 +15,7 @@ const prefetchMap: Record<string, string> = {
 
 export default function Navbar() {
     const pathname = usePathname()
+    const [isMenuOpen, setIsMenuOpen] = useState(false)
 
     const navLinks = [
         { href: '/', label: 'Home' },
@@ -40,7 +41,9 @@ export default function Navbar() {
                 <Link href="/" className="text-xl font-bold text-zinc-900">
                     🇸🇬 Parliament
                 </Link>
-                <div className="flex items-center gap-6">
+
+                {/* Desktop Navigation */}
+                <div className="hidden items-center gap-6 md:flex">
                     {navLinks.map((link) => (
                         <Link
                             key={link.href}
@@ -55,7 +58,50 @@ export default function Navbar() {
                         </Link>
                     ))}
                 </div>
+
+                {/* Mobile Menu Button */}
+                <button
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="rounded-md p-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 md:hidden"
+                    aria-label="Toggle menu"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-6 w-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        {isMenuOpen ? (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        ) : (
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        )}
+                    </svg>
+                </button>
             </div>
+
+            {/* Mobile Navigation Dropdown */}
+            {isMenuOpen && (
+                <div className="border-t border-zinc-100 bg-white px-4 py-4 md:hidden">
+                    <div className="flex flex-col gap-4">
+                        {navLinks.map((link) => (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                onClick={() => setIsMenuOpen(false)}
+                                onMouseEnter={() => handlePrefetch(link.href)}
+                                className={`text-base font-medium transition-colors ${pathname === link.href
+                                    ? 'text-blue-600'
+                                    : 'text-zinc-600 hover:text-zinc-900'
+                                    }`}
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
         </nav>
     )
 }
