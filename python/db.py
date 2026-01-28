@@ -66,6 +66,7 @@ def add_session_attendance(session_id, member_id, present=True, constituency=Non
     )
 
 def find_or_create_bill(title, ministry_id=None, first_reading_date=None, first_reading_session_id=None):
+    title = title.strip()
     result = execute_query(
         'SELECT id, first_reading_date, ministry_id FROM bills WHERE title = %s',
         (title,),
