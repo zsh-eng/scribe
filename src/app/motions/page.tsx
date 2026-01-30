@@ -3,7 +3,7 @@ import QuestionFilters from '@/components/QuestionFilters'
 import { query } from '@/lib/db'
 import type { Section, Speaker } from '@/types'
 
-export default async function QuestionsPage({
+export default async function MotionsPage({
     searchParams,
 }: {
     searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -41,8 +41,7 @@ export default async function QuestionsPage({
         LEFT JOIN ministries m ON s.ministry_id = m.id
         LEFT JOIN section_speakers ss ON s.id = ss.section_id
         LEFT JOIN members mem ON ss.member_id = mem.id
-        WHERE (s.category = 'question' OR s.category IS NULL)
-            AND s.section_type NOT IN ('BI', 'BP')
+        WHERE s.category IN ('motion', 'adjournment_motion')
     `
 
     const sqlParams: (string | number)[] = []
@@ -64,7 +63,7 @@ export default async function QuestionsPage({
     sqlParams.push(limit)
 
     const result = await query(sql, sqlParams)
-    const questions: Section[] = result.rows.map(row => ({
+    const motions: Section[] = result.rows.map(row => ({
         ...row,
         speakers: row.speakers as Speaker[]
     }))
@@ -73,28 +72,31 @@ export default async function QuestionsPage({
         <div>
             <header className="mb-8">
                 <h1 className="mb-2 text-3xl font-bold text-zinc-900">
-                    Questions
+                    Motions
                 </h1>
                 <p className="text-zinc-600">
-                    Browse and search parliamentary questions.
+                    Browse and search parliamentary motions, including adjournment motions and ministerial statements.
                 </p>
             </header>
 
-            <QuestionFilters initialSearch={search} />
+            <QuestionFilters
+                initialSearch={search}
+                placeholder="Search motions..."
+            />
 
             <section>
                 <h2 className="mb-4 text-xl font-semibold text-zinc-900">
-                    {search ? `Search Results for "${search}"` : 'Recent Questions'}
+                    {search ? `Search Results for "${search}"` : 'Recent Motions'}
                 </h2>
 
-                {questions.length === 0 ? (
+                {motions.length === 0 ? (
                     <p className="py-12 text-center text-zinc-500">
-                        {search ? `No questions found matching "${search}"` : 'No questions found'}
+                        {search ? `No motions found matching "${search}"` : 'No motions found'}
                     </p>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2">
-                        {questions.map((question) => (
-                            <QuestionCard key={question.id} question={question} showContent={false} />
+                        {motions.map((motion) => (
+                            <QuestionCard key={motion.id} question={motion} showContent={false} />
                         ))}
                     </div>
                 )}

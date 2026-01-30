@@ -7,6 +7,7 @@ import { useState, useCallback } from 'react'
 // Map routes to their API endpoints for prefetching
 const prefetchMap: Record<string, string> = {
     '/sessions': '/api/sessions?page=1&limit=20',
+    '/motions': '/api/sections?limit=50',
     '/questions': '/api/sections?limit=50',
     '/bills': '/api/bills?limit=50',
     '/members': '/api/members?page=1&limit=20',
@@ -20,8 +21,9 @@ export default function Navbar() {
     const navLinks = [
         { href: '/', label: 'Home' },
         { href: '/sessions', label: 'Sessions' },
-        { href: '/questions', label: 'Questions' },
+        { href: '/motions', label: 'Motions' },
         { href: '/bills', label: 'Bills' },
+        { href: '/questions', label: 'Questions' },
         { href: '/members', label: 'MPs' },
         { href: '/ministries', label: 'Ministries' },
     ]
