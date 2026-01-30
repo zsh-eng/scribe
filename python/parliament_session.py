@@ -178,15 +178,17 @@ class ParliamentSession:
     def _extract_speakers_from_html(self, html_content: str) -> Set[str]:
         """Extract speaker text from <strong> or <b> tags in HTML."""
         speakers = set()
-        # Pattern for new format: <strong>Name</strong>
-        pattern_strong = r'<strong>\s*(.+?)\s*</strong>'
+        # Pattern for format: <strong style="...">Name</strong> or <strong>Name</strong>
+        pattern_strong = r'<strong[^>]*>\s*(.+?)\s*</strong>'
         # Pattern for old format: <b>Name</b>
-        pattern_bold = r'<b>\s*(.+?)\s*</b>'
+        pattern_bold = r'<b[^>]*>\s*(.+?)\s*</b>'
         
         for pattern in [pattern_strong, pattern_bold]:
-            matches = re.finditer(pattern, html_content)
+            matches = re.finditer(pattern, html_content, re.IGNORECASE)
             for match in matches:
                 speaker = match.group(1).strip()
+                # Remove nested tags if any (e.g. <span> inside strong)
+                speaker = re.sub(r'<[^>]+>', '', speaker)
                 speaker = speaker.replace('&nbsp;', ' ')
                 speaker = re.sub(r'\s+', ' ', speaker)
                 # Remove trailing colon often found in old format e.g. "<b>Name:</b>"
@@ -209,6 +211,22 @@ class ParliamentSession:
                 continue
             
             title = section.get('title', 'Untitled')
+            # Determine category early for logic checks
+            report_type = section.get('reportType', '')
+            
+            if 'clarification' in title.lower():
+                category = 'clarification'
+            elif report_type == 'Matter Raised On Adjournment Motion':
+                category = 'adjournment_motion'
+            elif section_type in QUESTION_SECTION_TYPES:
+                category = 'question'
+            elif section_type in BILL_TYPES:
+                category = 'bill'
+            elif section_type in STATEMENT_TYPES:
+                category = 'motion' # Renamed from statement to motion
+            else:
+                category = 'other'
+
             content_html = section.get('content', '')
             if not content_html:
                 continue
@@ -220,8 +238,7 @@ class ParliamentSession:
             # For statements (OS, WS), filter out procedural/short content
             if section_type in STATEMENT_TYPES:
                 # Check minimum length (except if it's explicitly adjournment motion)
-                report_type = section.get('reportType', '')
-                is_adjournment = report_type == 'Matter Raised On Adjournment Motion'
+                is_adjournment = category == 'adjournment_motion'
                 
                 if not is_adjournment and len(content_plain) < MIN_CONTENT_LENGTH:
                     continue
@@ -239,7 +256,6 @@ class ParliamentSession:
                 
                 # Exclude if meaningful
                 if not is_adjournment and any(keyword in title_lower for keyword in extended_keywords):
-                     # Double check it's not an adjournment motion titled "Adjournment" (unlikely given reportType check)
                      continue
             
             # Extract and match speakers
@@ -250,8 +266,17 @@ class ParliamentSession:
                 mp = self.match_speaker(speaker_text)
                 if mp:
                     # Avoid duplicates and Speaker (who is not involved in PQs)
-                    if mp not in matched_speakers and mp.appointment != "Speaker":
-                        matched_speakers.append(mp)
+                    if mp in matched_speakers or mp.appointment == "Speaker":
+                        continue
+                        
+                    # EXCLUSION: For Adjournment Motions, exclude Leader/Deputy Leader of the House
+                    # because they only say "General/Procedural" lines like "I beg to move".
+                    if category == 'adjournment_motion':
+                        appt_lower = (mp.appointment or "").lower()
+                        if "leader of the house" in appt_lower:
+                            continue
+                            
+                    matched_speakers.append(mp)
             
             # Construct source URL
             section_id = section.get('sectionId')

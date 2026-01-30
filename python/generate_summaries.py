@@ -232,7 +232,7 @@ async def generate_member_summaries(only_blanks):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: uv run generate_summaries.py --sessions [START_DATE [END_DATE]] --members --only-blank")
+        print("Usage: uv run generate_summaries.py [--sessions] [START_DATE [END_DATE]] [--members] [--only-blank]")
         print("Example: uv run generate_summaries.py --sessions 01-10-2024")
         sys.exit(1)
         
@@ -243,9 +243,9 @@ if __name__ == "__main__":
     summarize_members = '--members' in flags
     only_blank = '--only-blank' in flags # only generate summaries for rows with no summaries
     
-    # Only one of summarize sessions and summarize_members can be true i.e. XNOR
+    # Exactly one of summarize sessions and summarize_members can be specified i.e. XNOR
     if ((not summarize_sessions) or summarize_members) and (summarize_sessions or (not summarize_members)):
-        print("Error: only one of --sessions and --members can be specified")
+        print("Error: Exactly one of --sessions and --members can be specified")
         sys.exit(1)
     
     if summarize_members:

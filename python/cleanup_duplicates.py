@@ -6,7 +6,7 @@ from db_async import execute, close_pool
 
 load_dotenv()
 
-async def cleanup(start_date_str, end_date_str):
+async def cleanup(start_date_str, end_date_str, keep_newest=False):
     start_date = datetime.strptime(start_date_str, '%d-%m-%Y').date()
     end_date = datetime.strptime(end_date_str, '%d-%m-%Y').date()
 
@@ -29,12 +29,12 @@ async def cleanup(start_date_str, end_date_str):
     # We identify duplicates by (session_id, section_title, section_type)
     # We keep the one with the oldest created_at (or just pick one if timestamps are identical)
     
-    cleanup_query = """
+    cleanup_query = f"""
     WITH duplicates AS (
         SELECT id,
                ROW_NUMBER() OVER (
                    PARTITION BY session_id, section_title, section_type 
-                   ORDER BY created_at ASC, id ASC
+                   ORDER BY created_at {'DESC' if keep_newest else 'ASC'}, id ASC
                ) as rnum
         FROM sections
         WHERE session_id = ANY($1::uuid[])
@@ -53,11 +53,15 @@ async def cleanup(start_date_str, end_date_str):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: uv run cleanup_duplicates.py START_DATE [END_DATE]")
+        print("Usage: uv run cleanup_duplicates.py START_DATE [END_DATE] [--keep-newest]")
         print("Example: uv run cleanup_duplicates.py 22-09-2025")
         sys.exit(1)
-        
-    start = sys.argv[1]
-    end = sys.argv[2] if len(sys.argv) > 2 else start
     
-    asyncio.run(cleanup(start, end))
+    args = sys.argv[1:]
+    dates = [arg for arg in args if not arg.startswith('--')]
+
+    start = dates[0]
+    end = dates[1] if len(dates) > 1 else start
+    keep_newest = "--keep-newest" in args
+    
+    asyncio.run(cleanup(start, end, keep_newest))

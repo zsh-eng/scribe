@@ -50,8 +50,6 @@ class HansardAPI:
             raise ValueError("Unknown format")
     
 
-
-# Test
 if __name__ == '__main__':
     api = HansardAPI()
     
