@@ -11,7 +11,7 @@ export default async function MotionsPage({
     const params = await searchParams
     const search = typeof params.search === 'string' ? params.search : ''
     const sort = typeof params.sort === 'string' ? params.sort : 'relevance'
-    const limit = 50
+    const limit = 20
 
     const sqlParams: (string | number)[] = []
     let paramCount = 1
