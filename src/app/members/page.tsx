@@ -28,7 +28,11 @@ export default async function MembersPage({
     let whereClause = '1=1'
 
     if (search) {
-        whereClause += ` AND mv.name ILIKE $${paramCount}`
+        whereClause += ` AND (
+            mv.name ILIKE $${paramCount} OR 
+            mv.constituency ILIKE $${paramCount} OR 
+            mv.designation ILIKE $${paramCount}
+        )`
         sqlParams.push(`%${search}%`)
         paramCount++
     }
