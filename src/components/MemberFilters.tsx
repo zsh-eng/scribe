@@ -62,7 +62,7 @@ export default function MemberFilters({
         <div className="flex flex-col gap-4 sm:flex-row">
             <div className="flex-1">
                 <SearchBar
-                    placeholder="Search members by name..."
+                    placeholder="Search MP profiles..."
                     onSearch={handleSearch}
                     defaultValue={searchQuery}
                 />
