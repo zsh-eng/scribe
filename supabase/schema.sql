@@ -149,3 +149,44 @@ LEFT JOIN section_speakers ss ON s.id = ss.section_id
 LEFT JOIN members m ON ss.member_id = m.id
 GROUP BY s.id, sess.date, m_min.acronym
 ORDER BY sess.date DESC, s.section_order ASC;
+
+-- Materialized View: Member List View (Efficient aggregation for Member Directory)
+-- Refreshed periodically to support search/filter on aggregated fields
+CREATE MATERIALIZED VIEW member_list_view AS
+WITH latestspeakerinfo AS (
+    SELECT DISTINCT ON (ss.member_id) ss.member_id,
+    ss.constituency AS speaker_constituency,
+    ss.designation AS speaker_designation
+    FROM section_speakers ss
+    JOIN sections s ON ss.section_id = s.id
+    JOIN sessions sess ON s.session_id = sess.id
+    WHERE ss.constituency IS NOT NULL OR ss.designation IS NOT NULL
+    ORDER BY ss.member_id, sess.date DESC
+), latestattendanceinfo AS (
+    SELECT DISTINCT ON (sa.member_id) sa.member_id,
+    sa.constituency AS attendance_constituency,
+    sa.designation AS attendance_designation
+    FROM session_attendance sa
+    JOIN sessions sess ON sa.session_id = sess.id
+    WHERE sa.constituency IS NOT NULL OR sa.designation IS NOT NULL
+    ORDER BY sa.member_id, sess.date DESC
+), membersectioncounts AS (
+    SELECT section_speakers.member_id,
+    count(DISTINCT section_speakers.section_id) AS section_count
+    FROM section_speakers
+    GROUP BY section_speakers.member_id
+)
+SELECT m.id,
+    m.name,
+    ms.summary,
+    COALESCE(msc.section_count, 0) AS section_count,
+    COALESCE(lsi.speaker_constituency, lai.attendance_constituency) AS constituency,
+    COALESCE(lsi.speaker_designation, lai.attendance_designation) AS designation
+FROM members m
+LEFT JOIN member_summaries ms ON m.id = ms.member_id
+LEFT JOIN latestspeakerinfo lsi ON m.id = lsi.member_id
+LEFT JOIN latestattendanceinfo lai ON m.id = lai.member_id
+LEFT JOIN membersectioncounts msc ON m.id = msc.member_id;
+
+-- Index for Member List View refreshing/concurrency
+CREATE UNIQUE INDEX idx_member_list_view_id ON member_list_view(id);

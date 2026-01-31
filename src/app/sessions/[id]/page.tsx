@@ -109,7 +109,7 @@ export default function SessionDetailPage({
             <div className="py-12 text-center">
                 <p className="text-red-500">{error || 'Session not found'}</p>
                 <Link href="/sessions" className="mt-4 text-blue-500 hover:underline">
-                    ← Back to Sessions
+                    ← Back to Sittings
                 </Link>
             </div>
         )
@@ -121,7 +121,7 @@ export default function SessionDetailPage({
     return (
         <main className="container mx-auto px-4 py-8">
             <Link href="/sessions" className="mb-6 inline-flex items-center text-sm text-blue-600 hover:underline">
-                ← Back to Sessions
+                ← Back to Sittings
             </Link>
 
             <header className="mb-8">

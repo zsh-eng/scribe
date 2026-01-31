@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 
+// Session filters component
 export default function SessionFilters({
     initialStartDate = '',
     initialEndDate = ''

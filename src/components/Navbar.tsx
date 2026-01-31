@@ -20,7 +20,7 @@ export default function Navbar() {
 
     const navLinks = [
         { href: '/', label: 'Home' },
-        { href: '/sessions', label: 'Sessions' },
+        { href: '/sessions', label: 'Sittings' },
         { href: '/motions', label: 'Motions' },
         { href: '/bills', label: 'Bills' },
         { href: '/questions', label: 'Questions' },
@@ -41,7 +41,7 @@ export default function Navbar() {
         <nav className="sticky top-0 z-50 border-b border-zinc-200 bg-white/80 backdrop-blur-sm">
             <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
                 <Link href="/" className="text-xl font-bold text-zinc-900">
-                    🇸🇬 Parliament
+                    📜 Scribe
                 </Link>
 
                 {/* Desktop Navigation */}

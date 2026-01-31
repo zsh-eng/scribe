@@ -82,10 +82,10 @@ export default async function SessionsPage({
     return (
         <div>
             <h1 className="mb-2 text-3xl font-bold text-zinc-900">
-                Parliament Sessions
+                Parliament Sittings
             </h1>
             <p className="mb-6 text-zinc-600">
-                Browse parliamentary sessions and their readings.
+                Browse parliamentary sittings and their readings.
             </p>
 
             <SessionFilters
