@@ -91,6 +91,7 @@ If you wish to replicate Scribe independently, you can follow the steps below.
 - `src/components`: Reusable React components (MemberCard, Pagination, Filters).
 - `src/lib`: Utility functions and database connection.
 - `python`: Data ingestion and processing scripts.
+- `supabase`: Database schema and migrations.
 
 ## Note on summary generation
 The choice to use Llama 3.1 via the Groq API was entirely due to its generous API limits (and my lack of credits for other providers' APIs). If you are using this code and would like to use some other API, simply paste your API key into the `.env` file and modify the first few lines of `generate_summaries.py` to set up the OpenAI client with the model and provider of your choice.
