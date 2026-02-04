@@ -14,6 +14,28 @@ const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 ---
 
+<style>
+    /* Enable cross-document view transitions */
+    @view-transition {
+        navigation: auto;
+    }
+
+    .nav-link {
+        position: relative;
+    }
+
+    .nav-link.active::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -2px;
+        height: 2px;
+        background: var(--accent);
+        view-transition-name: nav-underline;
+    }
+</style>
+
 <nav
     class="sticky top-0 z-50 border-b border-border bg-page-bg/90 backdrop-blur-md"
 >
@@ -35,10 +57,10 @@ const isActive = (href: string) =>
                     <a
                         href={link.href}
                         class:list={[
-                            "font-sans text-xs uppercase tracking-wide transition-colors pb-0.5",
+                            "nav-link font-sans text-xs uppercase tracking-wide transition-colors pb-0.5",
                             isActive(link.href)
-                                ? "text-accent font-semibold border-b-2 border-accent"
-                                : "text-ink-muted hover:text-accent border-b-2 border-transparent",
+                                ? "active text-accent font-semibold"
+                                : "text-ink-muted hover:text-accent",
                         ]}
                     >
                         {link.label}
