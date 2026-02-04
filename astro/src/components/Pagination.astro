@@ -1,206 +1,186 @@
 ---
 interface Props {
-    containerId: string;
-    itemSelector: string;
-    itemsPerPage?: number;
+  containerId: string;
+  itemSelector: string;
+  itemsPerPage?: number;
 }
 
 const { containerId, itemSelector, itemsPerPage = 20 } = Astro.props;
 ---
 
 <div
-    class="pagination-controls flex items-center justify-center gap-4 py-6"
-    data-container={containerId}
-    data-selector={itemSelector}
-    data-per-page={itemsPerPage}
+  class="pagination-controls flex items-center justify-center gap-4 py-6"
+  data-container={containerId}
+  data-selector={itemSelector}
+  data-per-page={itemsPerPage}
 >
-    <button
-        class="pagination-prev flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
-        disabled
+  <button
+    class="pagination-prev flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
+    disabled
+  >
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.5"
+        d="M15 19l-7-7 7-7"></path>
+    </svg>
+    Previous
+  </button>
+  <span class="pagination-info font-ui text-sm text-ink/50">
+    Page <span class="pagination-current font-medium text-ink">1</span> of <span
+      class="pagination-total font-medium text-ink">1</span
     >
-        <svg
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-        >
-            <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M15 19l-7-7 7-7"></path>
-        </svg>
-        Previous
-    </button>
-    <span class="pagination-info font-ui text-sm text-ink/50">
-        Page <span class="pagination-current font-medium text-ink">1</span> of <span
-            class="pagination-total font-medium text-ink">1</span
-        >
-    </span>
-    <button
-        class="pagination-next flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
-    >
-        Next
-        <svg
-            class="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-        >
-            <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M9 5l7 7-7 7"></path>
-        </svg>
-    </button>
+  </span>
+  <button
+    class="pagination-next flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
+  >
+    Next
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.5"
+        d="M9 5l7 7-7 7"></path>
+    </svg>
+  </button>
 </div>
 
 <script>
-    function initPagination() {
-        document
-            .querySelectorAll(".pagination-controls")
-            .forEach((controls) => {
-                const containerId = controls.getAttribute("data-container");
-                const selector = controls.getAttribute("data-selector");
-                const perPage = parseInt(
-                    controls.getAttribute("data-per-page") || "20",
-                    10,
-                );
+  function initPagination() {
+    document.querySelectorAll(".pagination-controls").forEach((controls) => {
+      const containerId = controls.getAttribute("data-container");
+      const selector = controls.getAttribute("data-selector");
+      const perPage = parseInt(
+        controls.getAttribute("data-per-page") || "20",
+        10,
+      );
 
-                const container = document.getElementById(containerId!);
-                if (!container) return;
+      const container = document.getElementById(containerId!);
+      if (!container) return;
 
-                const allItems = Array.from(container.querySelectorAll(selector!)) as HTMLElement[];
-                let currentPage = 1;
-                let isSearchActive = false;
+      const allItems = Array.from(
+        container.querySelectorAll(selector!),
+      ) as HTMLElement[];
+      let currentPage = 1;
+      let isSearchActive = false;
 
-                // Remove animation classes after initial load to prevent re-animation on page change
-                // Wait for animations to complete (longest delay + animation duration)
-                setTimeout(() => {
-                    allItems.forEach((item) => {
-                        item.classList.remove('animate-fade-up', 'animate-fade-in', 'animate-slide-down');
-                        item.style.animationDelay = '';
-                    });
-                }, 1000); // Allow time for staggered animations to complete
+      // Remove animation classes after initial load to prevent re-animation on page change
+      // Wait for animations to complete (longest delay + animation duration)
+      setTimeout(() => {
+        allItems.forEach((item) => {
+          item.classList.remove(
+            "animate-fade-up",
+            "animate-fade-in",
+            "animate-slide-down",
+          );
+          item.style.animationDelay = "";
+        });
+      }, 1000); // Allow time for staggered animations to complete
 
-                // Clone buttons to remove any existing event listeners from previous initializations
-                let prevBtn = controls.querySelector(
-                    ".pagination-prev",
-                ) as HTMLButtonElement;
-                let nextBtn = controls.querySelector(
-                    ".pagination-next",
-                ) as HTMLButtonElement;
-                const currentSpan = controls.querySelector(
-                    ".pagination-current",
-                );
-                const totalSpan = controls.querySelector(".pagination-total");
+      // Clone buttons to remove any existing event listeners from previous initializations
+      let prevBtn = controls.querySelector(
+        ".pagination-prev",
+      ) as HTMLButtonElement;
+      let nextBtn = controls.querySelector(
+        ".pagination-next",
+      ) as HTMLButtonElement;
+      const currentSpan = controls.querySelector(".pagination-current");
+      const totalSpan = controls.querySelector(".pagination-total");
 
-                // Replace buttons with clones to clear old event listeners
-                if (prevBtn) {
-                    const newPrevBtn = prevBtn.cloneNode(
-                        true,
-                    ) as HTMLButtonElement;
-                    prevBtn.parentNode?.replaceChild(newPrevBtn, prevBtn);
-                    prevBtn = newPrevBtn;
-                }
-                if (nextBtn) {
-                    const newNextBtn = nextBtn.cloneNode(
-                        true,
-                    ) as HTMLButtonElement;
-                    nextBtn.parentNode?.replaceChild(newNextBtn, nextBtn);
-                    nextBtn = newNextBtn;
-                }
+      // Replace buttons with clones to clear old event listeners
+      if (prevBtn) {
+        const newPrevBtn = prevBtn.cloneNode(true) as HTMLButtonElement;
+        prevBtn.parentNode?.replaceChild(newPrevBtn, prevBtn);
+        prevBtn = newPrevBtn;
+      }
+      if (nextBtn) {
+        const newNextBtn = nextBtn.cloneNode(true) as HTMLButtonElement;
+        nextBtn.parentNode?.replaceChild(newNextBtn, nextBtn);
+        nextBtn = newNextBtn;
+      }
 
-                function getVisibleItems(): HTMLElement[] {
-                    if (isSearchActive) {
-                        // Only include items not hidden by search
-                        return allItems.filter(item => !item.hasAttribute('data-search-hidden'));
-                    }
-                    return allItems;
-                }
+      function getVisibleItems(): HTMLElement[] {
+        if (isSearchActive) {
+          // Only include items not hidden by search
+          return allItems.filter(
+            (item) => !item.hasAttribute("data-search-hidden"),
+          );
+        }
+        return allItems;
+      }
 
-                function updateDisplay() {
-                    const visibleItems = getVisibleItems();
-                    const totalPages = Math.ceil(visibleItems.length / perPage);
-                    
-                    // Ensure current page is valid
-                    if (currentPage > totalPages) {
-                        currentPage = Math.max(1, totalPages);
-                    }
+      function updateDisplay() {
+        const visibleItems = getVisibleItems();
+        const totalPages = Math.ceil(visibleItems.length / perPage);
 
-                    // Hide all items first
-                    allItems.forEach((item) => {
-                        item.style.display = 'none';
-                    });
+        // Ensure current page is valid
+        if (currentPage > totalPages) {
+          currentPage = Math.max(1, totalPages);
+        }
 
-                    // Show items for current page (only from visible items)
-                    const start = (currentPage - 1) * perPage;
-                    const end = start + perPage;
-                    visibleItems.forEach((item, index) => {
-                        if (index >= start && index < end) {
-                            item.style.display = '';
-                        }
-                    });
+        // Hide all items first
+        allItems.forEach((item) => {
+          item.style.display = "none";
+        });
 
-                    if (currentSpan)
-                        currentSpan.textContent = String(currentPage);
-                    if (totalSpan) totalSpan.textContent = String(totalPages || 1);
+        // Show items for current page (only from visible items)
+        const start = (currentPage - 1) * perPage;
+        const end = start + perPage;
+        visibleItems.forEach((item, index) => {
+          if (index >= start && index < end) {
+            item.style.display = "";
+          }
+        });
 
-                    prevBtn.disabled = currentPage === 1;
-                    nextBtn.disabled =
-                        currentPage === totalPages || totalPages === 0;
-                    
-                    // Hide pagination if only one page or no items
-                    if (totalPages <= 1) {
-                        (controls as HTMLElement).style.display = "none";
-                    } else {
-                        (controls as HTMLElement).style.display = "";
-                    }
-                }
+        if (currentSpan) currentSpan.textContent = String(currentPage);
+        if (totalSpan) totalSpan.textContent = String(totalPages || 1);
 
-                prevBtn?.addEventListener("click", () => {
-                    if (currentPage > 1) {
-                        currentPage--;
-                        updateDisplay();
-                        container.scrollIntoView({
-                            behavior: "smooth",
-                            block: "start",
-                        });
-                    }
-                });
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages || totalPages === 0;
 
-                nextBtn?.addEventListener("click", () => {
-                    const visibleItems = getVisibleItems();
-                    const totalPages = Math.ceil(visibleItems.length / perPage);
-                    if (currentPage < totalPages) {
-                        currentPage++;
-                        updateDisplay();
-                        container.scrollIntoView({
-                            behavior: "smooth",
-                            block: "start",
-                        });
-                    }
-                });
+        // Hide pagination if only one page or no items
+        if (totalPages <= 1) {
+          (controls as HTMLElement).style.display = "none";
+        } else {
+          (controls as HTMLElement).style.display = "";
+        }
+      }
 
-                // Listen for search events from SearchFilter component
-                container.addEventListener('search-updated', () => {
-                    isSearchActive = true;
-                    currentPage = 1;
-                    updateDisplay();
-                });
+      prevBtn?.addEventListener("click", () => {
+        if (currentPage > 1) {
+          currentPage--;
+          updateDisplay();
+        }
+      });
 
-                container.addEventListener('search-cleared', () => {
-                    isSearchActive = false;
-                    currentPage = 1;
-                    updateDisplay();
-                });
+      nextBtn?.addEventListener("click", () => {
+        const visibleItems = getVisibleItems();
+        const totalPages = Math.ceil(visibleItems.length / perPage);
+        if (currentPage < totalPages) {
+          currentPage++;
+          updateDisplay();
+        }
+      });
 
-                updateDisplay();
-            });
-    }
+      // Listen for search events from SearchFilter component
+      container.addEventListener("search-updated", () => {
+        isSearchActive = true;
+        currentPage = 1;
+        updateDisplay();
+      });
 
-    // Run on page load and view transitions
-    initPagination();
-    document.addEventListener("astro:after-swap", initPagination);
+      container.addEventListener("search-cleared", () => {
+        isSearchActive = false;
+        currentPage = 1;
+        updateDisplay();
+      });
+
+      updateDisplay();
+    });
+  }
+
+  // Run on page load and view transitions
+  initPagination();
+  document.addEventListener("astro:after-swap", initPagination);
 </script>
