@@ -5,6 +5,7 @@ import MemberCard from '../../components/MemberCard.astro';
 import { getMembersWithInfo, getMemberCount } from '../../lib/db';
 
 const members = getMembersWithInfo();
+const STAGGER_LIMIT = 12;
 const totalCount = getMemberCount();
 ---
 
@@ -29,11 +30,17 @@ const totalCount = getMemberCount();
         No members found
       </p>
     ) : (
-      members.map((member, i) => (
-        <div class="member-item animate-fade-up" style={`animation-delay: ${0.1 + i * 0.03}s`}>
-          <MemberCard member={member} />
-        </div>
-      ))
+      members.map((member, i) => {
+        const isStaggered = i < STAGGER_LIMIT;
+        return (
+          <div
+            class={`member-item${isStaggered ? ' animate-fade-up' : ''}`}
+            style={isStaggered ? `animation-delay: ${0.1 + i * 0.03}s` : undefined}
+          >
+            <MemberCard member={member} />
+          </div>
+        );
+      })
     )}
   </div>
 
