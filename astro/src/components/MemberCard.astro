@@ -28,7 +28,7 @@ const attendancePercent = member.attendanceTotal && member.attendanceTotal > 0
 
 <a
   href={`/members/${member.id}`}
-  class="group flex gap-4 items-start p-4 bg-surface border border-border rounded-md transition-all hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
+  class="group flex h-full gap-4 items-start p-4 bg-surface border border-border rounded-md transition-all hover:-translate-y-0.5 hover:shadow-md cursor-pointer"
   data-pagefind-meta={`id:${member.id}`}
 >
   <Avatar name={member.name} party={party || undefined} />

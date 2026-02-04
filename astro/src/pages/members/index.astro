@@ -42,7 +42,7 @@ const totalCount = getMemberCount();
         const isStaggered = i < STAGGER_LIMIT;
         return (
           <div
-            class={`member-item${isStaggered ? ' animate-fade-up' : ''}`}
+            class={`member-item h-full${isStaggered ? ' animate-fade-up' : ''}`}
             style={isStaggered ? `animation-delay: ${0.1 + i * 0.03}s` : undefined}
           >
             <MemberCard member={member} />
