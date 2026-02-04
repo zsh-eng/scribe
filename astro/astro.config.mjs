@@ -1,5 +1,6 @@
 // @ts-check
 import { defineConfig } from "astro/config";
+import cloudflare from "@astrojs/cloudflare";
 import tailwind from "@astrojs/tailwind";
 import pagefind from "astro-pagefind";
 
@@ -9,5 +10,6 @@ export default defineConfig({
   build: {
     format: "file",
   },
+  adapter: cloudflare(),
   integrations: [tailwind(), pagefind()],
 });
