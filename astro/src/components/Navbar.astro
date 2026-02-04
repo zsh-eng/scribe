@@ -2,99 +2,122 @@
 const pathname = Astro.url.pathname;
 
 const navLinks = [
-  { href: '/sessions', label: 'Sittings' },
-  { href: '/bills', label: 'Bills' },
-  { href: '/questions', label: 'Questions' },
-  { href: '/motions', label: 'Motions' },
-  { href: '/members', label: 'MPs' },
-  { href: '/ministries', label: 'Ministries' },
+    { href: "/sessions", label: "Sittings" },
+    { href: "/bills", label: "Bills" },
+    { href: "/questions", label: "Questions" },
+    { href: "/motions", label: "Motions" },
+    { href: "/members", label: "MPs" },
+    { href: "/ministries", label: "Ministries" },
 ];
 
-const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
+const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
 ---
 
-<nav class="sticky top-0 z-50 border-b border-border bg-page-bg/90 backdrop-blur-md animate-slide-down">
-  <div class="mx-auto flex h-14 max-w-content items-center justify-between px-6">
-    <!-- Logo -->
-    <a href="/" class="font-display text-xl text-ink tracking-tight no-underline hover:text-ink">
-      <span class="text-accent">S</span>cribe
-    </a>
-
-    <!-- Desktop Navigation -->
-    <div class="hidden items-center gap-6 md:flex">
-      {navLinks.map((link) => (
-        <a
-          href={link.href}
-          class:list={[
-            'font-sans text-xs uppercase tracking-wide transition-colors pb-0.5',
-            isActive(link.href)
-              ? 'text-accent font-semibold border-b-2 border-accent'
-              : 'text-ink-muted hover:text-accent border-b-2 border-transparent'
-          ]}
-        >
-          {link.label}
-        </a>
-      ))}
-    </div>
-
-    <!-- Mobile Menu Button -->
-    <button
-      id="mobile-menu-button"
-      class="rounded-md p-2 text-ink-muted hover:bg-warm hover:text-ink md:hidden"
-      aria-label="Toggle menu"
+<nav
+    class="sticky top-0 z-50 border-b border-border bg-page-bg/90 backdrop-blur-md"
+>
+    <div
+        class="mx-auto flex h-14 max-w-content items-center justify-between px-6"
     >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        id="menu-icon"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-5 w-5 hidden"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        id="close-icon"
-      >
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12" />
-      </svg>
-    </button>
-  </div>
-
-  <!-- Mobile Navigation Dropdown -->
-  <div id="mobile-menu" class="hidden border-t border-border bg-surface px-6 py-4 md:hidden">
-    <div class="flex flex-col gap-4">
-      {navLinks.map((link) => (
+        <!-- Logo -->
         <a
-          href={link.href}
-          class:list={[
-            'font-sans text-sm uppercase tracking-wide transition-colors',
-            isActive(link.href)
-              ? 'text-accent font-semibold'
-              : 'text-ink-muted hover:text-accent'
-          ]}
+            href="/"
+            class="font-display text-xl text-ink tracking-tight no-underline hover:text-ink"
         >
-          {link.label}
+            <span class="text-accent">S</span>cribe
         </a>
-      ))}
+
+        <!-- Desktop Navigation -->
+        <div class="hidden items-center gap-6 md:flex">
+            {
+                navLinks.map((link) => (
+                    <a
+                        href={link.href}
+                        class:list={[
+                            "font-sans text-xs uppercase tracking-wide transition-colors pb-0.5",
+                            isActive(link.href)
+                                ? "text-accent font-semibold border-b-2 border-accent"
+                                : "text-ink-muted hover:text-accent border-b-2 border-transparent",
+                        ]}
+                    >
+                        {link.label}
+                    </a>
+                ))
+            }
+        </div>
+
+        <!-- Mobile Menu Button -->
+        <button
+            id="mobile-menu-button"
+            class="rounded-md p-2 text-ink-muted hover:bg-warm hover:text-ink md:hidden"
+            aria-label="Toggle menu"
+        >
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                id="menu-icon"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5 hidden"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                id="close-icon"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="1.5"
+                    d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
     </div>
-  </div>
+
+    <!-- Mobile Navigation Dropdown -->
+    <div
+        id="mobile-menu"
+        class="hidden border-t border-border bg-surface px-6 py-4 md:hidden"
+    >
+        <div class="flex flex-col gap-4">
+            {
+                navLinks.map((link) => (
+                    <a
+                        href={link.href}
+                        class:list={[
+                            "font-sans text-sm uppercase tracking-wide transition-colors",
+                            isActive(link.href)
+                                ? "text-accent font-semibold"
+                                : "text-ink-muted hover:text-accent",
+                        ]}
+                    >
+                        {link.label}
+                    </a>
+                ))
+            }
+        </div>
+    </div>
 </nav>
 
 <script>
-  const menuButton = document.getElementById('mobile-menu-button');
-  const mobileMenu = document.getElementById('mobile-menu');
-  const menuIcon = document.getElementById('menu-icon');
-  const closeIcon = document.getElementById('close-icon');
+    const menuButton = document.getElementById("mobile-menu-button");
+    const mobileMenu = document.getElementById("mobile-menu");
+    const menuIcon = document.getElementById("menu-icon");
+    const closeIcon = document.getElementById("close-icon");
 
-  menuButton?.addEventListener('click', () => {
-    mobileMenu?.classList.toggle('hidden');
-    menuIcon?.classList.toggle('hidden');
-    closeIcon?.classList.toggle('hidden');
-  });
+    menuButton?.addEventListener("click", () => {
+        mobileMenu?.classList.toggle("hidden");
+        menuIcon?.classList.toggle("hidden");
+        closeIcon?.classList.toggle("hidden");
+    });
 </script>
