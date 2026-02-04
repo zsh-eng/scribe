@@ -11,52 +11,59 @@ const questions = getQuestions(totalCount, 0);
 ---
 
 <Layout
-    title="Questions"
-    description="Browse Singapore Parliament questions and answers"
+  title="Questions"
+  description="Browse Singapore Parliament questions and answers"
 >
-    <SectionLabel>Question Time</SectionLabel>
+  <SectionLabel>Question Time</SectionLabel>
 
-    <h1 class="font-display text-display-lg text-ink mb-4">
-        Parliamentary Questions
-    </h1>
+  <h1 class="font-display text-display-lg text-ink mb-4">
+    Parliamentary Questions
+  </h1>
 
-    <p
-        class="font-body text-base text-ink-soft leading-relaxed max-w-[58ch] mb-8"
-    >
-        Browse parliamentary questions and their answers. Questions can be oral
-        (OA), written (WA), or written without answer (WANA). Click on a
-        question to see the full transcript.
-    </p>
+  <p
+    class="font-body text-base text-ink-soft leading-relaxed max-w-[58ch] mb-8"
+  >
+    Browse parliamentary questions and their answers. Questions can be oral
+    (OA), written (WA), or written without answer (WANA). Click on a question to
+    see the full transcript.
+  </p>
 
-    <SearchFilter 
-        containerId="questions-list"
-        itemSelector=".question-item"
-        contentType="question"
-        placeholder="Search questions by title, speaker, or content..."
-    />
+  <SearchFilter
+    containerId="questions-list"
+    itemSelector=".question-item"
+    contentType="question"
+    placeholder="Search questions by title, speaker, or content..."
+  />
 
-    <p class="font-sans text-sm text-ink-muted mb-6" data-search-count="questions-list">
-        Showing <span id="questions-count">{totalCount}</span> questions
-    </p>
+  <p
+    class="font-sans text-sm text-ink-muted mb-6"
+    data-search-count="questions-list"
+  >
+    Showing <span id="questions-count">{totalCount}</span> questions
+  </p>
 
-    <div id="questions-list" class="flex flex-col border-t border-border">
-        {
-            questions.length === 0 ? (
-                <p class="py-12 text-center font-body text-ink-muted">
-                    No questions found
-                </p>
-            ) : (
-                questions.map((question, i) => (
-                    <div
-                        class="question-item animate-fade-up"
-                        style={`animation-delay: ${0.1 + Math.min(i, 20) * 0.03}s`}
-                    >
-                        <QuestionCard section={question} />
-                    </div>
-                ))
-            )
-        }
-    </div>
+  <div id="questions-list" class="flex flex-col border-t border-border">
+    {
+      questions.length === 0 ? (
+        <p class="py-12 text-center font-body text-ink-muted">
+          No questions found
+        </p>
+      ) : (
+        questions.map((question, i) => (
+          <div
+            class="question-item animate-fade-up"
+            style={`animation-delay: ${0.1 + Math.min(i, 20) * 0.03}s`}
+          >
+            <QuestionCard section={question} />
+          </div>
+        ))
+      )
+    }
+  </div>
 
-    <Pagination containerId="questions-list" itemSelector=".question-item" itemsPerPage={50} />
+  <Pagination
+    containerId="questions-list"
+    itemSelector=".question-item"
+    itemsPerPage={20}
+  />
 </Layout>
