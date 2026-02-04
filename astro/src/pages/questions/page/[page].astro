@@ -1,16 +1,34 @@
 ---
-import Layout from "../../layouts/Layout.astro";
-import SectionLabel from "../../components/SectionLabel.astro";
-import QuestionCard from "../../components/QuestionCard.astro";
-import { getQuestions, getQuestionCount } from "../../lib/db";
+import Layout from "../../../layouts/Layout.astro";
+import SectionLabel from "../../../components/SectionLabel.astro";
+import QuestionCard from "../../../components/QuestionCard.astro";
+import { getQuestions, getQuestionCount } from "../../../lib/db";
 
 const PAGE_SIZE = 100;
-const currentPage = 1;
+
+export async function getStaticPaths() {
+  const pageSize = 100;
+  const totalCount = getQuestionCount();
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+    return Array.from({ length: totalPages }, (_, index) => ({
+        params: { page: String(index + 1) },
+    }));
+}
+
+const pageParam = Astro.params.page;
+const currentPage = Number(pageParam);
 const totalCount = getQuestionCount();
 const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-const questions = getQuestions(PAGE_SIZE, (currentPage - 1) * PAGE_SIZE);
-const rangeStart = totalCount === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-const rangeEnd = Math.min(currentPage * PAGE_SIZE, totalCount);
+const safePage =
+    Number.isFinite(currentPage) && currentPage > 0 ? currentPage : 1;
+const questions = getQuestions(PAGE_SIZE, (safePage - 1) * PAGE_SIZE);
+const rangeStart = totalCount === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+const rangeEnd = Math.min(safePage * PAGE_SIZE, totalCount);
+
+if (safePage > totalPages && totalPages > 0) {
+    return Astro.redirect("/questions");
+}
 ---
 
 <Layout
@@ -60,10 +78,14 @@ const rangeEnd = Math.min(currentPage * PAGE_SIZE, totalCount);
                 class="flex items-center justify-center gap-4 py-6"
                 aria-label="Questions pagination"
             >
-                {currentPage > 1 ? (
+                {safePage > 1 ? (
                     <a
                         class="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent"
-                        href={`/questions/page/${currentPage - 1}`}
+                        href={
+                            safePage === 2
+                                ? "/questions"
+                                : `/questions/page/${safePage - 1}`
+                        }
                     >
                         <svg
                             class="h-4 w-4"
@@ -99,13 +121,13 @@ const rangeEnd = Math.min(currentPage * PAGE_SIZE, totalCount);
                     </span>
                 )}
                 <span class="font-ui text-sm text-ink/50">
-                    Page <span class="font-medium text-ink">{currentPage}</span>{" "}
-                    of <span class="font-medium text-ink">{totalPages}</span>
+                    Page <span class="font-medium text-ink">{safePage}</span> of{" "}
+                    <span class="font-medium text-ink">{totalPages}</span>
                 </span>
-                {currentPage < totalPages ? (
+                {safePage < totalPages ? (
                     <a
                         class="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent"
-                        href={`/questions/page/${currentPage + 1}`}
+                        href={`/questions/page/${safePage + 1}`}
                     >
                         Next
                         <svg
