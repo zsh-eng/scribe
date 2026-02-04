@@ -1,0 +1,39 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import BillCard from '../../components/BillCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getBills, getBillCount } from '../../lib/db';
+
+const bills = getBills();
+const totalCount = getBillCount();
+---
+
+<Layout title="Bills" description="Browse Singapore Parliament bills">
+  <h1 class="mb-2 text-3xl font-bold text-zinc-900">
+    Bills
+  </h1>
+  <p class="mb-6 text-zinc-600">
+    Browse bills introduced in Parliament. Bills go through multiple readings before
+    becoming law. Click on a bill to see its reading timeline, speakers, and full transcripts.
+  </p>
+
+  <p class="mb-4 text-sm text-zinc-500">
+    Showing {bills.length} of {totalCount} bills
+  </p>
+
+  <div id="bills-list" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {bills.length === 0 ? (
+      <p class="col-span-full py-8 text-center text-zinc-500">
+        No bills found
+      </p>
+    ) : (
+      bills.map((bill) => (
+        <div class="bill-item">
+          <BillCard bill={bill} />
+        </div>
+      ))
+    )}
+  </div>
+
+  <Pagination containerId="bills-list" itemSelector=".bill-item" itemsPerPage={24} />
+</Layout>

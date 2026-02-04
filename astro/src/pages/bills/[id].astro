@@ -1,0 +1,189 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AISummaryCard from '../../components/AISummaryCard.astro';
+import SpeakerPills from '../../components/SpeakerPills.astro';
+import { getBills, getBill, getBillSections } from '../../lib/db';
+import type { Speaker } from '../../lib/db';
+
+export async function getStaticPaths() {
+  const bills = getBills();
+  return bills.map((bill) => ({
+    params: { id: bill.id },
+  }));
+}
+
+const { id } = Astro.params;
+const bill = getBill(id);
+
+if (!bill) {
+  return Astro.redirect('/bills');
+}
+
+const sections = getBillSections(id);
+
+// Separate readings
+const firstReadings = sections.filter(s => s.sectionType === 'BI');
+const secondReadings = sections.filter(s => s.sectionType === 'BP');
+
+// Get unique speakers from second readings
+const allSpeakers = secondReadings.flatMap(s => s.speakers || []);
+const uniqueSpeakers = allSpeakers.filter((speaker, index, self) =>
+  speaker && index === self.findIndex(s => s && s.memberId === speaker.memberId)
+);
+
+// Group unique second reading timelines
+const secondReadingTimelines = secondReadings.reduce((acc, curr) => {
+  if (!acc.find(item => item.sessionDate === curr.sessionDate)) {
+    acc.push({ sessionDate: curr.sessionDate, sessionId: curr.sessionId });
+  }
+  return acc;
+}, [] as { sessionDate: string, sessionId: string }[]);
+
+const formatLongDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleDateString('en-SG', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+---
+
+<Layout title={bill.title} description={`Bill details: ${bill.title}`}>
+  <a href="/bills" class="mb-6 inline-flex items-center text-sm text-blue-600 hover:underline">
+    &larr; Back to Bills
+  </a>
+
+  <article class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+    <!-- Header -->
+    <header class="mb-6">
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        {bill.ministry && bill.ministryId && (
+          <a
+            href={`/ministries/${bill.ministryId}`}
+            class="rounded bg-green-100 px-3 py-1 text-sm font-medium text-green-700 transition-colors hover:bg-green-200"
+          >
+            {bill.ministry}
+          </a>
+        )}
+      </div>
+      <h1 class="text-2xl font-bold text-zinc-900">
+        {bill.title}
+      </h1>
+    </header>
+
+    <!-- Bill Summary -->
+    <div class="mb-6">
+      <AISummaryCard
+        title="Bill Summary"
+        content={bill.summary}
+        fallbackMessage="Summary will be generated in a future update."
+      />
+    </div>
+
+    <!-- Reading Timeline -->
+    <section class="mb-6 rounded-lg bg-zinc-50 p-4">
+      <h2 class="mb-3 text-sm font-semibold uppercase text-zinc-500">
+        Reading Timeline
+      </h2>
+      <div class="space-y-3">
+        {bill.firstReadingDate && bill.firstReadingSessionId && (
+          <div class="flex items-center gap-3">
+            <span class="rounded bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700">
+              First Reading
+            </span>
+            <a
+              href={`/sessions/${bill.firstReadingSessionId}`}
+              class="text-sm text-zinc-700 hover:text-purple-600 hover:underline"
+            >
+              {formatLongDate(bill.firstReadingDate)}
+            </a>
+          </div>
+        )}
+        {secondReadingTimelines.map((session, idx) => (
+          <div class="flex items-center gap-3">
+            <span class="rounded bg-purple-100 px-2 py-1 text-xs font-medium text-purple-700">
+              Second Reading{secondReadingTimelines.length > 1 ? ` (${idx + 1})` : ''}
+            </span>
+            <a
+              href={`/sessions/${session.sessionId}`}
+              class="text-sm text-zinc-700 hover:text-purple-600 hover:underline"
+            >
+              {formatLongDate(session.sessionDate)}
+            </a>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <!-- Speakers -->
+    {uniqueSpeakers.length > 0 && (
+      <section class="mb-6">
+        <h2 class="mb-3 text-sm font-semibold uppercase text-zinc-500">
+          Members Involved
+        </h2>
+        <SpeakerPills speakers={uniqueSpeakers} />
+      </section>
+    )}
+
+    <!-- Second Reading Transcripts -->
+    {secondReadings.length > 0 && (
+      <section>
+        <div class="mb-3 flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase text-zinc-500">
+            Transcript{secondReadings.length > 1 ? 's' : ''}
+          </h2>
+          {secondReadings[0]?.sourceUrl && (
+            <a
+              href={secondReadings[0].sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-sm text-purple-600 hover:underline"
+            >
+              View Original Hansard &nearr;
+            </a>
+          )}
+        </div>
+
+        {secondReadings.map((section, idx) => (
+          <div class="mb-6">
+            {secondReadings.length > 1 && (
+              <h3 class="mb-2 text-sm font-medium text-zinc-600">
+                {new Date(section.sessionDate).toLocaleDateString('en-SG', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </h3>
+            )}
+            <div
+              class="transcript-content prose prose-zinc max-w-none"
+              set:html={section.contentHtml}
+            />
+            {idx < secondReadings.length - 1 && (
+              <hr class="my-6 border-zinc-200" />
+            )}
+          </div>
+        ))}
+      </section>
+    )}
+
+    <!-- No second reading yet -->
+    {secondReadings.length === 0 && (
+      <section class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <p class="text-sm italic text-amber-600">
+          This bill has not yet had its second reading.
+        </p>
+      </section>
+    )}
+  </article>
+</Layout>
+
+<style is:global>
+  .transcript-content p {
+    margin-bottom: 1rem;
+  }
+  .transcript-content strong {
+    font-weight: 600;
+  }
+</style>

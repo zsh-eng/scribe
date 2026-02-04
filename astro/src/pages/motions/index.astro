@@ -1,0 +1,39 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import QuestionCard from '../../components/QuestionCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getMotions, getMotionCount } from '../../lib/db';
+
+const motions = getMotions();
+const totalCount = getMotionCount();
+---
+
+<Layout title="Motions" description="Browse Singapore Parliament motions">
+  <h1 class="mb-2 text-3xl font-bold text-zinc-900">
+    Motions
+  </h1>
+  <p class="mb-6 text-zinc-600">
+    Browse parliamentary motions and adjournment motions. Motions are formal proposals put before
+    Parliament for debate and decision. Click on a motion to see the full transcript.
+  </p>
+
+  <p class="mb-4 text-sm text-zinc-500">
+    Showing {motions.length} of {totalCount} motions
+  </p>
+
+  <div id="motions-list" class="grid gap-4 sm:grid-cols-2">
+    {motions.length === 0 ? (
+      <p class="col-span-full py-8 text-center text-zinc-500">
+        No motions found
+      </p>
+    ) : (
+      motions.map((motion) => (
+        <div class="motion-item">
+          <QuestionCard section={motion} />
+        </div>
+      ))
+    )}
+  </div>
+
+  <Pagination containerId="motions-list" itemSelector=".motion-item" itemsPerPage={20} />
+</Layout>

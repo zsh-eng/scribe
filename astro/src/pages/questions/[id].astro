@@ -1,0 +1,172 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AISummaryCard from '../../components/AISummaryCard.astro';
+import SpeakerPills from '../../components/SpeakerPills.astro';
+import { getAllSections, getSection } from '../../lib/db';
+
+export async function getStaticPaths() {
+  // Get all sections for static paths (since SectionCard links to this page)
+  const allSections = getAllSections();
+  return allSections.map((section) => ({
+    params: { id: section.id },
+  }));
+}
+
+const { id } = Astro.params;
+const section = getSection(id);
+
+if (!section) {
+  return Astro.redirect('/questions');
+}
+
+const typeLabels: Record<string, string> = {
+  'OA': 'Oral Answer',
+  'WA': 'Written Answer',
+  'WANA': 'Written Answer (No Answer)',
+  'OS': 'Oral Statement',
+  'WS': 'Written Statement',
+};
+
+const categoryLabels: Record<string, string> = {
+  'motion': 'Motion',
+  'adjournment_motion': 'Adjournment Motion',
+  'clarification': 'Clarification',
+  'statement': 'Statement',
+};
+
+const typeLabel = section.category && categoryLabels[section.category]
+  ? categoryLabels[section.category]
+  : typeLabels[section.sectionType] || section.sectionType;
+
+const typeColors: Record<string, string> = {
+  'OA': 'bg-blue-100 text-blue-700',
+  'WA': 'bg-purple-100 text-purple-700',
+  'WANA': 'bg-zinc-100 text-zinc-700',
+  'OS': 'bg-amber-100 text-amber-700',
+  'WS': 'bg-amber-100 text-amber-700',
+};
+
+const categoryColors: Record<string, string> = {
+  'motion': 'bg-indigo-100 text-indigo-700',
+  'adjournment_motion': 'bg-indigo-100 text-indigo-700',
+  'clarification': 'bg-amber-100 text-amber-700',
+  'statement': 'bg-amber-100 text-amber-700',
+};
+
+const typeColor = section.category && categoryColors[section.category]
+  ? categoryColors[section.category]
+  : typeColors[section.sectionType] || 'bg-zinc-100 text-zinc-700';
+
+const formattedDate = section.sessionDate
+  ? new Date(section.sessionDate).toLocaleDateString('en-SG', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  : null;
+
+// Determine back link based on category
+const isMotion = section.category === 'motion' || section.category === 'adjournment_motion';
+const backLink = isMotion ? '/motions' : '/questions';
+const backLabel = isMotion ? 'Motions' : 'Questions';
+---
+
+<Layout title={section.sectionTitle} description={`${typeLabel}: ${section.sectionTitle}`}>
+  <a href={backLink} class="mb-6 inline-flex items-center text-sm text-blue-600 hover:underline">
+    &larr; Back to {backLabel}
+  </a>
+
+  <article class="rounded-lg border border-zinc-200 bg-white p-6 shadow-sm">
+    <!-- Header -->
+    <header class="mb-6">
+      <div class="mb-3 flex flex-wrap items-center gap-2">
+        <span class={`rounded px-2 py-1 text-xs font-medium ${typeColor}`}>
+          {typeLabel}
+        </span>
+        {section.ministry && section.ministryId && (
+          <a
+            href={`/ministries/${section.ministryId}`}
+            class="rounded bg-green-100 px-3 py-1 text-sm font-medium text-green-700 transition-colors hover:bg-green-200"
+          >
+            {section.ministry}
+          </a>
+        )}
+        {formattedDate && section.sessionId && (
+          <a
+            href={`/sessions/${section.sessionId}`}
+            class="text-sm text-zinc-500 hover:text-blue-600 hover:underline"
+          >
+            {formattedDate}
+          </a>
+        )}
+      </div>
+      <h1 class="text-2xl font-bold text-zinc-900">
+        {section.sectionTitle}
+      </h1>
+    </header>
+
+    <!-- Speakers -->
+    {section.speakers && section.speakers.length > 0 && (
+      <section class="mb-6">
+        <h2 class="mb-3 text-sm font-semibold uppercase text-zinc-500">
+          Speakers
+        </h2>
+        <SpeakerPills speakers={section.speakers} />
+      </section>
+    )}
+
+    <!-- AI Summary -->
+    {section.summary && (
+      <div class="mb-6">
+        <AISummaryCard
+          title="Summary"
+          content={section.summary}
+        />
+      </div>
+    )}
+
+    <!-- Transcript -->
+    <section>
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-sm font-semibold uppercase text-zinc-500">
+          Transcript
+        </h2>
+        {section.sourceUrl && (
+          <a
+            href={section.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-sm text-blue-600 hover:underline"
+          >
+            View Original Hansard &nearr;
+          </a>
+        )}
+      </div>
+
+      {section.contentHtml ? (
+        <div
+          class="transcript-content prose prose-zinc max-w-none"
+          set:html={section.contentHtml}
+        />
+      ) : section.contentPlain ? (
+        <div class="whitespace-pre-wrap text-zinc-700">
+          {section.contentPlain}
+        </div>
+      ) : (
+        <p class="text-zinc-500 italic">
+          Transcript not available.
+        </p>
+      )}
+    </section>
+  </article>
+</Layout>
+
+<style is:global>
+  .transcript-content p {
+    margin-bottom: 1rem;
+  }
+  .transcript-content strong {
+    font-weight: 600;
+  }
+</style>

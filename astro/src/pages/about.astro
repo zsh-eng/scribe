@@ -1,0 +1,109 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="About" description="About Scribe - Singapore Parliament proceedings made accessible">
+  <h1 class="mb-6 text-3xl font-bold text-zinc-900">
+    About Scribe
+  </h1>
+
+  <div class="prose prose-zinc max-w-none">
+    <section class="mb-8">
+      <h2 class="text-xl font-semibold text-zinc-900 mb-4">What is Scribe?</h2>
+      <p class="text-zinc-600 mb-4">
+        Scribe is a project to make Singapore Parliament proceedings more accessible and searchable.
+        It processes the official Hansard records and presents them in a user-friendly format, making
+        it easier to explore parliamentary questions, bills, motions, and member activities.
+      </p>
+    </section>
+
+    <section class="mb-8">
+      <h2 class="text-xl font-semibold text-zinc-900 mb-4">Data Sources</h2>
+      <p class="text-zinc-600 mb-4">
+        All data is sourced from the official Singapore Parliament Hansard, available at
+        <a
+          href="https://www.parliament.gov.sg/parliamentary-business/hansard"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-blue-600 hover:underline"
+        >
+          parliament.gov.sg
+        </a>.
+      </p>
+      <p class="text-zinc-600 mb-4">
+        The Hansard is the official record of parliamentary debates and includes:
+      </p>
+      <ul class="list-disc list-inside text-zinc-600 mb-4 space-y-1">
+        <li>Questions and answers (oral and written)</li>
+        <li>Bill readings and debates</li>
+        <li>Motions and ministerial statements</li>
+        <li>Member attendance records</li>
+      </ul>
+    </section>
+
+    <section class="mb-8">
+      <h2 class="text-xl font-semibold text-zinc-900 mb-4">AI Summaries</h2>
+      <p class="text-zinc-600 mb-4">
+        Some content includes AI-generated summaries to help readers quickly understand the key
+        points of parliamentary proceedings. These summaries are provided for convenience and
+        should not be considered official records. Always refer to the original Hansard for
+        authoritative information.
+      </p>
+    </section>
+
+    <section class="mb-8">
+      <h2 class="text-xl font-semibold text-zinc-900 mb-4">Disclaimer</h2>
+      <p class="text-zinc-600 mb-4">
+        This is an unofficial project and is not affiliated with the Singapore Parliament or
+        the Government of Singapore. While we strive for accuracy, the official Hansard
+        should be consulted for authoritative records.
+      </p>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold text-zinc-900 mb-4">Links</h2>
+      <ul class="list-disc list-inside text-zinc-600 space-y-2">
+        <li>
+          <a
+            href="https://www.parliament.gov.sg/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-600 hover:underline"
+          >
+            Singapore Parliament Official Website
+          </a>
+        </li>
+        <li>
+          <a
+            href="https://www.parliament.gov.sg/parliamentary-business/hansard"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-600 hover:underline"
+          >
+            Official Hansard Records
+          </a>
+        </li>
+        <li>
+          <a
+            href="https://www.parliament.gov.sg/parliamentary-business/order-paper"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-600 hover:underline"
+          >
+            Order Paper (Parliament Agenda)
+          </a>
+        </li>
+        <li>
+          <a
+            href="https://www.youtube.com/@SingaporeMDDI/streams"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-blue-600 hover:underline"
+          >
+            Parliament Live Streams (MDDI YouTube)
+          </a>
+        </li>
+      </ul>
+    </section>
+  </div>
+</Layout>

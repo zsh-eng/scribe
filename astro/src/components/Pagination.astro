@@ -1,0 +1,90 @@
+---
+interface Props {
+  containerId: string;
+  itemSelector: string;
+  itemsPerPage?: number;
+}
+
+const { containerId, itemSelector, itemsPerPage = 20 } = Astro.props;
+---
+
+<div class="pagination-controls flex items-center justify-center gap-2 py-4" data-container={containerId} data-selector={itemSelector} data-per-page={itemsPerPage}>
+  <button
+    class="pagination-prev rounded border border-zinc-200 px-3 py-1 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
+    disabled
+  >
+    Previous
+  </button>
+  <span class="pagination-info text-sm text-zinc-500">
+    Page <span class="pagination-current">1</span> of <span class="pagination-total">1</span>
+  </span>
+  <button
+    class="pagination-next rounded border border-zinc-200 px-3 py-1 text-sm text-zinc-600 hover:bg-zinc-50 disabled:opacity-50 disabled:cursor-not-allowed"
+  >
+    Next
+  </button>
+</div>
+
+<script>
+  function initPagination() {
+    document.querySelectorAll('.pagination-controls').forEach((controls) => {
+      const containerId = controls.getAttribute('data-container');
+      const selector = controls.getAttribute('data-selector');
+      const perPage = parseInt(controls.getAttribute('data-per-page') || '20', 10);
+
+      const container = document.getElementById(containerId!);
+      if (!container) return;
+
+      const items = container.querySelectorAll(selector!);
+      const totalPages = Math.ceil(items.length / perPage);
+      let currentPage = 1;
+
+      const prevBtn = controls.querySelector('.pagination-prev') as HTMLButtonElement;
+      const nextBtn = controls.querySelector('.pagination-next') as HTMLButtonElement;
+      const currentSpan = controls.querySelector('.pagination-current');
+      const totalSpan = controls.querySelector('.pagination-total');
+
+      function updateDisplay() {
+        items.forEach((item, index) => {
+          const element = item as HTMLElement;
+          const start = (currentPage - 1) * perPage;
+          const end = start + perPage;
+          element.style.display = index >= start && index < end ? '' : 'none';
+        });
+
+        if (currentSpan) currentSpan.textContent = String(currentPage);
+        if (totalSpan) totalSpan.textContent = String(totalPages);
+
+        prevBtn.disabled = currentPage === 1;
+        nextBtn.disabled = currentPage === totalPages || totalPages === 0;
+      }
+
+      prevBtn?.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          updateDisplay();
+          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+
+      nextBtn?.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+          currentPage++;
+          updateDisplay();
+          container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+
+      // Hide pagination if only one page
+      if (totalPages <= 1) {
+        (controls as HTMLElement).style.display = 'none';
+      }
+
+      updateDisplay();
+    });
+  }
+
+  // Run on page load and view transitions
+  initPagination();
+  document.addEventListener('astro:after-swap', initPagination);
+</script>

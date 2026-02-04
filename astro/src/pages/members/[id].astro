@@ -1,0 +1,236 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AISummaryCard from '../../components/AISummaryCard.astro';
+import QuestionCard from '../../components/QuestionCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getMembersWithInfo, getMember, getMemberSections, getMemberAttendance } from '../../lib/db';
+
+export async function getStaticPaths() {
+  const members = getMembersWithInfo();
+  return members.map((member) => ({
+    params: { id: member.id },
+  }));
+}
+
+const { id } = Astro.params;
+const member = getMember(id);
+
+if (!member) {
+  return Astro.redirect('/members');
+}
+
+const sections = getMemberSections(id);
+const attendance = getMemberAttendance(id);
+
+// Categorize sections
+const motions = sections.filter(s =>
+  s.category === 'motion' ||
+  s.category === 'adjournment_motion' ||
+  s.category === 'statement' ||
+  s.category === 'clarification' ||
+  (!s.category && s.sectionType === 'OS')
+);
+const bills = sections.filter(s => s.sectionType === 'BI' || s.sectionType === 'BP');
+const questions = sections.filter(s =>
+  ['OA', 'WA', 'WANA'].includes(s.sectionType) && !motions.includes(s)
+);
+
+const attendancePercent = member.attendanceTotal && member.attendanceTotal > 0
+  ? Math.round((member.attendancePresent! / member.attendanceTotal) * 100)
+  : null;
+---
+
+<Layout title={member.name} description={`Parliamentary activities for ${member.name}`}>
+  <a href="/members" class="mb-6 inline-flex items-center text-sm text-blue-600 hover:underline">
+    &larr; Back to Members
+  </a>
+
+  <section class="mb-8">
+    <h1 class="mb-2 text-3xl font-bold text-zinc-900">
+      {member.name}
+    </h1>
+    <div class="mb-3 flex flex-wrap items-center gap-3">
+      {member.designation && (
+        <span class="text-lg text-zinc-600">
+          {member.designation}
+        </span>
+      )}
+      {member.constituency && (
+        <span class="rounded bg-zinc-100 px-2 py-1 text-sm text-zinc-600">
+          {member.constituency}
+        </span>
+      )}
+      {attendancePercent !== null && (
+        <button
+          id="attendance-toggle"
+          class="flex items-center gap-2 rounded bg-blue-50 px-2 py-1 text-sm text-blue-700 hover:bg-blue-100"
+        >
+          <span>
+            Attendance: {attendancePercent}% ({member.attendancePresent}/{member.attendanceTotal})
+          </span>
+          <svg
+            class="h-4 w-4 transition-transform"
+            id="attendance-chevron"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      )}
+    </div>
+
+    <!-- Attendance History Dropdown -->
+    {attendance.length > 0 && (
+      <div id="attendance-dropdown" class="hidden mb-4 rounded-lg border border-zinc-200 bg-white p-4 shadow-lg">
+        <h3 class="mb-3 text-sm font-semibold text-zinc-900">Attendance History</h3>
+        <div id="attendance-list" class="max-h-60 overflow-y-auto space-y-2">
+          {attendance.map((record) => (
+            <a
+              href={`/sessions/${record.sessionId}`}
+              class="attendance-record flex items-center justify-between rounded p-2 text-sm hover:bg-zinc-50"
+            >
+              <span class="text-zinc-600">
+                {new Date(record.date).toLocaleDateString('en-SG', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
+                })}
+              </span>
+              {record.present ? (
+                <span class="flex items-center gap-1 text-green-600">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span class="text-xs font-medium">Present</span>
+                </span>
+              ) : (
+                <span class="flex items-center gap-1 text-red-500">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span class="text-xs font-medium">Absent</span>
+                </span>
+              )}
+            </a>
+          ))}
+        </div>
+        <Pagination containerId="attendance-list" itemSelector=".attendance-record" itemsPerPage={10} />
+      </div>
+    )}
+
+    <!-- Member Summary -->
+    <div class="mt-6">
+      <AISummaryCard
+        title="Summary of Recent Topics"
+        content={member.summary}
+        fallbackMessage="Summary of recent topics has not been generated yet."
+      />
+    </div>
+  </section>
+
+  <!-- Motions Section -->
+  {motions.length > 0 && (
+    <section class="mb-8">
+      <h2 class="mb-4 text-xl font-semibold text-zinc-900">
+        Motions & Statements ({motions.length})
+      </h2>
+      <div id="motions-list" class="grid gap-4">
+        {motions.map((section) => (
+          <div class="motion-item">
+            <QuestionCard section={section} showSpeakers={false} />
+          </div>
+        ))}
+      </div>
+      <Pagination containerId="motions-list" itemSelector=".motion-item" itemsPerPage={10} />
+    </section>
+  )}
+
+  <!-- Bills Section -->
+  {bills.length > 0 && (
+    <section class="mb-8">
+      <h2 class="mb-4 text-xl font-semibold text-zinc-900">
+        Bills ({bills.length})
+      </h2>
+      <div id="bills-list" class="grid gap-4">
+        {bills.map((section) => (
+          <a href={`/bills/${(section as any).billId}`} class="bill-item block">
+            <div class="rounded-lg border border-zinc-200 bg-white p-4 transition-all hover:border-purple-300 hover:shadow-md">
+              <div class="mb-2 flex flex-wrap items-center gap-2">
+                <span class="rounded bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
+                  {section.sectionType === 'BI' ? '1st Reading' : '2nd Reading'}
+                </span>
+                {section.ministry && (
+                  <span class="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                    {section.ministry}
+                  </span>
+                )}
+                {section.sessionDate && (
+                  <span class="text-xs text-zinc-500">
+                    {new Date(section.sessionDate).toLocaleDateString('en-SG', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })}
+                  </span>
+                )}
+              </div>
+              <h3 class="line-clamp-2 font-semibold text-zinc-900">
+                {section.sectionTitle}
+              </h3>
+            </div>
+          </a>
+        ))}
+      </div>
+      <Pagination containerId="bills-list" itemSelector=".bill-item" itemsPerPage={10} />
+    </section>
+  )}
+
+  <!-- Questions Section -->
+  <section>
+    <h2 class="mb-4 text-xl font-semibold text-zinc-900">
+      Parliamentary Questions ({questions.length})
+    </h2>
+    {questions.length === 0 ? (
+      <p class="py-4 text-zinc-500">No recorded questions</p>
+    ) : (
+      <>
+        <div id="questions-list" class="grid gap-4">
+          {questions.map((section) => (
+            <div class="question-item">
+              <QuestionCard section={section} showSpeakers={false} />
+            </div>
+          ))}
+        </div>
+        <Pagination containerId="questions-list" itemSelector=".question-item" itemsPerPage={10} />
+      </>
+    )}
+  </section>
+</Layout>
+
+<script>
+  function initAttendanceToggle() {
+    const toggle = document.getElementById('attendance-toggle');
+    const dropdown = document.getElementById('attendance-dropdown');
+    const chevron = document.getElementById('attendance-chevron');
+
+    if (toggle && dropdown && chevron) {
+      toggle.addEventListener('click', () => {
+        dropdown.classList.toggle('hidden');
+        chevron.classList.toggle('rotate-180');
+      });
+
+      // Close when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!toggle.contains(e.target as Node) && !dropdown.contains(e.target as Node)) {
+          dropdown.classList.add('hidden');
+          chevron.classList.remove('rotate-180');
+        }
+      });
+    }
+  }
+
+  initAttendanceToggle();
+  document.addEventListener('astro:after-swap', initAttendanceToggle);
+</script>

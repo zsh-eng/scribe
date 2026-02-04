@@ -36,7 +36,7 @@ const typeColor = typeColors[section.sectionType] || 'bg-zinc-100 text-zinc-700'
 const snippet = section.contentPlain?.substring(0, 200) + (section.contentPlain && section.contentPlain.length > 200 ? '...' : '');
 ---
 
-<div class="rounded-lg border border-zinc-200 bg-white p-4 transition-all hover:border-blue-300 hover:shadow-md">
+<a href={`/questions/${section.id}`} class="block rounded-lg border border-zinc-200 bg-white p-4 transition-all hover:border-blue-300 hover:shadow-md">
   <div class="mb-2 flex flex-wrap items-center gap-2">
     <span class={`rounded px-2 py-0.5 text-xs font-medium ${typeColor}`}>
       {typeLabel}
@@ -79,4 +79,4 @@ const snippet = section.contentPlain?.substring(0, 200) + (section.contentPlain 
       {snippet}
     </p>
   )}
-</div>
+</a>

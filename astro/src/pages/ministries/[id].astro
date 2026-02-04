@@ -1,0 +1,123 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import QuestionCard from '../../components/QuestionCard.astro';
+import BillCard from '../../components/BillCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getMinistries, getMinistry, getMinistrySections, getMinistryBills } from '../../lib/db';
+
+export async function getStaticPaths() {
+  const ministries = getMinistries();
+  return ministries.map((ministry) => ({
+    params: { id: ministry.id },
+  }));
+}
+
+const { id } = Astro.params;
+const ministry = getMinistry(id);
+
+if (!ministry) {
+  return Astro.redirect('/ministries');
+}
+
+const sections = getMinistrySections(id);
+const bills = getMinistryBills(id);
+
+// Categorize sections
+const questions = sections.filter(s => ['OA', 'WA', 'WANA'].includes(s.sectionType));
+const motions = sections.filter(s => s.category === 'motion' || s.category === 'adjournment_motion');
+const statements = sections.filter(s => s.sectionType === 'OS' || s.sectionType === 'WS');
+---
+
+<Layout title={ministry.name} description={`Parliamentary activities for ${ministry.name}`}>
+  <a href="/ministries" class="mb-6 inline-flex items-center text-sm text-blue-600 hover:underline">
+    &larr; Back to Ministries
+  </a>
+
+  <header class="mb-8">
+    <div class="mb-2 flex items-center gap-3">
+      <span class="rounded bg-green-100 px-3 py-1 text-lg font-bold text-green-700">
+        {ministry.acronym}
+      </span>
+    </div>
+    <h1 class="text-3xl font-bold text-zinc-900">
+      {ministry.name}
+    </h1>
+    <p class="mt-2 text-zinc-500">
+      {ministry.sectionCount} total sections
+    </p>
+  </header>
+
+  <!-- Bills -->
+  {bills.length > 0 && (
+    <section class="mb-8">
+      <h2 class="mb-4 text-xl font-semibold text-zinc-900">
+        Bills ({bills.length})
+      </h2>
+      <div id="bills-list" class="grid gap-4 sm:grid-cols-2">
+        {bills.map((bill) => (
+          <div class="bill-item">
+            <BillCard bill={bill} />
+          </div>
+        ))}
+      </div>
+      <Pagination containerId="bills-list" itemSelector=".bill-item" itemsPerPage={10} />
+    </section>
+  )}
+
+  <!-- Motions -->
+  {motions.length > 0 && (
+    <section class="mb-8">
+      <h2 class="mb-4 text-xl font-semibold text-zinc-900">
+        Motions ({motions.length})
+      </h2>
+      <div id="motions-list" class="grid gap-4 sm:grid-cols-2">
+        {motions.map((section) => (
+          <div class="motion-item">
+            <QuestionCard section={section} />
+          </div>
+        ))}
+      </div>
+      <Pagination containerId="motions-list" itemSelector=".motion-item" itemsPerPage={10} />
+    </section>
+  )}
+
+  <!-- Questions -->
+  {questions.length > 0 && (
+    <section class="mb-8">
+      <h2 class="mb-4 text-xl font-semibold text-zinc-900">
+        Questions ({questions.length})
+      </h2>
+      <div id="questions-list" class="grid gap-4 sm:grid-cols-2">
+        {questions.map((section) => (
+          <div class="question-item">
+            <QuestionCard section={section} />
+          </div>
+        ))}
+      </div>
+      <Pagination containerId="questions-list" itemSelector=".question-item" itemsPerPage={10} />
+    </section>
+  )}
+
+  <!-- Statements -->
+  {statements.length > 0 && (
+    <section class="mb-8">
+      <h2 class="mb-4 text-xl font-semibold text-zinc-900">
+        Statements ({statements.length})
+      </h2>
+      <div id="statements-list" class="grid gap-4 sm:grid-cols-2">
+        {statements.map((section) => (
+          <div class="statement-item">
+            <QuestionCard section={section} />
+          </div>
+        ))}
+      </div>
+      <Pagination containerId="statements-list" itemSelector=".statement-item" itemsPerPage={10} />
+    </section>
+  )}
+
+  {sections.length === 0 && bills.length === 0 && (
+    <p class="py-8 text-center text-zinc-500">
+      No parliamentary activities found for this ministry.
+    </p>
+  )}
+</Layout>

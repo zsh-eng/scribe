@@ -356,6 +356,475 @@ export function getMinistry(id: string): Ministry | undefined {
   return db.prepare(sql).get(id) as Ministry | undefined;
 }
 
+// Questions - sections that are questions (OA, WA, WANA) and not bill readings
+export function getQuestions(limit?: number, offset?: number): Section[] {
+  const sql = `
+    SELECT
+      sec.id,
+      sec.session_id as sessionId,
+      s.date as sessionDate,
+      s.sitting_no as sittingNo,
+      sec.section_type as sectionType,
+      sec.section_title as sectionTitle,
+      sec.content_plain as contentPlain,
+      sec.section_order as sectionOrder,
+      sec.category,
+      sec.source_url as sourceUrl,
+      sec.summary,
+      m.name as ministry,
+      sec.ministry_id as ministryId
+    FROM sections sec
+    JOIN sessions s ON sec.session_id = s.id
+    LEFT JOIN ministries m ON sec.ministry_id = m.id
+    WHERE sec.section_type IN ('OA', 'WA', 'WANA')
+      AND sec.section_type NOT IN ('BI', 'BP')
+    ORDER BY s.date DESC, sec.section_order ASC
+    ${limit ? `LIMIT ${limit}` : ''}
+    ${offset ? `OFFSET ${offset}` : ''}
+  `;
+  const sections = db.prepare(sql).all() as Section[];
+
+  // Get speakers for each section
+  if (sections.length > 0) {
+    const speakerSql = `
+      SELECT
+        ss.section_id as sectionId,
+        ss.member_id as memberId,
+        m.name,
+        ss.constituency,
+        ss.designation
+      FROM section_speakers ss
+      JOIN members m ON ss.member_id = m.id
+      WHERE ss.section_id IN (${sections.map(() => '?').join(',')})
+    `;
+    const speakers = db.prepare(speakerSql).all(...sections.map(s => s.id)) as (Speaker & { sectionId: string })[];
+    const speakerMap = new Map<string, Speaker[]>();
+
+    for (const speaker of speakers) {
+      if (!speakerMap.has(speaker.sectionId)) {
+        speakerMap.set(speaker.sectionId, []);
+      }
+      speakerMap.get(speaker.sectionId)!.push({
+        memberId: speaker.memberId,
+        name: speaker.name,
+        constituency: speaker.constituency,
+        designation: speaker.designation,
+      });
+    }
+
+    for (const section of sections) {
+      section.speakers = speakerMap.get(section.id) || [];
+    }
+  }
+
+  return sections;
+}
+
+export function getQuestionCount(): number {
+  const result = db.prepare(`
+    SELECT COUNT(*) as count FROM sections
+    WHERE section_type IN ('OA', 'WA', 'WANA')
+      AND section_type NOT IN ('BI', 'BP')
+  `).get() as { count: number };
+  return result.count;
+}
+
+// Motions - sections categorized as motion or adjournment_motion
+export function getMotions(limit?: number, offset?: number): Section[] {
+  const sql = `
+    SELECT
+      sec.id,
+      sec.session_id as sessionId,
+      s.date as sessionDate,
+      s.sitting_no as sittingNo,
+      sec.section_type as sectionType,
+      sec.section_title as sectionTitle,
+      sec.content_plain as contentPlain,
+      sec.section_order as sectionOrder,
+      sec.category,
+      sec.source_url as sourceUrl,
+      sec.summary,
+      m.name as ministry,
+      sec.ministry_id as ministryId
+    FROM sections sec
+    JOIN sessions s ON sec.session_id = s.id
+    LEFT JOIN ministries m ON sec.ministry_id = m.id
+    WHERE sec.category IN ('motion', 'adjournment_motion')
+    ORDER BY s.date DESC, sec.section_order ASC
+    ${limit ? `LIMIT ${limit}` : ''}
+    ${offset ? `OFFSET ${offset}` : ''}
+  `;
+  const sections = db.prepare(sql).all() as Section[];
+
+  // Get speakers for each section
+  if (sections.length > 0) {
+    const speakerSql = `
+      SELECT
+        ss.section_id as sectionId,
+        ss.member_id as memberId,
+        m.name,
+        ss.constituency,
+        ss.designation
+      FROM section_speakers ss
+      JOIN members m ON ss.member_id = m.id
+      WHERE ss.section_id IN (${sections.map(() => '?').join(',')})
+    `;
+    const speakers = db.prepare(speakerSql).all(...sections.map(s => s.id)) as (Speaker & { sectionId: string })[];
+    const speakerMap = new Map<string, Speaker[]>();
+
+    for (const speaker of speakers) {
+      if (!speakerMap.has(speaker.sectionId)) {
+        speakerMap.set(speaker.sectionId, []);
+      }
+      speakerMap.get(speaker.sectionId)!.push({
+        memberId: speaker.memberId,
+        name: speaker.name,
+        constituency: speaker.constituency,
+        designation: speaker.designation,
+      });
+    }
+
+    for (const section of sections) {
+      section.speakers = speakerMap.get(section.id) || [];
+    }
+  }
+
+  return sections;
+}
+
+export function getMotionCount(): number {
+  const result = db.prepare(`
+    SELECT COUNT(*) as count FROM sections
+    WHERE category IN ('motion', 'adjournment_motion')
+  `).get() as { count: number };
+  return result.count;
+}
+
+// Get a single section with full content
+export function getSection(id: string): Section | undefined {
+  const sql = `
+    SELECT
+      sec.id,
+      sec.session_id as sessionId,
+      s.date as sessionDate,
+      s.sitting_no as sittingNo,
+      s.url as sessionUrl,
+      sec.section_type as sectionType,
+      sec.section_title as sectionTitle,
+      sec.content_html as contentHtml,
+      sec.content_plain as contentPlain,
+      sec.section_order as sectionOrder,
+      sec.category,
+      sec.source_url as sourceUrl,
+      sec.summary,
+      m.name as ministry,
+      sec.ministry_id as ministryId
+    FROM sections sec
+    JOIN sessions s ON sec.session_id = s.id
+    LEFT JOIN ministries m ON sec.ministry_id = m.id
+    WHERE sec.id = ?
+  `;
+  const section = db.prepare(sql).get(id) as Section | undefined;
+
+  if (section) {
+    // Get speakers
+    const speakerSql = `
+      SELECT
+        ss.member_id as memberId,
+        m.name,
+        ss.constituency,
+        ss.designation
+      FROM section_speakers ss
+      JOIN members m ON ss.member_id = m.id
+      WHERE ss.section_id = ?
+    `;
+    section.speakers = db.prepare(speakerSql).all(id) as Speaker[];
+  }
+
+  return section;
+}
+
+// Get all sections where a member is a speaker
+export function getMemberSections(memberId: string): Section[] {
+  const sql = `
+    SELECT
+      sec.id,
+      sec.session_id as sessionId,
+      s.date as sessionDate,
+      s.sitting_no as sittingNo,
+      sec.section_type as sectionType,
+      sec.section_title as sectionTitle,
+      sec.content_plain as contentPlain,
+      sec.section_order as sectionOrder,
+      sec.category,
+      sec.source_url as sourceUrl,
+      sec.summary,
+      m.name as ministry,
+      sec.ministry_id as ministryId,
+      sec.bill_id as billId
+    FROM sections sec
+    JOIN sessions s ON sec.session_id = s.id
+    LEFT JOIN ministries m ON sec.ministry_id = m.id
+    JOIN section_speakers ss ON sec.id = ss.section_id
+    WHERE ss.member_id = ?
+    ORDER BY s.date DESC, sec.section_order ASC
+  `;
+  const sections = db.prepare(sql).all(memberId) as Section[];
+
+  // Get all speakers for these sections
+  if (sections.length > 0) {
+    const speakerSql = `
+      SELECT
+        ss.section_id as sectionId,
+        ss.member_id as memberId,
+        m.name,
+        ss.constituency,
+        ss.designation
+      FROM section_speakers ss
+      JOIN members m ON ss.member_id = m.id
+      WHERE ss.section_id IN (${sections.map(() => '?').join(',')})
+    `;
+    const speakers = db.prepare(speakerSql).all(...sections.map(s => s.id)) as (Speaker & { sectionId: string })[];
+    const speakerMap = new Map<string, Speaker[]>();
+
+    for (const speaker of speakers) {
+      if (!speakerMap.has(speaker.sectionId)) {
+        speakerMap.set(speaker.sectionId, []);
+      }
+      speakerMap.get(speaker.sectionId)!.push({
+        memberId: speaker.memberId,
+        name: speaker.name,
+        constituency: speaker.constituency,
+        designation: speaker.designation,
+      });
+    }
+
+    for (const section of sections) {
+      section.speakers = speakerMap.get(section.id) || [];
+    }
+  }
+
+  return sections;
+}
+
+// Get attendance history for a member
+export interface AttendanceRecord {
+  sessionId: string;
+  date: string;
+  sittingNo: number;
+  present: boolean;
+}
+
+export function getMemberAttendance(memberId: string): AttendanceRecord[] {
+  const sql = `
+    SELECT
+      sa.session_id as sessionId,
+      s.date,
+      s.sitting_no as sittingNo,
+      sa.present
+    FROM session_attendance sa
+    JOIN sessions s ON sa.session_id = s.id
+    WHERE sa.member_id = ?
+    ORDER BY s.date DESC
+  `;
+  const results = db.prepare(sql).all(memberId) as { sessionId: string; date: string; sittingNo: number; present: number }[];
+  return results.map(r => ({
+    ...r,
+    present: r.present === 1,
+  }));
+}
+
+// Get all sections for a bill
+export interface BillSection {
+  id: string;
+  sessionId: string;
+  sessionDate: string;
+  sittingNo: number;
+  sectionType: string;
+  sectionTitle: string;
+  contentHtml: string;
+  contentPlain: string;
+  sourceUrl: string | null;
+  speakers: Speaker[];
+}
+
+export function getBillSections(billId: string): BillSection[] {
+  const sql = `
+    SELECT
+      sec.id,
+      sec.session_id as sessionId,
+      s.date as sessionDate,
+      s.sitting_no as sittingNo,
+      sec.section_type as sectionType,
+      sec.section_title as sectionTitle,
+      sec.content_html as contentHtml,
+      sec.content_plain as contentPlain,
+      sec.source_url as sourceUrl
+    FROM sections sec
+    JOIN sessions s ON sec.session_id = s.id
+    WHERE sec.bill_id = ?
+    ORDER BY s.date ASC, sec.section_order ASC
+  `;
+  const sections = db.prepare(sql).all(billId) as BillSection[];
+
+  // Get speakers for each section
+  if (sections.length > 0) {
+    const speakerSql = `
+      SELECT
+        ss.section_id as sectionId,
+        ss.member_id as memberId,
+        m.name,
+        ss.constituency,
+        ss.designation
+      FROM section_speakers ss
+      JOIN members m ON ss.member_id = m.id
+      WHERE ss.section_id IN (${sections.map(() => '?').join(',')})
+    `;
+    const speakers = db.prepare(speakerSql).all(...sections.map(s => s.id)) as (Speaker & { sectionId: string })[];
+    const speakerMap = new Map<string, Speaker[]>();
+
+    for (const speaker of speakers) {
+      if (!speakerMap.has(speaker.sectionId)) {
+        speakerMap.set(speaker.sectionId, []);
+      }
+      speakerMap.get(speaker.sectionId)!.push({
+        memberId: speaker.memberId,
+        name: speaker.name,
+        constituency: speaker.constituency,
+        designation: speaker.designation,
+      });
+    }
+
+    for (const section of sections) {
+      section.speakers = speakerMap.get(section.id) || [];
+    }
+  }
+
+  return sections;
+}
+
+// Get all sections for a ministry
+export function getMinistrySections(ministryId: string): Section[] {
+  const sql = `
+    SELECT
+      sec.id,
+      sec.session_id as sessionId,
+      s.date as sessionDate,
+      s.sitting_no as sittingNo,
+      sec.section_type as sectionType,
+      sec.section_title as sectionTitle,
+      sec.content_plain as contentPlain,
+      sec.section_order as sectionOrder,
+      sec.category,
+      sec.source_url as sourceUrl,
+      sec.summary,
+      m.name as ministry,
+      sec.ministry_id as ministryId,
+      sec.bill_id as billId
+    FROM sections sec
+    JOIN sessions s ON sec.session_id = s.id
+    LEFT JOIN ministries m ON sec.ministry_id = m.id
+    WHERE sec.ministry_id = ?
+    ORDER BY s.date DESC, sec.section_order ASC
+  `;
+  const sections = db.prepare(sql).all(ministryId) as Section[];
+
+  // Get speakers for each section
+  if (sections.length > 0) {
+    const speakerSql = `
+      SELECT
+        ss.section_id as sectionId,
+        ss.member_id as memberId,
+        m.name,
+        ss.constituency,
+        ss.designation
+      FROM section_speakers ss
+      JOIN members m ON ss.member_id = m.id
+      WHERE ss.section_id IN (${sections.map(() => '?').join(',')})
+    `;
+    const speakers = db.prepare(speakerSql).all(...sections.map(s => s.id)) as (Speaker & { sectionId: string })[];
+    const speakerMap = new Map<string, Speaker[]>();
+
+    for (const speaker of speakers) {
+      if (!speakerMap.has(speaker.sectionId)) {
+        speakerMap.set(speaker.sectionId, []);
+      }
+      speakerMap.get(speaker.sectionId)!.push({
+        memberId: speaker.memberId,
+        name: speaker.name,
+        constituency: speaker.constituency,
+        designation: speaker.designation,
+      });
+    }
+
+    for (const section of sections) {
+      section.speakers = speakerMap.get(section.id) || [];
+    }
+  }
+
+  return sections;
+}
+
+// Get all bills for a ministry
+export function getMinistryBills(ministryId: string): Bill[] {
+  const sql = `
+    SELECT
+      b.id,
+      b.title,
+      b.ministry_id as ministryId,
+      m.name as ministry,
+      b.first_reading_date as firstReadingDate,
+      b.first_reading_session_id as firstReadingSessionId,
+      b.summary
+    FROM bills b
+    LEFT JOIN ministries m ON b.ministry_id = m.id
+    WHERE b.ministry_id = ?
+    ORDER BY b.first_reading_date DESC NULLS LAST
+  `;
+  return db.prepare(sql).all(ministryId) as Bill[];
+}
+
+// Get members with extended info (constituency, designation from latest attendance)
+export function getMembersWithInfo(limit?: number, offset?: number): Member[] {
+  const sql = `
+    SELECT
+      m.id,
+      m.name,
+      ms.summary,
+      COUNT(DISTINCT ss.section_id) as sectionCount,
+      (SELECT COUNT(*) FROM session_attendance WHERE member_id = m.id) as attendanceTotal,
+      (SELECT COUNT(*) FROM session_attendance WHERE member_id = m.id AND present = 1) as attendancePresent,
+      (
+        SELECT sa.constituency FROM session_attendance sa
+        JOIN sessions s ON sa.session_id = s.id
+        WHERE sa.member_id = m.id
+        ORDER BY s.date DESC
+        LIMIT 1
+      ) as constituency,
+      (
+        SELECT sa.designation FROM session_attendance sa
+        JOIN sessions s ON sa.session_id = s.id
+        WHERE sa.member_id = m.id
+        ORDER BY s.date DESC
+        LIMIT 1
+      ) as designation
+    FROM members m
+    LEFT JOIN member_summaries ms ON m.id = ms.member_id
+    LEFT JOIN section_speakers ss ON m.id = ss.member_id
+    GROUP BY m.id
+    ORDER BY m.name ASC
+    ${limit ? `LIMIT ${limit}` : ''}
+    ${offset ? `OFFSET ${offset}` : ''}
+  `;
+  return db.prepare(sql).all() as Member[];
+}
+
+// Get all sections (for static path generation)
+export function getAllSections(): { id: string }[] {
+  const sql = `SELECT id FROM sections`;
+  return db.prepare(sql).all() as { id: string }[];
+}
+
 // Stats for home page
 export function getStats(): { sessionCount: number; memberCount: number; billCount: number; sectionCount: number } {
   const sessionCount = (db.prepare('SELECT COUNT(*) as count FROM sessions').get() as { count: number }).count;

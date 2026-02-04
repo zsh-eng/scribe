@@ -1,0 +1,34 @@
+---
+import type { Speaker } from '../lib/db';
+
+interface Props {
+  speakers: Speaker[];
+  limit?: number;
+}
+
+const { speakers, limit } = Astro.props;
+
+const displaySpeakers = limit ? speakers.slice(0, limit) : speakers;
+const remaining = limit && speakers.length > limit ? speakers.length - limit : 0;
+---
+
+<div class="flex flex-wrap gap-2">
+  {displaySpeakers.map((speaker) => (
+    <a
+      href={`/members/${speaker.memberId}`}
+      class="rounded-full bg-zinc-100 px-3 py-1 text-sm transition-colors hover:bg-blue-100 hover:text-blue-700"
+    >
+      {speaker.name}
+      {speaker.designation && (
+        <span class="ml-1 text-zinc-500">
+          ({speaker.designation})
+        </span>
+      )}
+    </a>
+  ))}
+  {remaining > 0 && (
+    <span class="rounded-full bg-zinc-50 px-3 py-1 text-sm text-zinc-500">
+      +{remaining} more
+    </span>
+  )}
+</div>

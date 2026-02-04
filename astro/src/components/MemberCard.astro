@@ -1,0 +1,44 @@
+---
+import type { Member } from '../lib/db';
+
+interface Props {
+  member: Member;
+}
+
+const { member } = Astro.props;
+
+const attendancePercent = member.attendanceTotal && member.attendanceTotal > 0
+  ? Math.round((member.attendancePresent! / member.attendanceTotal) * 100)
+  : null;
+---
+
+<a
+  href={`/members/${member.id}`}
+  class="block rounded-lg border border-zinc-200 bg-white p-4 transition-all hover:border-blue-300 hover:shadow-md"
+>
+  <h3 class="mb-2 font-semibold text-zinc-900">
+    {member.name}
+  </h3>
+  <div class="mb-2 flex flex-wrap items-center gap-2">
+    {member.designation && (
+      <span class="text-sm text-zinc-600">
+        {member.designation}
+      </span>
+    )}
+    {member.constituency && (
+      <span class="rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+        {member.constituency}
+      </span>
+    )}
+  </div>
+  <div class="flex flex-wrap items-center gap-3 text-xs text-zinc-500">
+    {member.sectionCount !== undefined && member.sectionCount > 0 && (
+      <span>{member.sectionCount} sections</span>
+    )}
+    {attendancePercent !== null && (
+      <span class={attendancePercent >= 80 ? 'text-green-600' : attendancePercent >= 50 ? 'text-amber-600' : 'text-red-500'}>
+        {attendancePercent}% attendance
+      </span>
+    )}
+  </div>
+</a>

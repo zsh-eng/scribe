@@ -1,0 +1,39 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import QuestionCard from '../../components/QuestionCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getQuestions, getQuestionCount } from '../../lib/db';
+
+const questions = getQuestions();
+const totalCount = getQuestionCount();
+---
+
+<Layout title="Questions" description="Browse Singapore Parliament questions and answers">
+  <h1 class="mb-2 text-3xl font-bold text-zinc-900">
+    Parliamentary Questions
+  </h1>
+  <p class="mb-6 text-zinc-600">
+    Browse parliamentary questions and their answers. Questions can be oral (OA), written (WA),
+    or written without answer (WANA). Click on a question to see the full transcript.
+  </p>
+
+  <p class="mb-4 text-sm text-zinc-500">
+    Showing {questions.length} of {totalCount} questions
+  </p>
+
+  <div id="questions-list" class="grid gap-4 sm:grid-cols-2">
+    {questions.length === 0 ? (
+      <p class="col-span-full py-8 text-center text-zinc-500">
+        No questions found
+      </p>
+    ) : (
+      questions.map((question) => (
+        <div class="question-item">
+          <QuestionCard section={question} />
+        </div>
+      ))
+    )}
+  </div>
+
+  <Pagination containerId="questions-list" itemSelector=".question-item" itemsPerPage={20} />
+</Layout>

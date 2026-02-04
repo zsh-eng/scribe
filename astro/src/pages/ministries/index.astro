@@ -1,0 +1,33 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import MinistryCard from '../../components/MinistryCard.astro';
+import { getMinistries } from '../../lib/db';
+
+const ministries = getMinistries();
+---
+
+<Layout title="Ministries" description="Browse Singapore government ministries and their parliamentary activities">
+  <h1 class="mb-2 text-3xl font-bold text-zinc-900">
+    Ministries
+  </h1>
+  <p class="mb-6 text-zinc-600">
+    Browse government ministries and their involvement in parliamentary proceedings.
+    Click on a ministry to see related questions, bills, and motions.
+  </p>
+
+  <p class="mb-4 text-sm text-zinc-500">
+    Showing {ministries.length} ministries
+  </p>
+
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {ministries.length === 0 ? (
+      <p class="col-span-full py-8 text-center text-zinc-500">
+        No ministries found
+      </p>
+    ) : (
+      ministries.map((ministry) => (
+        <MinistryCard ministry={ministry} />
+      ))
+    )}
+  </div>
+</Layout>

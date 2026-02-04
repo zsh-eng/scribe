@@ -1,0 +1,39 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import MemberCard from '../../components/MemberCard.astro';
+import Pagination from '../../components/Pagination.astro';
+import { getMembersWithInfo, getMemberCount } from '../../lib/db';
+
+const members = getMembersWithInfo();
+const totalCount = getMemberCount();
+---
+
+<Layout title="Members of Parliament" description="Browse Singapore Members of Parliament">
+  <h1 class="mb-2 text-3xl font-bold text-zinc-900">
+    Members of Parliament
+  </h1>
+  <p class="mb-6 text-zinc-600">
+    Browse current and former Members of Parliament. Click on a member to see their
+    parliamentary activities, questions asked, and attendance history.
+  </p>
+
+  <p class="mb-4 text-sm text-zinc-500">
+    Showing {members.length} of {totalCount} members
+  </p>
+
+  <div id="members-list" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {members.length === 0 ? (
+      <p class="col-span-full py-8 text-center text-zinc-500">
+        No members found
+      </p>
+    ) : (
+      members.map((member) => (
+        <div class="member-item">
+          <MemberCard member={member} />
+        </div>
+      ))
+    )}
+  </div>
+
+  <Pagination containerId="members-list" itemSelector=".member-item" itemsPerPage={24} />
+</Layout>
