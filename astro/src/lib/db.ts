@@ -275,7 +275,21 @@ export function getMember(id: string): Member | undefined {
       ms.summary,
       COUNT(DISTINCT ss.section_id) as sectionCount,
       (SELECT COUNT(*) FROM session_attendance WHERE member_id = m.id) as attendanceTotal,
-      (SELECT COUNT(*) FROM session_attendance WHERE member_id = m.id AND present = 1) as attendancePresent
+      (SELECT COUNT(*) FROM session_attendance WHERE member_id = m.id AND present = 1) as attendancePresent,
+      (
+        SELECT sa.constituency FROM session_attendance sa
+        JOIN sessions s ON sa.session_id = s.id
+        WHERE sa.member_id = m.id
+        ORDER BY s.date DESC
+        LIMIT 1
+      ) as constituency,
+      (
+        SELECT sa.designation FROM session_attendance sa
+        JOIN sessions s ON sa.session_id = s.id
+        WHERE sa.member_id = m.id
+        ORDER BY s.date DESC
+        LIMIT 1
+      ) as designation
     FROM members m
     LEFT JOIN member_summaries ms ON m.id = ms.member_id
     LEFT JOIN section_speakers ss ON m.id = ss.member_id
