@@ -1,168 +1,397 @@
 ---
-import Layout from "../layouts/Layout.astro";
-import SectionLabel from "../components/SectionLabel.astro";
-import SessionCard from "../components/SessionCard.astro";
-import { getSessions, getStats } from "../lib/db";
+import NewspaperLayout from "../layouts/NewspaperLayout.astro";
+import {
+  getStats,
+  getLatestSession,
+  getSittingsThisYear,
+  getRecentBillReadings,
+  getLatestQuestion,
+  getRecentMotions,
+  getQuestionCount,
+  getMotionCount,
+} from "../lib/db";
 
-const recentSessions = getSessions(5);
 const stats = getStats();
+const latestSession = getLatestSession();
+const sittingsThisYear = getSittingsThisYear();
+const recentBillReadings = getRecentBillReadings(3);
+const latestQuestion = getLatestQuestion();
+const recentMotions = getRecentMotions(2);
+const questionCount = getQuestionCount();
+const motionCount = getMotionCount();
+
+// Format date for masthead
+const today = new Date();
+const dateFormatter = new Intl.DateTimeFormat("en-SG", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+const formattedDate = dateFormatter.format(today);
+
+// Format session date
+const formatSessionDate = (dateStr: string) => {
+  const date = new Date(dateStr);
+  return new Intl.DateTimeFormat("en-SG", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+};
+
+// Count recent bills (ones with readings in last 30 days)
+const recentBillCount = recentBillReadings.length;
+
+// Get reading type label
+const getReadingLabel = (sectionType: string) => {
+  switch (sectionType) {
+    case "BI":
+      return "Introduction";
+    case "B1":
+      return "First Reading";
+    case "B2":
+      return "Second Reading";
+    case "BC":
+      return "Committee";
+    case "B3":
+      return "Third Reading";
+    case "BP":
+      return "Passed";
+    default:
+      return sectionType;
+  }
+};
+
+// Navigation links
+const navLinks = [
+  { href: "/sessions", label: "Sittings" },
+  { href: "/bills", label: "Bills" },
+  { href: "/questions", label: "Questions" },
+  { href: "/motions", label: "Motions" },
+  { href: "/members", label: "MPs" },
+  { href: "/ministries", label: "Ministries" },
+];
 ---
 
-<Layout
+<NewspaperLayout
   title="Home"
   description="Scribe - Singapore Parliament proceedings made accessible"
 >
-  <!-- Hero Section -->
-  <section class="relative py-16 mb-12">
-    <!-- Ruled lines background -->
-    <div class="absolute inset-0 ruled-lines opacity-40 pointer-events-none">
-    </div>
-
-    <div class="relative">
-      <SectionLabel>Singapore Parliament · Hansard</SectionLabel>
-
-      <h1
-        class="font-display font-light text-display-xl text-ink max-w-[16ch] mb-6 animate-fade-up"
-      >
-        Making Parliament<br />
-        <em class="font-normal italic text-accent">accessible</em> for all
-      </h1>
-
-      <p
-        class="font-body text-lg text-ink-soft leading-relaxed max-w-[48ch] mb-8 animate-fade-up animate-delay-100"
-      >
-        Scribe transforms Singapore's official Hansard into a clean, searchable,
-        and readable format — so you can understand what's happening in
-        Parliament without wading through walls of text.
-      </p>
-
-      <div class="flex gap-3 animate-fade-up animate-delay-200">
-        <a
-          href="/bills"
-          class="inline-flex items-center font-sans text-sm tracking-wide font-medium bg-accent text-white px-5 py-2.5 rounded hover:bg-accent-light hover:text-white transition-colors no-underline"
-        >
-          Browse Bills
-        </a>
-        <a
-          href="/members"
-          class="inline-flex items-center font-sans text-sm tracking-wide font-medium bg-transparent text-ink border border-border px-5 py-2.5 rounded hover:bg-warm hover:border-ink-muted transition-colors no-underline"
-        >
-          Find Your MP
-        </a>
+  <div class="max-w-6xl mx-auto px-6">
+    <!-- Masthead -->
+    <header class="masthead">
+      <div class="flex flex-col gap-0.5">
+        <span class="masthead-meta">Singapore</span>
+        <span class="masthead-meta">{formattedDate}</span>
       </div>
-    </div>
-  </section>
 
-  <!-- Explore Section -->
-  <section class="mb-12">
-    <SectionLabel>Explore</SectionLabel>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {
-        [
-          {
-            label: "Bills",
-            desc: "What legislation is being debated and passed?",
-            href: "/bills",
-            count: stats.billCount,
-          },
-          {
-            label: "MPs",
-            desc: "Who are your representatives and what do they do?",
-            href: "/members",
-            count: stats.memberCount,
-          },
-          {
-            label: "Questions",
-            desc: "What tough questions are being asked of Ministers?",
-            href: "/questions",
-            count: stats.sectionCount,
-          },
-        ].map((card, i) => (
-          <a
-            href={card.href}
-            class:list={[
-              "group block bg-surface border border-border rounded-md p-6 transition-colors hover:bg-warm hover:border-ink-muted no-underline",
-              `animate-fade-up`,
-            ]}
-            style={`animation-delay: ${0.15 + i * 0.08}s`}
-          >
-            <div class="font-sans text-label-sm uppercase tracking-widest text-accent font-semibold mb-1">
-              {card.count} records
-            </div>
-            <div class="font-display text-xl text-ink mb-1 group-hover:text-accent transition-colors">
-              {card.label}
-            </div>
-            <div class="font-body text-sm text-ink-muted leading-relaxed">
-              {card.desc}
-            </div>
-          </a>
-        ))
-      }
-    </div>
-  </section>
-
-  <!-- Stats Strip -->
-  <section class="mb-12 py-6 border-y border-border">
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
       <div class="text-center">
-        <div class="font-display text-3xl text-ink mb-1">
-          {stats.sessionCount}
-        </div>
-        <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-          Sittings
-        </div>
+        <h1 class="masthead-title">Scribe</h1>
+        <p class="masthead-tagline">Singapore Parliament &middot; Hansard</p>
       </div>
-      <div class="text-center">
-        <div class="font-display text-3xl text-ink mb-1">
-          {stats.memberCount}
-        </div>
-        <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-          Members
-        </div>
-      </div>
-      <div class="text-center">
-        <div class="font-display text-3xl text-ink mb-1">
-          {stats.billCount}
-        </div>
-        <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-          Bills
-        </div>
-      </div>
-      <div class="text-center">
-        <div class="font-display text-3xl text-ink mb-1">
-          {stats.sectionCount}
-        </div>
-        <div class="font-sans text-xs uppercase tracking-wide text-ink-muted">
-          Sections
-        </div>
-      </div>
-    </div>
-  </section>
 
-  <!-- Recent Sittings -->
-  <section>
-    <div class="flex items-baseline justify-between mb-4">
-      <SectionLabel class="mb-0">Latest Sittings</SectionLabel>
-      <a
-        href="/sessions"
-        class="font-sans text-xs text-accent hover:text-accent-light no-underline"
-      >
-        View all →
-      </a>
-    </div>
+      <div class="flex flex-col items-end gap-0.5">
+        {
+          latestSession && (
+            <>
+              <span class="masthead-session">
+                {latestSession.parliament}
+                {latestSession.parliament === 1
+                  ? "st"
+                  : latestSession.parliament === 2
+                    ? "nd"
+                    : latestSession.parliament === 3
+                      ? "rd"
+                      : "th"}{" "}
+                Parliament, {latestSession.sessionNo}
+                {latestSession.sessionNo === 1
+                  ? "st"
+                  : latestSession.sessionNo === 2
+                    ? "nd"
+                    : latestSession.sessionNo === 3
+                      ? "rd"
+                      : "th"}{" "}
+                Session
+              </span>
+              <span class="status-indicator">
+                <span class="status-dot" />
+                Last sitting: {formatSessionDate(latestSession.date)}
+              </span>
+            </>
+          )
+        }
+      </div>
+    </header>
 
-    <div class="flex flex-col">
-      {
-        recentSessions.map((session, i) => (
-          <div
-            style={`animation-delay: ${0.3 + i * 0.06}s`}
-            class="animate-fade-up -mx-2"
-          >
-            <SessionCard session={session} />
+    <!-- Navigation -->
+    <nav class="nav-bar">
+      {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+    </nav>
+
+    <!-- Main content grid -->
+    <main class="main-grid">
+      <!-- Left Column -->
+      <div class="column column-left flex flex-col gap-6">
+        <a href="/bills" class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">Bills</span>
+            {
+              recentBillCount > 0 && (
+                <span class="section-card-badge">{recentBillCount} Recent</span>
+              )
+            }
           </div>
-        ))
-      }
+          <div class="section-card-count">{stats.billCount}</div>
+          <p class="section-card-description">
+            What legislation is being debated and passed?
+          </p>
+        </a>
+
+        <div class="section-divider"></div>
+
+        <a href="/questions" class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">Questions</span>
+          </div>
+          <div class="section-card-count">{questionCount.toLocaleString()}</div>
+          <p class="section-card-description">
+            What tough questions are being asked of Ministers?
+          </p>
+        </a>
+
+        <div class="section-divider"></div>
+
+        {
+          latestQuestion && (
+            <a
+              href={`/questions/${latestQuestion.id}`}
+              class="featured-item block no-underline text-inherit"
+            >
+              <span class="featured-label">Latest Question</span>
+              <h3 class="featured-title">{latestQuestion.sectionTitle}</h3>
+              <span class="featured-meta">
+                {latestQuestion.askerName || "MP"} &middot;{" "}
+                {formatSessionDate(latestQuestion.sessionDate)}
+              </span>
+            </a>
+          )
+        }
+      </div>
+
+      <!-- Center Column (Hero) -->
+      <div class="column column-center hero-center">
+        <span class="hero-label">The Parliamentary Record</span>
+        <h2 class="hero-headline">
+          Making Parliament<br />
+          <em>accessible</em> for all
+        </h2>
+        <p class="hero-description">
+          Scribe transforms Singapore's official Hansard into a clean,
+          searchable, and readable format&mdash;so you can understand what's
+          happening in Parliament without wading through walls of text.
+        </p>
+        <div class="flex gap-4 mt-6 hero-actions">
+          <a href="/bills" class="btn-primary">Browse Bills</a>
+          <a href="/members" class="btn-secondary">Find Your MP</a>
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="column column-right flex flex-col gap-6">
+        <a href="/members" class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">MPs</span>
+          </div>
+          <div class="section-card-count">{stats.memberCount}</div>
+          <p class="section-card-description">
+            Who are your representatives and what do they do?
+          </p>
+        </a>
+
+        <div class="section-divider"></div>
+
+        <a href="/motions" class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">Motions</span>
+            {
+              recentMotions.length > 0 && (
+                <span class="section-card-badge">Recent</span>
+              )
+            }
+          </div>
+          <div class="section-card-count">{motionCount}</div>
+          <p class="section-card-description">
+            What issues are being formally raised for debate?
+          </p>
+        </a>
+
+        <div class="section-divider"></div>
+
+        {
+          recentBillReadings[0] && (
+            <a
+              href={`/bills/${recentBillReadings[0].billId}`}
+              class="featured-item block no-underline text-inherit"
+            >
+              <span class="featured-label">Recent Bill</span>
+              <h3 class="featured-title">{recentBillReadings[0].billTitle}</h3>
+              <span class="featured-meta">
+                {getReadingLabel(recentBillReadings[0].sectionType)} &middot;{" "}
+                {formatSessionDate(recentBillReadings[0].sessionDate)}
+              </span>
+            </a>
+          )
+        }
+      </div>
+    </main>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-number">{sittingsThisYear}</div>
+        <div class="stat-label">Sittings This Year</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">{stats.memberCount}</div>
+        <div class="stat-label">Members of Parliament</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">{stats.billCount}</div>
+        <div class="stat-label">Bills in Session</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">{questionCount.toLocaleString()}</div>
+        <div class="stat-label">Questions Filed</div>
+      </div>
     </div>
-  </section>
-</Layout>
+  </div>
+
+  <!-- Ticker (full width) -->
+  <div class="ticker-container">
+    <div class="ticker">
+      <div class="ticker-content">
+        {
+          recentBillReadings.map((bill) => (
+            <>
+              <div class="ticker-item">
+                <span class="ticker-label">
+                  {getReadingLabel(bill.sectionType)}
+                </span>
+                <a href={`/bills/${bill.billId}`}>{bill.billTitle}</a>
+              </div>
+              <span class="ticker-divider">&bull;</span>
+            </>
+          ))
+        }
+        {
+          latestQuestion && (
+            <>
+              <div class="ticker-item">
+                <span class="ticker-label">Question</span>
+                <a href={`/questions/${latestQuestion.id}`}>
+                  {latestQuestion.sectionTitle.slice(0, 60)}
+                  {latestQuestion.sectionTitle.length > 60 ? "..." : ""}
+                </a>
+              </div>
+              <span class="ticker-divider">&bull;</span>
+            </>
+          )
+        }
+        {
+          recentMotions[0] && (
+            <>
+              <div class="ticker-item">
+                <span class="ticker-label">Motion</span>
+                <a href={`/motions/${recentMotions[0].id}`}>
+                  {recentMotions[0].sectionTitle.slice(0, 50)}
+                  {recentMotions[0].sectionTitle.length > 50 ? "..." : ""}
+                </a>
+              </div>
+              <span class="ticker-divider">&bull;</span>
+            </>
+          )
+        }
+        {
+          latestSession && (
+            <div class="ticker-item">
+              <span class="ticker-label">Sitting</span>
+              <a href={`/sessions/${latestSession.id}`}>
+                Latest sitting: {formatSessionDate(latestSession.date)}
+              </a>
+            </div>
+          )
+        }
+      </div>
+      <!-- Duplicate for seamless loop -->
+      <div class="ticker-content" aria-hidden="true">
+        {
+          recentBillReadings.map((bill) => (
+            <>
+              <div class="ticker-item">
+                <span class="ticker-label">
+                  {getReadingLabel(bill.sectionType)}
+                </span>
+                <a href={`/bills/${bill.billId}`}>{bill.billTitle}</a>
+              </div>
+              <span class="ticker-divider">&bull;</span>
+            </>
+          ))
+        }
+        {
+          latestQuestion && (
+            <>
+              <div class="ticker-item">
+                <span class="ticker-label">Question</span>
+                <a href={`/questions/${latestQuestion.id}`}>
+                  {latestQuestion.sectionTitle.slice(0, 60)}
+                  {latestQuestion.sectionTitle.length > 60 ? "..." : ""}
+                </a>
+              </div>
+              <span class="ticker-divider">&bull;</span>
+            </>
+          )
+        }
+        {
+          recentMotions[0] && (
+            <>
+              <div class="ticker-item">
+                <span class="ticker-label">Motion</span>
+                <a href={`/motions/${recentMotions[0].id}`}>
+                  {recentMotions[0].sectionTitle.slice(0, 50)}
+                  {recentMotions[0].sectionTitle.length > 50 ? "..." : ""}
+                </a>
+              </div>
+              <span class="ticker-divider">&bull;</span>
+            </>
+          )
+        }
+        {
+          latestSession && (
+            <div class="ticker-item">
+              <span class="ticker-label">Sitting</span>
+              <a href={`/sessions/${latestSession.id}`}>
+                Latest sitting: {formatSessionDate(latestSession.date)}
+              </a>
+            </div>
+          )
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-6xl mx-auto px-6">
+    <!-- Footer -->
+    <footer class="newspaper-footer">
+      <div class="footer-left flex items-center gap-4">
+        <span class="footer-logo">Scribe</span>
+        <span class="footer-copyright">A civic technology project</span>
+      </div>
+      <div class="footer-links">
+        <a href="/about">About</a>
+        <a href="https://sprs.parl.gov.sg/search/#/home">Data Sources</a>
+        <a href="https://github.com">GitHub</a>
+      </div>
+    </footer>
+  </div>
+</NewspaperLayout>

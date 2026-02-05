@@ -28,6 +28,7 @@ export default {
       },
       fontFamily: {
         display: ["Newsreader", "Georgia", "serif"],
+        masthead: ["Playfair Display", "Georgia", "serif"],
         body: ["Source Serif 4", "Georgia", "serif"],
         sans: ["DM Sans", "system-ui", "sans-serif"],
       },

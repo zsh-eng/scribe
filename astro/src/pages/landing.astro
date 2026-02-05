@@ -1,0 +1,705 @@
+---
+import "../styles/global.css";
+import { getStats } from "../lib/db";
+
+const stats = getStats();
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Scribe - Singapore Parliament proceedings made accessible"
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap"
+      rel="stylesheet"
+    />
+    <title>Scribe · Singapore Parliament Made Accessible</title>
+    <style>
+      :root {
+        --page-bg: #f5f1eb;
+        --surface: #fdfcf9;
+        --ink: #1a1612;
+        --ink-soft: #5a5248;
+        --ink-muted: #8a8078;
+        --accent: #8b2500;
+        --accent-light: #a63a14;
+        --border: #e8e0d4;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "DM Sans", system-ui, sans-serif;
+        background: var(--page-bg);
+        color: var(--ink);
+        overflow-x: hidden;
+      }
+
+      /* ─── Hero Section ─── */
+      .hero {
+        position: relative;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* Background image layer */
+      .hero-bg {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+      }
+
+      .hero-bg img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center 30%;
+        filter: blur(0px) saturate(1.1);
+      }
+
+      /* Warm cream gradient overlay */
+      .hero-gradient {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        background: linear-gradient(
+          to bottom,
+          rgba(245, 241, 235, 0.4) 0%,
+          rgba(245, 241, 235, 0.2) 30%,
+          rgba(245, 241, 235, 0.3) 60%,
+          rgba(245, 241, 235, 0.85) 90%,
+          rgba(245, 241, 235, 1) 100%
+        );
+      }
+
+      /* ASCII/character texture overlay */
+      .hero-texture {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        opacity: 0.12;
+        pointer-events: none;
+        overflow: hidden;
+        font-family: "Courier New", monospace;
+        font-size: 10px;
+        line-height: 1.1;
+        color: var(--ink);
+        word-break: break-all;
+        white-space: pre-wrap;
+        mix-blend-mode: multiply;
+      }
+
+      /* Header */
+      .header {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 2rem;
+      }
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+      }
+
+      .header-right {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .menu-btn,
+      .search-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.5rem;
+        color: var(--ink);
+        opacity: 0.7;
+        transition: opacity 0.2s;
+      }
+
+      .menu-btn:hover,
+      .search-btn:hover {
+        opacity: 1;
+      }
+
+      .header-link {
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ink-soft);
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+
+      .header-link:hover {
+        color: var(--accent);
+      }
+
+      .btn-outline {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 0.65rem 1.25rem;
+        border: 1.5px solid var(--ink);
+        border-radius: 2px;
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-outline:hover {
+        background: var(--ink);
+        color: var(--page-bg);
+      }
+
+      /* Logo bar */
+      .logo-bar {
+        position: relative;
+        z-index: 10;
+        text-align: center;
+        padding: 1rem 2rem 0;
+        border-top: 1px solid rgba(26, 22, 18, 0.1);
+        margin: 0 2rem;
+      }
+
+      .logo {
+        font-family: "Newsreader", Georgia, serif;
+        font-size: clamp(2.2rem, 5vw, 3.2rem);
+        font-weight: 400;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--ink);
+      }
+
+      .logo em {
+        font-style: italic;
+        letter-spacing: 0.08em;
+      }
+
+      /* Hero content */
+      .hero-content {
+        position: relative;
+        z-index: 10;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 4rem 2rem 8rem;
+      }
+
+      .hero-label {
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.25em;
+        color: var(--accent);
+        margin-bottom: 1.5rem;
+        opacity: 0;
+        animation: fadeUp 0.6s ease-out 0.2s forwards;
+      }
+
+      .hero-title {
+        font-family: "Newsreader", Georgia, serif;
+        font-size: clamp(2.4rem, 6vw, 4.5rem);
+        font-weight: 300;
+        line-height: 1.1;
+        color: var(--ink);
+        max-width: 14ch;
+        margin-bottom: 1.5rem;
+        opacity: 0;
+        animation: fadeUp 0.6s ease-out 0.35s forwards;
+      }
+
+      .hero-title em {
+        font-style: italic;
+        font-weight: 400;
+      }
+
+      .hero-subtitle {
+        font-family: "Newsreader", Georgia, serif;
+        font-size: clamp(1rem, 2vw, 1.25rem);
+        font-weight: 400;
+        line-height: 1.6;
+        color: var(--ink-soft);
+        max-width: 42ch;
+        margin-bottom: 2.5rem;
+        opacity: 0;
+        animation: fadeUp 0.6s ease-out 0.5s forwards;
+      }
+
+      /* Stats row */
+      .stats-row {
+        display: flex;
+        justify-content: center;
+        gap: 3rem;
+        opacity: 0;
+        animation: fadeUp 0.6s ease-out 0.65s forwards;
+      }
+
+      .stat {
+        text-align: center;
+      }
+
+      .stat-value {
+        font-family: "Newsreader", Georgia, serif;
+        font-size: 1.5rem;
+        font-weight: 400;
+        color: var(--ink);
+      }
+
+      .stat-label {
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--ink-muted);
+        margin-top: 0.25rem;
+      }
+
+      /* CTA buttons */
+      .cta-row {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2.5rem;
+        opacity: 0;
+        animation: fadeUp 0.6s ease-out 0.8s forwards;
+      }
+
+      .btn-primary {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 0.85rem 2rem;
+        background: var(--accent);
+        border: none;
+        border-radius: 2px;
+        color: white;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+      }
+
+      .btn-primary:hover {
+        background: var(--accent-light);
+        color: white;
+      }
+
+      .btn-secondary {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        padding: 0.85rem 2rem;
+        background: transparent;
+        border: 1.5px solid var(--border);
+        border-radius: 2px;
+        color: var(--ink);
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+      }
+
+      .btn-secondary:hover {
+        border-color: var(--ink);
+        color: var(--ink);
+      }
+
+      /* Scroll indicator */
+      .scroll-indicator {
+        position: absolute;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        opacity: 0;
+        animation: fadeIn 0.6s ease-out 1.2s forwards;
+      }
+
+      .scroll-text {
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        color: var(--ink-muted);
+      }
+
+      .scroll-line {
+        width: 1px;
+        height: 40px;
+        background: linear-gradient(to bottom, var(--ink-muted), transparent);
+        animation: scrollPulse 2s ease-in-out infinite;
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes scrollPulse {
+        0%,
+        100% {
+          opacity: 0.4;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      /* ─── Below the Fold Section ─── */
+      .content-section {
+        background: var(--page-bg);
+        padding: 5rem 2rem;
+      }
+
+      .section-inner {
+        max-width: 960px;
+        margin: 0 auto;
+      }
+
+      .section-label {
+        font-size: 0.65rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.25em;
+        color: var(--accent);
+        margin-bottom: 1rem;
+      }
+
+      .section-title {
+        font-family: "Newsreader", Georgia, serif;
+        font-size: clamp(1.6rem, 3vw, 2.2rem);
+        font-weight: 400;
+        line-height: 1.3;
+        color: var(--ink);
+        max-width: 20ch;
+        margin-bottom: 3rem;
+      }
+
+      /* Feature cards */
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .feature-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 2rem;
+        text-decoration: none;
+        transition: all 0.25s ease;
+      }
+
+      .feature-card:hover {
+        background: #faf8f4;
+        border-color: var(--ink-muted);
+        transform: translateY(-2px);
+      }
+
+      .feature-count {
+        font-size: 0.6rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: var(--accent);
+        margin-bottom: 0.75rem;
+      }
+
+      .feature-title {
+        font-family: "Newsreader", Georgia, serif;
+        font-size: 1.4rem;
+        font-weight: 400;
+        color: var(--ink);
+        margin-bottom: 0.5rem;
+        transition: color 0.2s;
+      }
+
+      .feature-card:hover .feature-title {
+        color: var(--accent);
+      }
+
+      .feature-desc {
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: var(--ink-muted);
+      }
+
+      /* Footer */
+      .footer {
+        border-top: 1px solid var(--border);
+        padding: 3rem 2rem;
+        text-align: center;
+      }
+
+      .footer p {
+        font-size: 0.85rem;
+        color: var(--ink-muted);
+        line-height: 1.6;
+      }
+
+      .footer a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .footer a:hover {
+        color: var(--accent-light);
+      }
+
+      /* Mobile adjustments */
+      @media (max-width: 640px) {
+        .header {
+          padding: 1rem 1.25rem;
+        }
+
+        .header-link {
+          display: none;
+        }
+
+        .logo-bar {
+          margin: 0 1rem;
+          padding: 0.75rem 1rem 0;
+        }
+
+        .hero-content {
+          padding: 3rem 1.5rem 6rem;
+        }
+
+        .stats-row {
+          gap: 2rem;
+        }
+
+        .cta-row {
+          flex-direction: column;
+          width: 100%;
+          max-width: 280px;
+        }
+
+        .btn-primary,
+        .btn-secondary {
+          width: 100%;
+          text-align: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <section class="hero">
+      <!-- Background image -->
+      <div class="hero-bg">
+        <img src="/generated.webp" alt="Parliament House Singapore" />
+      </div>
+
+      <!-- Gradient overlay -->
+      <!-- <div class="hero-gradient"></div> -->
+
+      <!-- ASCII texture overlay -->
+      <div class="hero-texture" aria-hidden="true" id="ascii-texture"></div>
+
+      <!-- Header -->
+      <header class="header">
+        <div class="header-left">
+          <button class="menu-btn" aria-label="Menu">
+            <svg
+              width="20"
+              height="14"
+              viewBox="0 0 20 14"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <line x1="0" y1="1" x2="20" y2="1"></line>
+              <line x1="0" y1="7" x2="20" y2="7"></line>
+              <line x1="0" y1="13" x2="20" y2="13"></line>
+            </svg>
+          </button>
+          <button class="search-btn" aria-label="Search">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            >
+              <circle cx="7.5" cy="7.5" r="6"></circle>
+              <line x1="12" y1="12" x2="17" y2="17"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="header-right">
+          <a href="/about" class="header-link">About</a>
+          <a href="/" class="btn-outline">Enter</a>
+        </div>
+      </header>
+
+      <!-- Logo bar -->
+      <div class="logo-bar">
+        <h1 class="logo">Scr<em>i</em>be</h1>
+      </div>
+
+      <!-- Hero content -->
+      <div class="hero-content">
+        <span class="hero-label">Singapore Parliament · Hansard</span>
+
+        <h2 class="hero-title">
+          Making Parliament <em>Accessible</em> for All
+        </h2>
+
+        <p class="hero-subtitle">
+          Transforming Singapore's official Hansard into a clean, searchable
+          format — so you can understand what's happening without wading through
+          walls of text.
+        </p>
+
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-value">{stats.sessionCount}</div>
+            <div class="stat-label">Sittings</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">{stats.memberCount}</div>
+            <div class="stat-label">Members</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">{stats.billCount}</div>
+            <div class="stat-label">Bills</div>
+          </div>
+        </div>
+
+        <div class="cta-row">
+          <a href="/bills" class="btn-primary">Browse Bills</a>
+          <a href="/members" class="btn-secondary">Find Your MP</a>
+        </div>
+      </div>
+
+      <!-- Scroll indicator -->
+      <div class="scroll-indicator">
+        <span class="scroll-text">Explore</span>
+        <div class="scroll-line"></div>
+      </div>
+    </section>
+
+    <!-- Explore Section -->
+    <section class="content-section">
+      <div class="section-inner">
+        <span class="section-label">Explore</span>
+        <h3 class="section-title">Dive into the proceedings</h3>
+
+        <div class="features-grid">
+          <a href="/bills" class="feature-card">
+            <div class="feature-count">{stats.billCount} records</div>
+            <h4 class="feature-title">Bills</h4>
+            <p class="feature-desc">
+              What legislation is being debated and passed in Parliament?
+            </p>
+          </a>
+
+          <a href="/members" class="feature-card">
+            <div class="feature-count">{stats.memberCount} records</div>
+            <h4 class="feature-title">Members</h4>
+            <p class="feature-desc">
+              Who are your representatives and what do they do?
+            </p>
+          </a>
+
+          <a href="/questions" class="feature-card">
+            <div class="feature-count">{stats.sectionCount} records</div>
+            <h4 class="feature-title">Questions</h4>
+            <p class="feature-desc">
+              What tough questions are being asked of Ministers?
+            </p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        Data sourced from the official <a
+          href="https://sprs.parl.gov.sg/search/#/home">Hansard</a
+        >.<br />
+        Scribe is an independent project and is not affiliated with the Singapore
+        Government.
+      </p>
+    </footer>
+
+    <script>
+      // Generate ASCII texture pattern
+      function generateAsciiTexture() {
+        const container = document.getElementById("ascii-texture");
+        if (!container) return;
+
+        const chars = "§¶†‡°·•×÷±≈≠≤≥«»‹›¤¦©®™¢£¥€∞∂∆∏∑√∫≈≠≤≥";
+        const width = Math.ceil(window.innerWidth / 8);
+        const height = Math.ceil(window.innerHeight / 10);
+        let text = "";
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            // Create varying density based on position
+            const noise =
+              Math.sin(x * 0.1) * Math.cos(y * 0.15) + Math.random() * 0.5;
+            if (noise > 0.3) {
+              text += chars[Math.floor(Math.random() * chars.length)];
+            } else {
+              text += " ";
+            }
+          }
+          text += "\n";
+        }
+
+        container.textContent = text;
+      }
+
+      generateAsciiTexture();
+      window.addEventListener("resize", generateAsciiTexture);
+    </script>
+  </body>
+</html>

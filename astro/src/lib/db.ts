@@ -849,4 +849,139 @@ export function getStats(): { sessionCount: number; memberCount: number; billCou
   return { sessionCount, memberCount, billCount, sectionCount };
 }
 
+// Get the most recent session for masthead info
+export function getLatestSession(): Session | undefined {
+  const sql = `
+    SELECT
+      id,
+      date,
+      sitting_no as sittingNo,
+      parliament,
+      session_no as sessionNo,
+      volume_no as volumeNo,
+      format,
+      url
+    FROM sessions
+    ORDER BY date DESC
+    LIMIT 1
+  `;
+  return db.prepare(sql).get() as Session | undefined;
+}
+
+// Get count of sittings in current year
+export function getSittingsThisYear(): number {
+  const currentYear = new Date().getFullYear();
+  const result = db.prepare(`
+    SELECT COUNT(*) as count FROM sessions
+    WHERE strftime('%Y', date) = ?
+  `).get(String(currentYear)) as { count: number };
+  return result.count;
+}
+
+// Get recent bills that have had readings (for ticker/featured)
+export interface RecentBillReading {
+  billId: string;
+  billTitle: string;
+  sectionType: string;
+  sessionDate: string;
+  ministry: string | null;
+}
+
+export function getRecentBillReadings(limit: number = 5): RecentBillReading[] {
+  const sql = `
+    SELECT
+      b.id as billId,
+      b.title as billTitle,
+      sec.section_type as sectionType,
+      s.date as sessionDate,
+      m.name as ministry
+    FROM sections sec
+    JOIN sessions s ON sec.session_id = s.id
+    JOIN bills b ON sec.bill_id = b.id
+    LEFT JOIN ministries m ON b.ministry_id = m.id
+    WHERE sec.bill_id IS NOT NULL
+    ORDER BY s.date DESC, sec.section_order DESC
+    LIMIT ?
+  `;
+  return db.prepare(sql).all(limit) as RecentBillReading[];
+}
+
+// Get latest question with asker info
+export interface LatestQuestion {
+  id: string;
+  sectionTitle: string;
+  sessionDate: string;
+  askerName: string | null;
+  askerId: string | null;
+  ministry: string | null;
+}
+
+export function getLatestQuestion(): LatestQuestion | undefined {
+  const sql = `
+    SELECT
+      sec.id,
+      sec.section_title as sectionTitle,
+      s.date as sessionDate,
+      m.name as ministry
+    FROM sections sec
+    JOIN sessions s ON sec.session_id = s.id
+    LEFT JOIN ministries m ON sec.ministry_id = m.id
+    WHERE sec.section_type IN ('OA', 'WA', 'WANA')
+    ORDER BY s.date DESC, sec.section_order ASC
+    LIMIT 1
+  `;
+  const question = db.prepare(sql).get() as { id: string; sectionTitle: string; sessionDate: string; ministry: string | null } | undefined;
+
+  if (!question) return undefined;
+
+  // Get first speaker (usually the asker)
+  const speakerSql = `
+    SELECT
+      ss.member_id as askerId,
+      m.name as askerName
+    FROM section_speakers ss
+    JOIN members m ON ss.member_id = m.id
+    WHERE ss.section_id = ?
+    LIMIT 1
+  `;
+  const speaker = db.prepare(speakerSql).get(question.id) as { askerId: string; askerName: string } | undefined;
+
+  return {
+    ...question,
+    askerName: speaker?.askerName || null,
+    askerId: speaker?.askerId || null,
+  };
+}
+
+// Get count of new bills in recent period (e.g., last 30 days)
+export function getRecentBillCount(days: number = 30): number {
+  const result = db.prepare(`
+    SELECT COUNT(*) as count FROM bills
+    WHERE first_reading_date >= date('now', '-' || ? || ' days')
+  `).get(days) as { count: number };
+  return result.count;
+}
+
+// Get recent motions for ticker
+export interface RecentMotion {
+  id: string;
+  sectionTitle: string;
+  sessionDate: string;
+}
+
+export function getRecentMotions(limit: number = 3): RecentMotion[] {
+  const sql = `
+    SELECT
+      sec.id,
+      sec.section_title as sectionTitle,
+      s.date as sessionDate
+    FROM sections sec
+    JOIN sessions s ON sec.session_id = s.id
+    WHERE sec.category IN ('motion', 'adjournment_motion')
+    ORDER BY s.date DESC, sec.section_order ASC
+    LIMIT ?
+  `;
+  return db.prepare(sql).all(limit) as RecentMotion[];
+}
+
 export default db;
