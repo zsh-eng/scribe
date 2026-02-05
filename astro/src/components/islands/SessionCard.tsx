@@ -9,7 +9,7 @@ export default function SessionCard({ item }: Props) {
   return (
     <a
       href={`/sessions/${item.id}`}
-      class="group grid grid-cols-[140px_1fr_auto] items-center gap-6 py-4 border-b border-border transition-colors hover:bg-warm cursor-pointer px-2"
+      class="group grid grid-cols-[160px_1fr_auto] items-center gap-6 py-4 border-b border-border transition-colors hover:bg-warm cursor-pointer px-2"
       data-pagefind-meta={`id:${item.id}`}
     >
       <div class="font-display text-base text-ink">
