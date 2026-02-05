@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -6,701 +6,733 @@
 
 /* ─── CSS Custom Properties ─── */
 :root {
-  --page-bg: #E8E4DC;
-  --surface: #F0EDE7;
-  --warm: #F0EDE7;
-  --ink: #1A1A18;
-  --ink-soft: #4A4A45;
-  --ink-muted: #7A7A72;
-  --accent: #9B3D2B;
-  --accent-light: #7A2E20;
-  --border: rgba(0, 0, 0, 0.15);
-  --border-light: rgba(0, 0, 0, 0.08);
-  --paper-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    --page-bg: #e8e4dc;
+    --surface: #f0ede7;
+    --warm: #f0ede7;
+    --ink: #1a1a18;
+    --ink-soft: #4a4a45;
+    --ink-muted: #7a7a72;
+    --accent: #9b3d2b;
+    --accent-light: #7a2e20;
+    --border: rgba(0, 0, 0, 0.15);
+    --border-light: rgba(0, 0, 0, 0.08);
+    --paper-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
 
 /* ─── Base Styles ─── */
 @layer base {
-  body {
-    @apply bg-page-bg text-ink antialiased;
-    font-family: 'Source Serif 4', Georgia, serif;
-    min-height: 100vh;
-    position: relative;
-  }
+    body {
+        @apply bg-page-bg text-ink antialiased;
+        font-family: "Source Serif 4", Georgia, serif;
+        min-height: 100vh;
+        position: relative;
+    }
 
-  html {
-    font-size: 17px;
-  }
+    html {
+        font-size: 17px;
+    }
 
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: var(--paper-noise);
-    opacity: 0.035;
-    pointer-events: none;
-    z-index: 1000;
-  }
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: var(--paper-noise);
+        opacity: 0.035;
+        pointer-events: none;
+        z-index: 1000;
+    }
 
-  /* Default prose typography */
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', Georgia, serif;
-    @apply text-ink;
-  }
+    /* Default prose typography */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        font-family: "Playfair Display", Georgia, serif;
+        @apply text-ink;
+    }
 
-  /* Links */
-  a {
-    @apply text-accent transition-colors;
-  }
+    /* Links */
+    a {
+        @apply text-accent transition-colors;
+    }
 
-  a:hover {
-    @apply text-accent-light;
-  }
+    a:hover {
+        @apply text-accent-light;
+    }
 }
 
 /* ─── Component Layer ─── */
 @layer components {
-  /* Section Label - small caps accent label */
-  .section-label {
-    @apply font-sans text-label uppercase text-accent tracking-widest;
-  }
+    /* Section Label - small caps accent label */
+    .section-label {
+        @apply font-sans text-label uppercase text-accent tracking-widest;
+    }
 
-  /* Page Title - large serif heading */
-  .page-title {
-    @apply font-display text-display-lg text-ink mb-4;
-  }
+    /* Page Title - large serif heading */
+    .page-title {
+        @apply font-display text-display-lg text-ink mb-4;
+    }
 
-  /* Page Title XL - for hero sections */
-  .page-title-xl {
-    @apply font-display text-display-xl text-ink;
-  }
+    /* Page Title XL - for hero sections */
+    .page-title-xl {
+        @apply font-display text-display-xl text-ink;
+    }
 
-  /* Body prose - for long-form reading */
-  .body-prose {
-    font-family: 'Source Serif 4', Georgia, serif;
-    @apply text-ink-soft leading-relaxed;
-  }
+    /* Body prose - for long-form reading */
+    .body-prose {
+        font-family: "Source Serif 4", Georgia, serif;
+        @apply text-ink-soft leading-relaxed;
+    }
 
-  /* Card base style */
-  .card {
-    @apply bg-surface border border-border rounded-md transition-all duration-200;
-  }
+    /* Card base style */
+    .card {
+        @apply bg-surface border border-border rounded-md transition-all duration-200;
+    }
 
-  .card:hover {
-    @apply bg-warm shadow-sm;
-  }
+    .card:hover {
+        @apply bg-warm shadow-sm;
+    }
 
-  /* Tag base style */
-  .tag {
-    @apply font-sans text-label-sm uppercase tracking-wider px-2 py-0.5 rounded;
-  }
+    /* Tag base style */
+    .tag {
+        @apply font-sans text-label-sm uppercase tracking-wider px-2 py-0.5 rounded;
+    }
 
-  /* Ruled lines background (for hero sections) */
-  .ruled-lines {
-    background-image: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 39px,
-      var(--border) 39px,
-      var(--border) 40px
-    );
-  }
+    /* Ruled lines background (for hero sections) */
+    .ruled-lines {
+        background-image: repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 39px,
+            var(--border) 39px,
+            var(--border) 40px
+        );
+    }
 
-  /* Editorial link style */
-  .editorial-link {
-    @apply text-accent no-underline hover:text-accent-light transition-colors;
-  }
+    /* Editorial link style */
+    .editorial-link {
+        @apply text-accent no-underline hover:text-accent-light transition-colors;
+    }
 
-  /* Nav link style */
-  .nav-link {
-    @apply font-sans text-xs uppercase tracking-wide text-ink-muted hover:text-accent transition-colors;
-  }
+    /* Nav link style */
+    .nav-link {
+        @apply font-sans text-xs uppercase tracking-wide text-ink-muted hover:text-accent transition-colors;
+    }
 
-  .nav-link-active {
-    @apply text-accent font-semibold border-b-2 border-accent pb-0.5;
-  }
+    .nav-link-active {
+        @apply text-accent font-semibold border-b-2 border-accent pb-0.5;
+    }
 }
 
 /* ─── Transcript Styles ─── */
 .transcript-content {
-  font-family: 'Source Serif 4', Georgia, serif;
-  @apply text-base leading-relaxed;
-  color: #3a342c;
+    font-family: "Source Serif 4", Georgia, serif;
+    @apply text-base leading-relaxed;
+    color: #3a342c;
 }
 
 .transcript-content p {
-  @apply mb-4;
+    @apply mb-4;
 }
 
 .transcript-content p + p {
-  @apply mt-4;
+    @apply mt-4;
 }
 
 /* Speaker name in transcript */
 .transcript-content strong {
-  @apply font-semibold;
+    @apply font-semibold;
 }
 
 /* Procedural text from Hansard (e.g., "[Members stood]" or "[Sitting suspended]") */
 .transcript-content .proc {
-  @apply block text-sm italic text-ink-muted my-2;
+    @apply block text-sm italic text-ink-muted my-2;
 }
 
 /* ─── Prose Overrides for Editorial Style ─── */
 .prose {
-  --tw-prose-body: var(--ink-soft);
-  --tw-prose-headings: var(--ink);
-  --tw-prose-links: var(--accent);
-  --tw-prose-bold: var(--ink);
+    --tw-prose-body: var(--ink-soft);
+    --tw-prose-headings: var(--ink);
+    --tw-prose-links: var(--accent);
+    --tw-prose-bold: var(--ink);
 }
 
-.prose h1, .prose h2, .prose h3, .prose h4 {
-  font-family: 'Newsreader', Georgia, serif;
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+    font-family: "Newsreader", Georgia, serif;
 }
 
-.prose p, .prose li {
-  font-family: 'Source Serif 4', Georgia, serif;
+.prose p,
+.prose li {
+    font-family: "Source Serif 4", Georgia, serif;
 }
 
 /* ─── Animation Delays ─── */
-.animate-delay-100 { animation-delay: 0.1s; }
-.animate-delay-200 { animation-delay: 0.2s; }
-.animate-delay-300 { animation-delay: 0.3s; }
-.animate-delay-400 { animation-delay: 0.4s; }
+.animate-delay-100 {
+    animation-delay: 0.1s;
+}
+.animate-delay-200 {
+    animation-delay: 0.2s;
+}
+.animate-delay-300 {
+    animation-delay: 0.3s;
+}
+.animate-delay-400 {
+    animation-delay: 0.4s;
+}
 
 /* ─── Utility Classes ─── */
 @layer utilities {
-  /* Warm hover background */
-  .hover-warm:hover {
-    @apply bg-warm;
-  }
+    /* Warm hover background */
+    .hover-warm:hover {
+        @apply bg-warm;
+    }
 
-  /* Text balanced for headings */
-  .text-balance {
-    text-wrap: balance;
-  }
+    /* Text balanced for headings */
+    .text-balance {
+        text-wrap: balance;
+    }
 }
 
 /* ─── Newspaper Front Page Styles ─── */
 
 /* Page container - matches HTML design */
 .page {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
 }
 
 /* Top rule bar */
 .top-rule {
-  height: 4px;
-  @apply bg-ink w-full;
+    height: 4px;
+    @apply bg-ink w-full;
 }
 
 /* Masthead */
 .masthead {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  @apply py-5 border-b border-ink;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    @apply py-5 border-b border-ink;
 }
 
 .masthead-title {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 3.2rem;
-  letter-spacing: 0.01em;
-  @apply font-normal leading-none;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 3.2rem;
+    letter-spacing: 0.01em;
+    @apply font-normal leading-none;
 }
 
 .masthead-tagline {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.65rem;
-  font-weight: 300;
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  margin-top: 0.4rem;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.65rem;
+    font-weight: 300;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-top: 0.4rem;
 }
 
 .masthead-location {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.7rem;
-  font-weight: 400;
-  letter-spacing: 0.05em;
-  color: var(--ink-soft);
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    color: var(--ink-soft);
 }
 
 .masthead-date {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.7rem;
-  font-weight: 300;
-  color: var(--ink-muted);
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.7rem;
+    font-weight: 300;
+    color: var(--ink-muted);
 }
 
 .masthead-session {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.7rem;
-  font-weight: 400;
-  color: var(--ink-soft);
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--ink-soft);
 }
 
 /* Status indicator */
 .status-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.65rem;
-  font-weight: 500;
-  color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
 }
 
 .status-dot {
-  @apply w-1.5 h-1.5 bg-accent rounded-full;
-  animation: pulse 2s ease-in-out infinite;
+    @apply w-1.5 h-1.5 bg-accent rounded-full;
+    animation: pulse 2s ease-in-out infinite;
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.4;
+    }
 }
 
 /* Navigation bar */
 .nav-bar {
-  display: flex;
-  justify-content: center;
-  gap: 2.5rem;
-  padding: 0.7rem 0;
-  border-bottom: 3px double var(--ink);
+    display: flex;
+    justify-content: center;
+    gap: 2.5rem;
+    padding: 0.7rem 0;
+    border-bottom: 3px double var(--ink);
 }
 
 .nav-bar a {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.72rem;
-  font-weight: 400;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink);
-  text-decoration: none;
-  transition: color 0.2s ease;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+    transition: color 0.2s ease;
 }
 
 .nav-bar a:hover {
-  @apply text-accent;
+    @apply text-accent;
 }
 
 /* Three column grid */
 .main-grid {
-  display: grid;
-  grid-template-columns: 1fr 1.4fr 1fr;
-  border-bottom: 1px solid var(--ink);
+    display: grid;
+    grid-template-columns: 1fr 1.4fr 1fr;
+    border-bottom: 1px solid var(--ink);
 }
 
 .main-grid .column {
-  padding: 2rem 1.5rem;
+    padding: 2rem 1.5rem;
 }
 
 .main-grid .column:not(:last-child) {
-  border-right: 1px solid var(--border);
+    border-right: 1px solid var(--border);
 }
 
 /* Section cards in columns */
 .section-card {
-  @apply block no-underline text-inherit transition-opacity;
+    @apply block no-underline text-inherit transition-opacity;
 }
 
 .section-card:hover {
-  opacity: 0.7;
+    opacity: 0.7;
 }
 
 .section-card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .section-card-title {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1.1rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .section-card-badge {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.55rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  background-color: var(--accent);
-  color: var(--surface);
-  padding: 0.2rem 0.4rem;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background-color: var(--accent);
+    color: var(--surface);
+    padding: 0.2rem 0.4rem;
 }
 
 .section-card-count {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 2.2rem;
-  font-weight: 400;
-  color: var(--ink);
-  line-height: 1;
-  margin-bottom: 0.4rem;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 2.2rem;
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 0.4rem;
 }
 
 .section-card-description {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.85rem;
-  font-weight: 300;
-  color: var(--ink-soft);
-  line-height: 1.5;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: var(--ink-soft);
+    line-height: 1.5;
 }
 
 /* Section divider (dashed) */
 .section-divider {
-  height: 1px;
-  background: linear-gradient(to right, var(--ink) 0%, var(--ink) 30%, transparent 30%, transparent 70%, var(--ink) 70%);
-  background-size: 10px 1px;
+    height: 1px;
+    background: linear-gradient(
+        to right,
+        var(--ink) 0%,
+        var(--ink) 30%,
+        transparent 30%,
+        transparent 70%,
+        var(--ink) 70%
+    );
+    background-size: 10px 1px;
 }
 
 /* Featured item */
 .featured-item {
-  padding: 1rem 0;
+    padding: 1rem 0;
 }
 
 .featured-label {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.6rem;
-  font-weight: 400;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-  margin-bottom: 0.5rem;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.6rem;
+    font-weight: 400;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 0.5rem;
 }
 
 .featured-title {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1rem;
-  font-weight: 500;
-  line-height: 1.35;
-  margin-bottom: 0.4rem;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.35;
+    margin-bottom: 0.4rem;
 }
 
 .featured-meta {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.75rem;
-  font-weight: 300;
-  color: var(--ink-muted);
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.75rem;
+    font-weight: 300;
+    color: var(--ink-muted);
 }
 
 /* Hero center column */
 .hero-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 3rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 2rem;
 }
 
 .hero-label {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.65rem;
-  font-weight: 400;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-bottom: 1rem;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.65rem;
+    font-weight: 400;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
 }
 
 .hero-headline {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 3rem;
-  font-weight: 400;
-  line-height: 1.1;
-  margin-bottom: 0.3em;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 3rem;
+    font-weight: 400;
+    line-height: 1.1;
+    margin-bottom: 0.3em;
 }
 
 .hero-headline em {
-  @apply italic;
+    @apply italic;
 }
 
 .hero-description {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 1rem;
-  font-weight: 300;
-  line-height: 1.6;
-  color: var(--ink-soft);
-  max-width: 400px;
-  margin: 1.5rem auto;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 1rem;
+    font-weight: 300;
+    line-height: 1.6;
+    color: var(--ink-soft);
+    max-width: 400px;
+    margin: 1.5rem auto;
 }
 
 .hero-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-top: 1.5rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1.5rem;
 }
 
 /* Buttons */
 .btn-primary {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.8rem;
-  font-weight: 400;
-  letter-spacing: 0.05em;
-  padding: 0.85rem 1.6rem;
-  background-color: var(--accent);
-  color: var(--surface);
-  border: none;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  text-decoration: none;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.8rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    padding: 0.85rem 1.6rem;
+    background-color: var(--accent);
+    color: var(--surface);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    text-decoration: none;
 }
 
 .btn-primary:hover {
-  @apply bg-accent-light text-white;
+    @apply bg-accent-light text-white;
 }
 
 .btn-secondary {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.8rem;
-  font-weight: 400;
-  letter-spacing: 0.05em;
-  padding: 0.85rem 1.6rem;
-  background-color: transparent;
-  color: var(--ink);
-  border: 1px solid var(--ink);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.8rem;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    padding: 0.85rem 1.6rem;
+    background-color: transparent;
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
 }
 
 .btn-secondary:hover {
-  @apply bg-ink text-white;
+    @apply bg-ink text-white;
 }
 
 /* Stats row */
 .stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  border-bottom: 1px solid var(--ink);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
 }
 
 .stat-item {
-  padding: 1.25rem 1.5rem;
-  text-align: center;
+    padding: 1.25rem 1.5rem;
+    text-align: center;
 }
 
 .stat-item:not(:last-child) {
-  border-right: 1px solid var(--border);
+    border-right: 1px solid var(--border);
 }
 
 .stat-number {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 2rem;
-  font-weight: 400;
-  line-height: 1;
-  margin-bottom: 0.25rem;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 2rem;
+    font-weight: 400;
+    line-height: 1;
+    margin-bottom: 0.25rem;
 }
 
 .stat-label {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.65rem;
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-muted);
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.65rem;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
 }
 
 /* Ticker */
 .ticker-container {
-  @apply bg-ink overflow-hidden relative;
+    @apply bg-ink overflow-hidden relative;
 }
 
 .ticker {
-  display: flex;
-  animation: ticker 40s linear infinite;
+    display: flex;
+    animation: ticker 40s linear infinite;
 }
 
 .ticker:hover {
-  animation-play-state: paused;
+    animation-play-state: paused;
 }
 
 .ticker-content {
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-  padding: 0.9rem 0;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    padding: 0.9rem 0;
 }
 
 .ticker-item {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 0 2.5rem;
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.85rem;
-  font-weight: 300;
-  color: var(--page-bg);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0 2.5rem;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: var(--page-bg);
 }
 
 .ticker-item a {
-  color: var(--page-bg);
-  @apply no-underline;
+    color: var(--page-bg);
+    @apply no-underline;
 }
 
 .ticker-item a:hover {
-  @apply underline;
+    @apply underline;
 }
 
 .ticker-label {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  background-color: var(--accent);
-  padding: 0.2rem 0.5rem;
-  color: var(--surface);
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background-color: var(--accent);
+    padding: 0.2rem 0.5rem;
+    color: var(--surface);
 }
 
 .ticker-divider {
-  color: var(--ink-muted);
+    color: var(--ink-muted);
 }
 
 @keyframes ticker {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
 }
 
 /* Newspaper footer */
 .newspaper-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.25rem 0;
-  border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 0;
+    border-top: 1px solid var(--border);
 }
 
 .footer-logo {
-  font-family: 'Playfair Display', Georgia, serif;
-  font-size: 1rem;
-  font-weight: 500;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 1rem;
+    font-weight: 500;
 }
 
 .footer-copyright {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.7rem;
-  font-weight: 300;
-  color: var(--ink-muted);
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.7rem;
+    font-weight: 300;
+    color: var(--ink-muted);
 }
 
 .footer-links {
-  display: flex;
-  gap: 1.5rem;
+    display: flex;
+    gap: 1.5rem;
 }
 
 .footer-links a {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-size: 0.7rem;
-  font-weight: 400;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink);
-  text-decoration: none;
-  transition: color 0.2s ease;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink);
+    text-decoration: none;
+    transition: color 0.2s ease;
 }
 
 .footer-links a:hover {
-  @apply text-accent;
+    @apply text-accent;
 }
 
 /* Responsive adjustments for newspaper layout */
 @media (max-width: 1024px) {
-  .main-grid {
-    grid-template-columns: 1fr 1fr;
-  }
+    .main-grid {
+        grid-template-columns: 1fr 1fr;
+    }
 
-  .main-grid .column-center {
-    grid-column: 1 / -1;
-    order: -1;
-    @apply border-r-0 border-b border-border;
-  }
+    .main-grid .column-center {
+        grid-column: 1 / -1;
+        order: -1;
+        @apply border-r-0 border-b border-border;
+    }
 
-  .main-grid .column-left {
-    @apply border-r border-border;
-  }
+    .main-grid .column-left {
+        @apply border-r border-border;
+    }
 
-  .main-grid .column-right {
-    @apply border-r-0;
-  }
+    .main-grid .column-right {
+        @apply border-r-0;
+    }
 }
 
 @media (max-width: 768px) {
-  .page {
-    padding: 0 1.25rem;
-  }
+    .page {
+        padding: 0 1.25rem;
+    }
 
-  .masthead {
-    grid-template-columns: 1fr;
-    @apply text-center gap-3;
-  }
+    .masthead {
+        grid-template-columns: 1fr;
+        @apply text-center gap-3;
+    }
 
-  .masthead-left,
-  .masthead-right {
-    @apply items-center justify-center;
-  }
+    .masthead-left,
+    .masthead-right {
+        @apply items-center justify-center;
+    }
 
-  .masthead-title {
-    font-size: 2.5rem;
-  }
+    .masthead-title {
+        font-size: 2.5rem;
+    }
 
-  .nav-bar {
-    @apply flex-wrap gap-4;
-  }
+    .nav-bar {
+        @apply flex-wrap gap-4;
+    }
 
-  .main-grid {
-    grid-template-columns: 1fr;
-  }
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
 
-  .main-grid .column {
-    @apply border-r-0 border-b border-border;
-  }
+    .main-grid .column {
+        @apply border-r-0 border-b border-border;
+    }
 
-  .main-grid .column:last-child {
-    @apply border-b-0;
-  }
+    .main-grid .column:last-child {
+        @apply border-b-0;
+    }
 
-  .hero-headline {
-    font-size: 2.2rem;
-  }
+    .hero-headline {
+        font-size: 2.2rem;
+    }
 
-  .hero-actions {
-    @apply flex-col;
-  }
+    .hero-actions {
+        @apply flex-col;
+    }
 
-  .stats-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
 
-  .stat-item:nth-child(2) {
-    @apply border-r-0;
-  }
+    .stat-item:nth-child(2) {
+        @apply border-r-0;
+    }
 
-  .stat-item:nth-child(1),
-  .stat-item:nth-child(2) {
-    @apply border-b border-border;
-  }
+    .stat-item:nth-child(1),
+    .stat-item:nth-child(2) {
+        @apply border-b border-border;
+    }
 
-  .newspaper-footer {
-    @apply flex-col gap-4 text-center;
-  }
+    .newspaper-footer {
+        @apply flex-col gap-4 text-center;
+    }
 
-  .footer-left {
-    @apply flex-col gap-2;
-  }
+    .footer-left {
+        @apply flex-col gap-2;
+    }
 }
