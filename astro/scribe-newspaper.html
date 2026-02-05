@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Scribe — Making Parliament Accessible for All</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,500;1,8..60,400&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --color-paper: #E8E4DC;
+      --color-paper-light: #F0EDE7;
+      --color-rust: #9B3D2B;
+      --color-rust-dark: #7A2E20;
+      --color-ink: #1A1A18;
+      --color-ink-light: #4A4A45;
+      --color-ink-faded: #7A7A72;
+      
+      --font-display: 'Playfair Display', Georgia, serif;
+      --font-body: 'Source Serif 4', Georgia, serif;
+      
+      --paper-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    html {
+      font-size: 17px;
+    }
+    
+    body {
+      font-family: var(--font-body);
+      background-color: var(--color-paper);
+      color: var(--color-ink);
+      min-height: 100vh;
+      position: relative;
+    }
+    
+    /* Paper texture */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: var(--paper-noise);
+      opacity: 0.035;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    
+    /* Top rule */
+    .top-rule {
+      height: 4px;
+      background-color: var(--color-ink);
+      width: 100%;
+    }
+    
+    .page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+    
+    /* Masthead */
+    .masthead {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      padding: 1.25rem 0;
+      border-bottom: 1px solid var(--color-ink);
+    }
+    
+    .masthead-left {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    
+    .masthead-location {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      color: var(--color-ink-light);
+    }
+    
+    .masthead-date {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      font-weight: 300;
+      color: var(--color-ink-faded);
+    }
+    
+    .masthead-center {
+      text-align: center;
+    }
+    
+    .masthead-title {
+      font-family: var(--font-display);
+      font-size: 3.2rem;
+      font-weight: 400;
+      letter-spacing: 0.01em;
+      line-height: 1;
+    }
+    
+    .masthead-tagline {
+      font-family: var(--font-body);
+      font-size: 0.65rem;
+      font-weight: 300;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--color-ink-light);
+      margin-top: 0.4rem;
+    }
+    
+    .masthead-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.15rem;
+    }
+    
+    .masthead-session {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: var(--color-ink-light);
+    }
+    
+    .masthead-session-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--font-body);
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--color-rust);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      background-color: var(--color-rust);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    
+    /* Navigation */
+    .nav {
+      display: flex;
+      justify-content: center;
+      gap: 2.5rem;
+      padding: 0.7rem 0;
+      border-bottom: 3px double var(--color-ink);
+    }
+    
+    .nav a {
+      font-family: var(--font-body);
+      font-size: 0.72rem;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--color-ink);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    
+    .nav a:hover {
+      color: var(--color-rust);
+    }
+    
+    /* Main content grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr 1fr;
+      border-bottom: 1px solid var(--color-ink);
+    }
+    
+    .column {
+      padding: 2rem 1.5rem;
+    }
+    
+    .column:not(:last-child) {
+      border-right: 1px solid rgba(0,0,0,0.15);
+    }
+    
+    .column-left {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    .column-center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    
+    .column-right {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    /* Center hero content */
+    .hero-label {
+      font-family: var(--font-body);
+      font-size: 0.65rem;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--color-rust);
+      margin-bottom: 1rem;
+    }
+    
+    .hero-headline {
+      font-family: var(--font-display);
+      font-size: 3rem;
+      font-weight: 400;
+      line-height: 1.1;
+      margin-bottom: 0.3em;
+    }
+    
+    .hero-headline em {
+      font-style: italic;
+    }
+    
+    .hero-description {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 300;
+      line-height: 1.6;
+      color: var(--color-ink-light);
+      max-width: 400px;
+      margin: 1.5rem auto;
+    }
+    
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+    
+    .btn-primary {
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      padding: 0.85rem 1.6rem;
+      background-color: var(--color-rust);
+      color: var(--color-paper-light);
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      text-decoration: none;
+    }
+    
+    .btn-primary:hover {
+      background-color: var(--color-rust-dark);
+    }
+    
+    .btn-secondary {
+      font-family: var(--font-body);
+      font-size: 0.8rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+      padding: 0.85rem 1.6rem;
+      background-color: transparent;
+      color: var(--color-ink);
+      border: 1px solid var(--color-ink);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    
+    .btn-secondary:hover {
+      background-color: var(--color-ink);
+      color: var(--color-paper-light);
+    }
+    
+    /* Section cards in columns */
+    .section-card {
+      text-decoration: none;
+      color: inherit;
+      display: block;
+      transition: opacity 0.2s ease;
+    }
+    
+    .section-card:hover {
+      opacity: 0.7;
+    }
+    
+    .section-card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .section-card-title {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .section-card-badge {
+      font-family: var(--font-body);
+      font-size: 0.55rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background-color: var(--color-rust);
+      color: var(--color-paper-light);
+      padding: 0.2rem 0.4rem;
+    }
+    
+    .section-card-count {
+      font-family: var(--font-display);
+      font-size: 2.2rem;
+      font-weight: 400;
+      color: var(--color-ink);
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+    
+    .section-card-description {
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 300;
+      color: var(--color-ink-light);
+      line-height: 1.5;
+    }
+    
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(to right, var(--color-ink) 0%, var(--color-ink) 30%, transparent 30%, transparent 70%, var(--color-ink) 70%);
+      background-size: 10px 1px;
+    }
+    
+    /* Featured item */
+    .featured-item {
+      padding: 1rem 0;
+    }
+    
+    .featured-label {
+      font-family: var(--font-body);
+      font-size: 0.6rem;
+      font-weight: 400;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--color-ink-faded);
+      margin-bottom: 0.5rem;
+    }
+    
+    .featured-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 500;
+      line-height: 1.35;
+      margin-bottom: 0.4rem;
+    }
+    
+    .featured-meta {
+      font-family: var(--font-body);
+      font-size: 0.75rem;
+      font-weight: 300;
+      color: var(--color-ink-faded);
+    }
+    
+    /* Stats row */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      border-bottom: 1px solid var(--color-ink);
+    }
+    
+    .stat-item {
+      padding: 1.25rem 1.5rem;
+      text-align: center;
+      border-right: 1px solid rgba(0,0,0,0.15);
+    }
+    
+    .stat-item:last-child {
+      border-right: none;
+    }
+    
+    .stat-number {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 400;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+    
+    .stat-label {
+      font-family: var(--font-body);
+      font-size: 0.65rem;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--color-ink-faded);
+    }
+    
+    /* Ticker */
+    .ticker-container {
+      background-color: var(--color-ink);
+      overflow: hidden;
+      position: relative;
+    }
+    
+    .ticker {
+      display: flex;
+      animation: ticker 40s linear infinite;
+    }
+    
+    .ticker:hover {
+      animation-play-state: paused;
+    }
+    
+    .ticker-content {
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      padding: 0.9rem 0;
+    }
+    
+    .ticker-item {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0 2.5rem;
+      color: var(--color-paper);
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      font-weight: 300;
+    }
+    
+    .ticker-item a {
+      color: var(--color-paper);
+      text-decoration: none;
+    }
+    
+    .ticker-item a:hover {
+      text-decoration: underline;
+    }
+    
+    .ticker-label {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      background-color: var(--color-rust);
+      padding: 0.2rem 0.5rem;
+      color: var(--color-paper-light);
+    }
+    
+    .ticker-divider {
+      color: var(--color-ink-faded);
+    }
+    
+    @keyframes ticker {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+    
+    /* Footer */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 0;
+      border-top: 1px solid rgba(0,0,0,0.15);
+    }
+    
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .footer-logo {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 500;
+    }
+    
+    .footer-copyright {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      font-weight: 300;
+      color: var(--color-ink-faded);
+    }
+    
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+    
+    .footer-links a {
+      font-family: var(--font-body);
+      font-size: 0.7rem;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-ink);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    
+    .footer-links a:hover {
+      color: var(--color-rust);
+    }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .main-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+      
+      .column-center {
+        grid-column: 1 / -1;
+        order: -1;
+        border-right: none;
+        border-bottom: 1px solid rgba(0,0,0,0.15);
+      }
+      
+      .column-left {
+        border-right: 1px solid rgba(0,0,0,0.15);
+      }
+      
+      .column-right {
+        border-right: none;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .page {
+        padding: 0 1.25rem;
+      }
+      
+      .masthead {
+        grid-template-columns: 1fr;
+        text-align: center;
+        gap: 0.75rem;
+      }
+      
+      .masthead-left,
+      .masthead-right {
+        align-items: center;
+      }
+      
+      .masthead-title {
+        font-size: 2.5rem;
+      }
+      
+      .nav {
+        flex-wrap: wrap;
+        gap: 1rem 1.5rem;
+      }
+      
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .column {
+        border-right: none !important;
+        border-bottom: 1px solid rgba(0,0,0,0.15);
+      }
+      
+      .column:last-child {
+        border-bottom: none;
+      }
+      
+      .hero-headline {
+        font-size: 2.2rem;
+      }
+      
+      .hero-actions {
+        flex-direction: column;
+      }
+      
+      .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      .stat-item:nth-child(2) {
+        border-right: none;
+      }
+      
+      .stat-item:nth-child(1),
+      .stat-item:nth-child(2) {
+        border-bottom: 1px solid rgba(0,0,0,0.15);
+      }
+      
+      .footer {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+      }
+      
+      .footer-left {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+    
+    /* Animations */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .masthead {
+      animation: fadeIn 0.5s ease forwards;
+    }
+    
+    .nav {
+      animation: fadeIn 0.5s ease 0.1s forwards;
+      opacity: 0;
+    }
+    
+    .main-grid {
+      animation: fadeIn 0.5s ease 0.2s forwards;
+      opacity: 0;
+    }
+    
+    .stats-row {
+      animation: fadeIn 0.5s ease 0.3s forwards;
+      opacity: 0;
+    }
+    
+    .ticker-container {
+      animation: fadeIn 0.5s ease 0.4s forwards;
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="top-rule"></div>
+  
+  <div class="page">
+    <!-- Masthead -->
+    <header class="masthead">
+      <div class="masthead-left">
+        <span class="masthead-location">Singapore</span>
+        <span class="masthead-date">Friday, 6 February 2026</span>
+      </div>
+      
+      <div class="masthead-center">
+        <h1 class="masthead-title">Scribe</h1>
+        <p class="masthead-tagline">Singapore Parliament · Hansard</p>
+      </div>
+      
+      <div class="masthead-right">
+        <span class="masthead-session">14th Parliament, 3rd Session</span>
+        <span class="masthead-session-status">
+          <span class="status-dot"></span>
+          Last sitting: 4 Feb 2026
+        </span>
+      </div>
+    </header>
+    
+    <!-- Navigation -->
+    <nav class="nav">
+      <a href="#">Sittings</a>
+      <a href="#">Bills</a>
+      <a href="#">Questions</a>
+      <a href="#">Motions</a>
+      <a href="#">MPs</a>
+      <a href="#">Ministries</a>
+    </nav>
+    
+    <!-- Main content grid -->
+    <main class="main-grid">
+      <div class="column column-left">
+        <a href="#" class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">Bills</span>
+            <span class="section-card-badge">3 New</span>
+          </div>
+          <div class="section-card-count">20</div>
+          <p class="section-card-description">What legislation is being debated and passed?</p>
+        </a>
+        
+        <div class="section-divider"></div>
+        
+        <a href="#" class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">Questions</span>
+          </div>
+          <div class="section-card-count">1,841</div>
+          <p class="section-card-description">What tough questions are being asked of Ministers?</p>
+        </a>
+        
+        <div class="section-divider"></div>
+        
+        <div class="featured-item">
+          <span class="featured-label">Latest Question</span>
+          <h3 class="featured-title">Asked about public housing allocation timeline for BTO applicants</h3>
+          <span class="featured-meta">Gerald Giam · 4 Feb 2026</span>
+        </div>
+      </div>
+      
+      <div class="column column-center">
+        <span class="hero-label">The Parliamentary Record</span>
+        <h2 class="hero-headline">
+          Making Parliament<br>
+          <em>accessible</em> for all
+        </h2>
+        <p class="hero-description">
+          Scribe transforms Singapore's official Hansard into a clean, searchable, 
+          and readable format—so you can understand what's happening in Parliament 
+          without wading through walls of text.
+        </p>
+        <div class="hero-actions">
+          <a href="#" class="btn-primary">Browse Bills</a>
+          <a href="#" class="btn-secondary">Find Your MP</a>
+        </div>
+      </div>
+      
+      <div class="column column-right">
+        <a href="#" class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">MPs</span>
+          </div>
+          <div class="section-card-count">108</div>
+          <p class="section-card-description">Who are your representatives and what do they do?</p>
+        </a>
+        
+        <div class="section-divider"></div>
+        
+        <a href="#" class="section-card">
+          <div class="section-card-header">
+            <span class="section-card-title">Motions</span>
+            <span class="section-card-badge">Recent</span>
+          </div>
+          <div class="section-card-count">156</div>
+          <p class="section-card-description">What issues are being formally raised for debate?</p>
+        </a>
+        
+        <div class="section-divider"></div>
+        
+        <div class="featured-item">
+          <span class="featured-label">Recent Bill</span>
+          <h3 class="featured-title">Platform Workers (Amendment) Bill</h3>
+          <span class="featured-meta">Second Reading · 4 Feb 2026</span>
+        </div>
+      </div>
+    </main>
+    
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-number">14</div>
+        <div class="stat-label">Sittings This Year</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">108</div>
+        <div class="stat-label">Members of Parliament</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">20</div>
+        <div class="stat-label">Bills in Session</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">1,841</div>
+        <div class="stat-label">Questions Filed</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Ticker -->
+  <div class="ticker-container">
+    <div class="ticker">
+      <div class="ticker-content">
+        <div class="ticker-item">
+          <span class="ticker-label">New</span>
+          <a href="#">Platform Workers (Amendment) Bill passes second reading</a>
+        </div>
+        <span class="ticker-divider">•</span>
+        <div class="ticker-item">
+          <span class="ticker-label">Question</span>
+          <a href="#">MP asks about CPF contribution rates for gig workers</a>
+        </div>
+        <span class="ticker-divider">•</span>
+        <div class="ticker-item">
+          <span class="ticker-label">Motion</span>
+          <a href="#">Debate on public transport affordability scheduled</a>
+        </div>
+        <span class="ticker-divider">•</span>
+        <div class="ticker-item">
+          <span class="ticker-label">Sitting</span>
+          <a href="#">Next Parliament sitting: 10 February 2026</a>
+        </div>
+        <span class="ticker-divider">•</span>
+      </div>
+      <div class="ticker-content" aria-hidden="true">
+        <div class="ticker-item">
+          <span class="ticker-label">New</span>
+          <a href="#">Platform Workers (Amendment) Bill passes second reading</a>
+        </div>
+        <span class="ticker-divider">•</span>
+        <div class="ticker-item">
+          <span class="ticker-label">Question</span>
+          <a href="#">MP asks about CPF contribution rates for gig workers</a>
+        </div>
+        <span class="ticker-divider">•</span>
+        <div class="ticker-item">
+          <span class="ticker-label">Motion</span>
+          <a href="#">Debate on public transport affordability scheduled</a>
+        </div>
+        <span class="ticker-divider">•</span>
+        <div class="ticker-item">
+          <span class="ticker-label">Sitting</span>
+          <a href="#">Next Parliament sitting: 10 February 2026</a>
+        </div>
+        <span class="ticker-divider">•</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="page">
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-left">
+        <span class="footer-logo">Scribe</span>
+        <span class="footer-copyright">A civic technology project</span>
+      </div>
+      <div class="footer-links">
+        <a href="#">About</a>
+        <a href="#">Data Sources</a>
+        <a href="#">GitHub</a>
+        <a href="#">Twitter</a>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>
