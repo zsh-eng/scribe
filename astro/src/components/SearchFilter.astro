@@ -108,8 +108,8 @@ const {
       const selector = wrapper.getAttribute("data-selector");
       const contentType = wrapper.getAttribute("data-type");
 
-      const container = document.getElementById(containerId!);
-      if (!container) return;
+      const safeContainer = document.getElementById(containerId!);
+      if (!safeContainer) return;
 
       const input = wrapper.querySelector(
         ".search-filter-input",
@@ -127,7 +127,7 @@ const {
       if (input.hasAttribute("data-search-initialized")) return;
       input.setAttribute("data-search-initialized", "true");
 
-      const items = container.querySelectorAll(
+      const items = safeContainer.querySelectorAll(
         selector!,
       ) as NodeListOf<HTMLElement>;
 
@@ -169,7 +169,7 @@ const {
           }
         }
 
-        container.appendChild(fragment);
+        safeContainer.appendChild(fragment);
       }
 
       // Restore original DOM order
@@ -178,7 +178,18 @@ const {
         for (const item of originalOrder) {
           fragment.appendChild(item);
         }
-        container.appendChild(fragment);
+        safeContainer.appendChild(fragment);
+      }
+
+      function disableItemAnimations() {
+        items.forEach((item) => {
+          item.classList.remove(
+            "animate-fade-up",
+            "animate-fade-in",
+            "animate-slide-down",
+          );
+          item.style.animationDelay = "";
+        });
       }
 
       let debounceTimer: ReturnType<typeof setTimeout>;
@@ -206,13 +217,14 @@ const {
           );
 
           // Dispatch event for pagination to reset
-          container.dispatchEvent(
+          safeContainer.dispatchEvent(
             new CustomEvent("search-cleared", { detail: { reordered: true } }),
           );
           return;
         }
 
         clearBtn.classList.remove("hidden");
+        disableItemAnimations();
 
         if (!pf) {
           // Fallback: simple text matching when pagefind isn't available
@@ -247,13 +259,13 @@ const {
               fragment.appendChild(item);
             }
           });
-          container.appendChild(fragment);
+          safeContainer.appendChild(fragment);
 
           const matchCount = scored.length;
           status.textContent = `Found ${matchCount} result${matchCount !== 1 ? "s" : ""}`;
           status.classList.remove("hidden");
           countElements.forEach((element) => element.classList.add("hidden"));
-          container.dispatchEvent(
+          safeContainer.dispatchEvent(
             new CustomEvent("search-updated", {
               detail: { matchCount, reordered: true },
             }),
@@ -305,7 +317,7 @@ const {
         countElements.forEach((element) => element.classList.add("hidden"));
 
         // Dispatch event for pagination to update
-        container.dispatchEvent(
+        safeContainer.dispatchEvent(
           new CustomEvent("search-updated", {
             detail: { matchCount, reordered: true },
           }),
