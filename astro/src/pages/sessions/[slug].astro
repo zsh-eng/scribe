@@ -4,15 +4,17 @@ import SectionLabel from '../../components/SectionLabel.astro';
 import SectionCard from '../../components/SectionCard.astro';
 import Tag from '../../components/Tag.astro';
 import { getSessions, getSession, getSessionSections, getSessionAttendees, getSessionBills } from '../../lib/db';
+import { slugify } from '../../lib/slugify';
 
 export async function getStaticPaths() {
   const sessions = getSessions();
   return sessions.map((session) => ({
-    params: { id: session.id },
+    params: { slug: slugify(session.date, session.id) },
+    props: { id: session.id },
   }));
 }
 
-const { id } = Astro.params;
+const { id } = Astro.props;
 const session = getSession(id);
 
 if (!session) {
@@ -106,7 +108,7 @@ const absentMembers = attendees.filter(a => !a.present);
             <div class="flex flex-wrap gap-2">
               {presentMembers.map((member) => (
                 <a
-                  href={`/members/${member.id}`}
+                  href={`/members/${slugify(member.name, member.id)}`}
                   class="inline-flex items-center gap-1 bg-status-passed-bg text-status-passed px-3 py-1 rounded-full font-sans text-sm transition-colors hover:bg-green-200 no-underline"
                 >
                   {member.name}
@@ -129,7 +131,7 @@ const absentMembers = attendees.filter(a => !a.present);
               <div class="flex flex-wrap gap-2">
                 {absentMembers.map((member) => (
                   <a
-                    href={`/members/${member.id}`}
+                    href={`/members/${slugify(member.name, member.id)}`}
                     class="inline-flex items-center bg-border-light text-ink-muted px-3 py-1 rounded-full font-sans text-sm transition-colors hover:bg-border no-underline"
                   >
                     {member.name}
@@ -165,7 +167,7 @@ const absentMembers = attendees.filter(a => !a.present);
       </h2>
       <div class="flex flex-col border-t border-border">
         {bills.map((bill) => (
-          <a href={`/bills/${bill.billId}`} class="group block p-5 border-b border-border transition-colors hover:bg-warm no-underline">
+          <a href={`/bills/${slugify(bill.billTitle, bill.billId)}`} class="group block p-5 border-b border-border transition-colors hover:bg-warm no-underline">
             <div class="flex flex-wrap items-center gap-2 mb-2">
               {bill.readingTypes.includes('BI') && (
                 <Tag color="muted">1st Reading</Tag>

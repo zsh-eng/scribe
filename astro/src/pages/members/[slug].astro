@@ -7,15 +7,17 @@ import Pagination from '../../components/Pagination.astro';
 import Avatar from '../../components/Avatar.astro';
 import Tag from '../../components/Tag.astro';
 import { getMembersWithInfo, getMember, getMemberSections, getMemberAttendance } from '../../lib/db';
+import { slugify } from '../../lib/slugify';
 
 export async function getStaticPaths() {
   const members = getMembersWithInfo();
   return members.map((member) => ({
-    params: { id: member.id },
+    params: { slug: slugify(member.name, member.id) },
+    props: { id: member.id },
   }));
 }
 
-const { id } = Astro.params;
+const { id } = Astro.props;
 const member = getMember(id);
 
 if (!member) {
@@ -142,7 +144,7 @@ const party = getParty();
         <div id="attendance-list" class="max-h-60 overflow-y-auto space-y-1">
           {attendance.map((record) => (
             <a
-              href={`/sessions/${record.sessionId}`}
+              href={`/sessions/${slugify(record.date, record.sessionId)}`}
               class="attendance-record flex items-center justify-between rounded p-2 font-sans text-sm hover:bg-warm transition-colors no-underline"
             >
               <span class="text-ink-soft">
@@ -214,7 +216,7 @@ const party = getParty();
       </h2>
       <div id="bills-list" class="flex flex-col border-t border-border">
         {bills.map((section) => (
-          <a href={`/bills/${(section as any).billId}`} class="bill-item group block p-5 border-b border-border transition-colors hover:bg-warm no-underline">
+          <a href={`/bills/${slugify((section as any).billTitle || section.sectionTitle, (section as any).billId)}`} class="bill-item group block p-5 border-b border-border transition-colors hover:bg-warm no-underline">
             <div class="flex flex-wrap items-center gap-2 mb-2">
               <Tag color={section.sectionType === 'BI' ? 'muted' : 'accent'}>
                 {section.sectionType === 'BI' ? '1st Reading' : '2nd Reading'}

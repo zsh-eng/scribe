@@ -1,6 +1,7 @@
 ---
 import type { Ministry } from '../lib/db';
 import Tag from './Tag.astro';
+import { slugify } from '../lib/slugify';
 
 interface Props {
   ministry: Ministry;
@@ -10,7 +11,7 @@ const { ministry } = Astro.props;
 ---
 
 <a
-  href={`/ministries/${ministry.id}`}
+  href={`/ministries/${slugify(ministry.name, ministry.id)}`}
   class="group block h-full bg-surface border border-border rounded-md p-5 transition-colors hover:bg-warm hover:border-ink-muted no-underline"
 >
   <div class="flex h-full flex-col">

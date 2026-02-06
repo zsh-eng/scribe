@@ -1,5 +1,6 @@
 import type { ListItem, TagColor } from "../../lib/types";
 import { formatDate, typeBadgeConfig, categoryLabels } from "../../lib/types";
+import { slugify } from "../../lib/slugify";
 import Tag from "./Tag";
 
 interface Props {
@@ -19,7 +20,7 @@ export default function QuestionCard({ item }: Props) {
 
   return (
     <a
-      href={`/questions/${item.id}`}
+      href={`/questions/${slugify(item.title || "", item.id)}`}
       class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
       data-pagefind-meta={`id:${item.id}`}
     >

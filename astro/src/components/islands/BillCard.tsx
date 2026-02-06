@@ -1,5 +1,6 @@
 import type { ListItem } from "../../lib/types";
 import { formatDate, getBillStatus } from "../../lib/types";
+import { slugify } from "../../lib/slugify";
 import Tag from "./Tag";
 
 interface Props {
@@ -11,7 +12,7 @@ export default function BillCard({ item }: Props) {
 
   return (
     <a
-      href={`/bills/${item.id}`}
+      href={`/bills/${slugify(item.title || "", item.id)}`}
       class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
       data-pagefind-meta={`id:${item.id}`}
     >

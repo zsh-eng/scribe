@@ -2,6 +2,7 @@
 import type { Section } from '../lib/db';
 import TypeBadge from './TypeBadge.astro';
 import Tag from './Tag.astro';
+import { slugify } from '../lib/slugify';
 
 interface Props {
   section: Section;
@@ -15,7 +16,7 @@ const snippet = section.contentPlain?.substring(0, 200) + (section.contentPlain 
 ---
 
 <a
-  href={`/questions/${section.id}`}
+  href={`/questions/${slugify(section.sectionTitle, section.id)}`}
   class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
 >
   <div class="flex flex-wrap items-center gap-2 mb-2">

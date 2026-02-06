@@ -1,5 +1,6 @@
 ---
 import type { Session } from "../lib/db";
+import { slugify } from '../lib/slugify';
 
 interface Props {
     session: Session;
@@ -22,7 +23,7 @@ const formattedDate = new Date(session.date).toLocaleDateString("en-SG", {
 ---
 
 <a
-    href={`/sessions/${session.id}`}
+    href={`/sessions/${slugify(session.date, session.id)}`}
     class="group grid grid-cols-[140px_1fr_auto] items-center gap-6 py-4 border-b border-border transition-colors hover:bg-warm cursor-pointer px-2"
     data-pagefind-meta={`id:${session.id}`}
 >

@@ -1,6 +1,7 @@
 ---
 import type { Bill } from "../lib/db";
 import Tag from './Tag.astro';
+import { slugify } from '../lib/slugify';
 
 interface Props {
   bill: Bill;
@@ -29,7 +30,7 @@ const status = getStatus(bill);
 ---
 
 <a
-  href={`/bills/${bill.id}`}
+  href={`/bills/${slugify(bill.title, bill.id)}`}
   class="group block p-5 border-b border-border transition-colors hover:bg-warm cursor-pointer"
   data-pagefind-meta={`id:${bill.id}`}
 >

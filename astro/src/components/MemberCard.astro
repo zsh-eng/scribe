@@ -2,6 +2,7 @@
 import type { Member } from '../lib/db';
 import Avatar from './Avatar.astro';
 import PartyBadge from './PartyBadge.astro';
+import { slugify } from '../lib/slugify';
 
 interface Props {
   member: Member;
@@ -27,7 +28,7 @@ const attendancePercent = member.attendanceTotal && member.attendanceTotal > 0
 ---
 
 <a
-  href={`/members/${member.id}`}
+  href={`/members/${slugify(member.name, member.id)}`}
   class="group flex h-full gap-4 items-start p-4 bg-surface border border-border rounded-md transition-colors hover:bg-warm hover:border-ink-muted cursor-pointer"
   data-pagefind-meta={`id:${member.id}`}
 >

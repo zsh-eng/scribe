@@ -6,15 +6,17 @@ import BillCard from '../../components/BillCard.astro';
 import Pagination from '../../components/Pagination.astro';
 import Tag from '../../components/Tag.astro';
 import { getMinistries, getMinistry, getMinistrySections, getMinistryBills } from '../../lib/db';
+import { slugify } from '../../lib/slugify';
 
 export async function getStaticPaths() {
   const ministries = getMinistries();
   return ministries.map((ministry) => ({
-    params: { id: ministry.id },
+    params: { slug: slugify(ministry.name, ministry.id) },
+    props: { id: ministry.id },
   }));
 }
 
-const { id } = Astro.params;
+const { id } = Astro.props;
 const ministry = getMinistry(id);
 
 if (!ministry) {

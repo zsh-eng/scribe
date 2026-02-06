@@ -11,6 +11,7 @@ import {
   getQuestionCount,
   getMotionCount,
 } from "../lib/db";
+import { slugify } from "../lib/slugify";
 
 const stats = getStats();
 const latestSession = getLatestSession();
@@ -158,7 +159,7 @@ const navLinks = [
         {
           latestQuestion && (
             <a
-              href={`/questions/${latestQuestion.id}`}
+              href={`/questions/${slugify(latestQuestion.sectionTitle, latestQuestion.id)}`}
               class="featured-item block no-underline text-inherit"
             >
               <span class="featured-label">Latest Question</span>
@@ -224,7 +225,7 @@ const navLinks = [
         {
           recentBillReadings[0] && (
             <a
-              href={`/bills/${recentBillReadings[0].billId}`}
+              href={`/bills/${slugify(recentBillReadings[0].billTitle, recentBillReadings[0].billId)}`}
               class="featured-item block no-underline text-inherit"
             >
               <span class="featured-label">Recent Bill</span>
@@ -271,7 +272,7 @@ const navLinks = [
                 <span class="ticker-label">
                   {getReadingLabel(bill.sectionType)}
                 </span>
-                <a href={`/bills/${bill.billId}`}>{bill.billTitle}</a>
+                <a href={`/bills/${slugify(bill.billTitle, bill.billId)}`}>{bill.billTitle}</a>
               </div>
               <span class="ticker-divider">&bull;</span>
             </>
@@ -282,7 +283,7 @@ const navLinks = [
             <>
               <div class="ticker-item">
                 <span class="ticker-label">Question</span>
-                <a href={`/questions/${latestQuestion.id}`}>
+                <a href={`/questions/${slugify(latestQuestion.sectionTitle, latestQuestion.id)}`}>
                   {latestQuestion.sectionTitle.slice(0, 60)}
                   {latestQuestion.sectionTitle.length > 60 ? "..." : ""}
                 </a>
@@ -296,7 +297,7 @@ const navLinks = [
             <>
               <div class="ticker-item">
                 <span class="ticker-label">Motion</span>
-                <a href={`/motions/${recentMotions[0].id}`}>
+                <a href={`/questions/${slugify(recentMotions[0].sectionTitle, recentMotions[0].id)}`}>
                   {recentMotions[0].sectionTitle.slice(0, 50)}
                   {recentMotions[0].sectionTitle.length > 50 ? "..." : ""}
                 </a>
@@ -309,7 +310,7 @@ const navLinks = [
           latestSession && (
             <div class="ticker-item">
               <span class="ticker-label">Sitting</span>
-              <a href={`/sessions/${latestSession.id}`}>
+              <a href={`/sessions/${slugify(latestSession.date, latestSession.id)}`}>
                 Latest sitting: {formatSessionDate(latestSession.date)}
               </a>
             </div>
@@ -325,7 +326,7 @@ const navLinks = [
                 <span class="ticker-label">
                   {getReadingLabel(bill.sectionType)}
                 </span>
-                <a href={`/bills/${bill.billId}`}>{bill.billTitle}</a>
+                <a href={`/bills/${slugify(bill.billTitle, bill.billId)}`}>{bill.billTitle}</a>
               </div>
               <span class="ticker-divider">&bull;</span>
             </>
@@ -336,7 +337,7 @@ const navLinks = [
             <>
               <div class="ticker-item">
                 <span class="ticker-label">Question</span>
-                <a href={`/questions/${latestQuestion.id}`}>
+                <a href={`/questions/${slugify(latestQuestion.sectionTitle, latestQuestion.id)}`}>
                   {latestQuestion.sectionTitle.slice(0, 60)}
                   {latestQuestion.sectionTitle.length > 60 ? "..." : ""}
                 </a>
@@ -350,7 +351,7 @@ const navLinks = [
             <>
               <div class="ticker-item">
                 <span class="ticker-label">Motion</span>
-                <a href={`/motions/${recentMotions[0].id}`}>
+                <a href={`/questions/${slugify(recentMotions[0].sectionTitle, recentMotions[0].id)}`}>
                   {recentMotions[0].sectionTitle.slice(0, 50)}
                   {recentMotions[0].sectionTitle.length > 50 ? "..." : ""}
                 </a>
@@ -363,7 +364,7 @@ const navLinks = [
           latestSession && (
             <div class="ticker-item">
               <span class="ticker-label">Sitting</span>
-              <a href={`/sessions/${latestSession.id}`}>
+              <a href={`/sessions/${slugify(latestSession.date, latestSession.id)}`}>
                 Latest sitting: {formatSessionDate(latestSession.date)}
               </a>
             </div>

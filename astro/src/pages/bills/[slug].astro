@@ -5,23 +5,25 @@ import AISummaryCard from "../../components/AISummaryCard.astro";
 import SpeakerPills from "../../components/SpeakerPills.astro";
 import Tag from "../../components/Tag.astro";
 import { getBills, getBill, getBillSections } from "../../lib/db";
+import { slugify } from "../../lib/slugify";
 import type { Speaker } from "../../lib/db";
 
 export async function getStaticPaths() {
   const bills = getBills();
   return bills.map((bill) => ({
-    params: { id: bill.id },
+    params: { slug: slugify(bill.title, bill.id) },
+    props: { id: bill.id },
   }));
 }
 
-const { id } = Astro.params;
+const { id } = Astro.props;
 const bill = getBill(id);
 
 if (!bill) {
   return Astro.redirect("/bills");
 }
 
-const sections = getBillSections(id);
+const sections = getBillSections(id!);
 
 // Separate readings
 const firstReadings = sections.filter((s) => s.sectionType === "BI");
@@ -90,7 +92,7 @@ const status = getStatus();
         <Tag color={status.color}>{status.label}</Tag>
         {
           bill.ministry && bill.ministryId && (
-            <a href={`/ministries/${bill.ministryId}`} class="inline-block">
+            <a href={`/ministries/${slugify(bill.ministry, bill.ministryId)}`} class="inline-block">
               <Tag color="green">{bill.ministry}</Tag>
             </a>
           )
@@ -136,7 +138,7 @@ const status = getStatus();
             <div class="flex items-center gap-3">
               <Tag color="muted">First Reading</Tag>
               <a
-                href={`/sessions/${bill.firstReadingSessionId}`}
+                href={`/sessions/${slugify(bill.firstReadingDate, bill.firstReadingSessionId)}`}
                 class="font-sans text-sm text-ink-soft hover:text-accent no-underline"
               >
                 {formatLongDate(bill.firstReadingDate)}
@@ -152,7 +154,7 @@ const status = getStatus();
                 {secondReadingTimelines.length > 1 ? ` (${idx + 1})` : ""}
               </Tag>
               <a
-                href={`/sessions/${session.sessionId}`}
+                href={`/sessions/${slugify(session.sessionDate, session.sessionId)}`}
                 class="font-sans text-sm text-ink-soft hover:text-accent no-underline"
               >
                 {formatLongDate(session.sessionDate)}

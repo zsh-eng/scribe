@@ -6,16 +6,18 @@ import SpeakerPills from '../../components/SpeakerPills.astro';
 import TypeBadge from '../../components/TypeBadge.astro';
 import Tag from '../../components/Tag.astro';
 import { getAllSections, getSection } from '../../lib/db';
+import { slugify } from '../../lib/slugify';
 
 export async function getStaticPaths() {
   // Get all sections for static paths (since SectionCard links to this page)
   const allSections = getAllSections();
   return allSections.map((section) => ({
-    params: { id: section.id },
+    params: { slug: slugify(section.sectionTitle, section.id) },
+    props: { id: section.id },
   }));
 }
 
-const { id } = Astro.params;
+const { id } = Astro.props;
 const section = getSection(id);
 
 if (!section) {
@@ -73,7 +75,7 @@ const sessionInfo = section.sessionDate
     {section.ministry && (
       <>
         <span class="mx-2">→</span>
-        <a href={`/ministries/${section.ministryId}`} class="hover:text-accent no-underline">{section.ministry}</a>
+        <a href={`/ministries/${slugify(section.ministry, section.ministryId!)}`} class="hover:text-accent no-underline">{section.ministry}</a>
       </>
     )}
   </nav>
@@ -99,9 +101,9 @@ const sessionInfo = section.sessionDate
       </h1>
       
       <div class="flex flex-wrap items-center gap-2 font-sans text-sm text-ink-muted" data-pagefind-ignore>
-        {formattedDate && section.sessionId && (
+        {formattedDate && section.sessionId && section.sessionDate && (
           <a
-            href={`/sessions/${section.sessionId}`}
+            href={`/sessions/${slugify(section.sessionDate, section.sessionId)}`}
             class="hover:text-accent no-underline"
           >
             {formattedDate}
@@ -111,7 +113,7 @@ const sessionInfo = section.sessionDate
           <>
             <span class="text-border">·</span>
             <a
-              href={`/ministries/${section.ministryId}`}
+              href={`/ministries/${slugify(section.ministry!, section.ministryId!)}`}
               class="text-accent hover:text-accent-light no-underline"
             >
               {section.ministry}

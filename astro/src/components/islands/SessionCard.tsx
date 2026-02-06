@@ -1,5 +1,6 @@
 import type { ListItem } from "../../lib/types";
 import { formatSessionDate, getOrdinal } from "../../lib/types";
+import { slugify } from "../../lib/slugify";
 
 interface Props {
   item: ListItem;
@@ -8,7 +9,7 @@ interface Props {
 export default function SessionCard({ item }: Props) {
   return (
     <a
-      href={`/sessions/${item.id}`}
+      href={`/sessions/${slugify(item.date || "", item.id)}`}
       class="group grid grid-cols-[160px_1fr_auto] items-center gap-6 py-4 border-b border-border transition-colors hover:bg-warm cursor-pointer px-2"
       data-pagefind-meta={`id:${item.id}`}
     >

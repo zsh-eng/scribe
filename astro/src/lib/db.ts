@@ -208,10 +208,11 @@ export function getSessionAttendees(sessionId: string): Attendee[] {
   }));
 }
 
-export function getSessionBills(sessionId: string): { billId: string; sectionTitle: string; ministry: string | null; ministryId: string | null; readingTypes: string[]; sectionOrder: number }[] {
+export function getSessionBills(sessionId: string): { billId: string; billTitle: string; sectionTitle: string; ministry: string | null; ministryId: string | null; readingTypes: string[]; sectionOrder: number }[] {
   const sql = `
     SELECT
       sec.bill_id as billId,
+      b.title as billTitle,
       sec.section_title as sectionTitle,
       m.name as ministry,
       sec.ministry_id as ministryId,
@@ -219,18 +220,20 @@ export function getSessionBills(sessionId: string): { billId: string; sectionTit
       sec.section_order as sectionOrder
     FROM sections sec
     LEFT JOIN ministries m ON sec.ministry_id = m.id
+    LEFT JOIN bills b ON sec.bill_id = b.id
     WHERE sec.session_id = ? AND sec.bill_id IS NOT NULL
     ORDER BY sec.section_order ASC
   `;
-  const results = db.prepare(sql).all(sessionId) as { billId: string; sectionTitle: string; ministry: string | null; ministryId: string | null; sectionType: string; sectionOrder: number }[];
+  const results = db.prepare(sql).all(sessionId) as { billId: string; billTitle: string; sectionTitle: string; ministry: string | null; ministryId: string | null; sectionType: string; sectionOrder: number }[];
 
   // Group by bill and collect reading types
-  const billMap = new Map<string, { billId: string; sectionTitle: string; ministry: string | null; ministryId: string | null; readingTypes: string[]; sectionOrder: number }>();
+  const billMap = new Map<string, { billId: string; billTitle: string; sectionTitle: string; ministry: string | null; ministryId: string | null; readingTypes: string[]; sectionOrder: number }>();
 
   for (const row of results) {
     if (!billMap.has(row.billId)) {
       billMap.set(row.billId, {
         billId: row.billId,
+        billTitle: row.billTitle,
         sectionTitle: row.sectionTitle,
         ministry: row.ministry,
         ministryId: row.ministryId,
@@ -575,10 +578,12 @@ export function getMemberSections(memberId: string): Section[] {
       sec.summary,
       m.name as ministry,
       sec.ministry_id as ministryId,
-      sec.bill_id as billId
+      sec.bill_id as billId,
+      b.title as billTitle
     FROM sections sec
     JOIN sessions s ON sec.session_id = s.id
     LEFT JOIN ministries m ON sec.ministry_id = m.id
+    LEFT JOIN bills b ON sec.bill_id = b.id
     JOIN section_speakers ss ON sec.id = ss.section_id
     WHERE ss.member_id = ?
     ORDER BY s.date DESC, sec.section_order ASC
@@ -834,9 +839,9 @@ export function getMembersWithInfo(limit?: number, offset?: number): Member[] {
 }
 
 // Get all sections (for static path generation)
-export function getAllSections(): { id: string }[] {
-  const sql = `SELECT id FROM sections`;
-  return db.prepare(sql).all() as { id: string }[];
+export function getAllSections(): { id: string; sectionTitle: string }[] {
+  const sql = `SELECT id, section_title as sectionTitle FROM sections`;
+  return db.prepare(sql).all() as { id: string; sectionTitle: string }[];
 }
 
 // Stats for home page
