@@ -1,0 +1,266 @@
+---
+/**
+ * BillReadingStatus — editorial-style reading status card.
+ * Shows the readings we have data for (1st and 2nd), with dates
+ * linking to sessions, plus a contextual footer about the full
+ * legislative process.
+ */
+import { slugify } from "../lib/slugify";
+
+interface Props {
+  firstReadingDate?: string | null;
+  firstReadingSessionId?: string | null;
+  secondReadingSessions?: { sessionDate: string; sessionId: string }[];
+}
+
+const {
+  firstReadingDate,
+  firstReadingSessionId,
+  secondReadingSessions = [],
+} = Astro.props;
+
+const hasFirstReading = !!firstReadingDate;
+const hasSecondReading = secondReadingSessions.length > 0;
+
+const statusLabel = hasSecondReading ? "2nd Reading" : "1st Reading";
+
+const formatLongDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleDateString("en-SG", {
+    weekday: "short",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
+---
+
+<section class="reading-status" data-pagefind-ignore>
+  <!-- Header -->
+  <div class="reading-status-header">
+    <span class="reading-status-label">Reading Status</span>
+    <span class={`reading-status-badge ${hasSecondReading ? "badge-accent" : "badge-muted"}`}>
+      {statusLabel}
+    </span>
+  </div>
+
+  <!-- Reading rows -->
+  <div class="reading-status-body">
+    {
+      hasFirstReading && firstReadingDate && firstReadingSessionId && (
+        <div class="reading-row">
+          <div class="reading-detail-row">
+            <span class="detail-stage">1st Reading</span>
+            <span class="detail-rule" />
+            <a
+              href={`/sessions/${slugify(firstReadingDate, firstReadingSessionId)}`}
+              class="detail-date"
+            >
+              {formatLongDate(firstReadingDate)}
+            </a>
+          </div>
+          <div class="detail-annotation">Introduction — no debate</div>
+        </div>
+      )
+    }
+    {
+      secondReadingSessions.map((session, idx) => (
+        <div class="reading-detail-row">
+          <span class="detail-stage">
+            2nd Reading
+            {secondReadingSessions.length > 1 ? ` (${idx + 1})` : ""}
+          </span>
+          <span class="detail-rule" />
+          <a
+            href={`/sessions/${slugify(session.sessionDate, session.sessionId)}`}
+            class="detail-date"
+          >
+            {formatLongDate(session.sessionDate)}
+          </a>
+        </div>
+      ))
+    }
+  </div>
+
+  <!-- Footer -->
+  <div class="reading-status-footer">
+    <p>
+      Bills proceed through first reading, second reading, committee stage,
+      third reading, and presidential assent before becoming law.
+    </p>
+    <a
+      href="https://www.parliament.gov.sg/about-us/parliament-information/functions"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="footer-link"
+    >
+      How a bill becomes law ↗
+    </a>
+  </div>
+</section>
+
+<style>
+  .reading-status {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 1.75rem 2rem 1.5rem;
+  }
+
+  /* ── Header ── */
+  .reading-status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .reading-status-label {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+  }
+
+  .reading-status-badge {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.2em 0.65em;
+    border-radius: 2px;
+  }
+
+  .badge-accent {
+    background: var(--border-light);
+    color: var(--accent);
+  }
+
+  .badge-muted {
+    background: var(--border-light);
+    color: var(--ink-muted);
+  }
+
+  /* ── Body ── */
+  .reading-status-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 0;
+  }
+
+  .reading-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .reading-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .detail-stage {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    flex-shrink: 0;
+    min-width: 7rem;
+  }
+
+  .detail-rule {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      var(--border) 0%,
+      var(--border) 40%,
+      transparent 40%,
+      transparent 60%,
+      var(--border) 60%
+    );
+    background-size: 8px 1px;
+    min-width: 1rem;
+  }
+
+  .detail-date {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--ink-soft);
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+  }
+
+  .detail-date:hover {
+    color: var(--accent);
+  }
+
+  .detail-annotation {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(--ink-muted);
+    padding-left: calc(7rem + 0.75rem);
+  }
+
+  /* ── Footer ── */
+  .reading-status-footer {
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+
+  .reading-status-footer p {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 0.72rem;
+    font-style: italic;
+    color: var(--ink-muted);
+    line-height: 1.6;
+    margin: 0 0 0.35rem;
+  }
+
+  .footer-link {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .footer-link:hover {
+    color: var(--accent-light, var(--accent));
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 480px) {
+    .reading-status {
+      padding: 1.25rem 1.25rem 1rem;
+    }
+
+    .detail-stage {
+      min-width: auto;
+    }
+
+    .reading-detail-row {
+      gap: 0.5rem;
+    }
+
+    .detail-date {
+      font-size: 0.72rem;
+    }
+
+    .detail-annotation {
+      padding-left: 0;
+    }
+  }
+</style>

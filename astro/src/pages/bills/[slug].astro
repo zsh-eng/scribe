@@ -3,7 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import SectionLabel from "../../components/SectionLabel.astro";
 import AISummaryCard from "../../components/AISummaryCard.astro";
 import SpeakerPills from "../../components/SpeakerPills.astro";
-import BillTimeline from "../../components/BillTimeline.astro";
+import BillReadingStatus from "../../components/BillReadingStatus.astro";
 import Tag from "../../components/Tag.astro";
 import { getBills, getBill, getBillSections } from "../../lib/db";
 import { slugify } from "../../lib/slugify";
@@ -55,9 +55,8 @@ const getStatus = (): {
   color: "green" | "accent" | "muted";
 } => {
   if (secondReadings.length > 0)
-    return { label: "Second Reading", color: "accent" };
-  if (bill.firstReadingDate) return { label: "First Reading", color: "muted" };
-  return { label: "Introduced", color: "muted" };
+    return { label: "2nd Reading", color: "accent" };
+  return { label: "1st Reading", color: "muted" };
 };
 
 const status = getStatus();
@@ -120,7 +119,7 @@ const status = getStatus();
 
     <!-- Reading Timeline -->
     <div class="mb-8">
-      <BillTimeline
+      <BillReadingStatus
         firstReadingDate={bill.firstReadingDate}
         firstReadingSessionId={bill.firstReadingSessionId}
         secondReadingSessions={secondReadingSessions}

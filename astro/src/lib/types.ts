@@ -83,6 +83,5 @@ export function getOrdinal(n: number): string {
 // Get bill status based on reading data
 export function getBillStatus(item: ListItem): { label: string; color: TagColor } {
   if (item.hasSecondReading) return { label: "2nd Reading", color: "accent" };
-  if (item.firstReadingDate) return { label: "1st Reading", color: "muted" };
-  return { label: "Introduced", color: "muted" };
+  return { label: "1st Reading", color: "muted" };
 }

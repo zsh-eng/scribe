@@ -21,8 +21,7 @@ const formatDate = (dateStr: string | null) => {
 // Determine bill status based on reading data
 const getStatus = (bill: Bill): { label: string; color: 'green' | 'accent' | 'muted' } => {
   if (bill.hasSecondReading) return { label: '2nd Reading', color: 'accent' };
-  if (bill.firstReadingDate) return { label: '1st Reading', color: 'muted' };
-  return { label: 'Introduced', color: 'muted' };
+  return { label: '1st Reading', color: 'muted' };
 };
 
 const status = getStatus(bill);
