@@ -40,6 +40,13 @@ const formatSessionDate = (dateStr: string) => {
   }).format(date);
 };
 
+// Ordinal suffix helper (1st, 2nd, 3rd, 15th, etc.)
+const ordinal = (n: number) => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+};
+
 // Count recent bills (ones with readings in last 30 days)
 const recentBillCount = recentBillReadings.length;
 
@@ -81,7 +88,7 @@ const navLinks = [
   <div class="page">
     <!-- Masthead -->
     <header class="masthead">
-      <div class="flex flex-col gap-0.5">
+      <div class="flex flex-col items-center md:items-start gap-0.5">
         <span class="masthead-location"><strong>Singapore</strong></span>
         <span class="masthead-date">{formattedDate}</span>
       </div>
@@ -91,28 +98,12 @@ const navLinks = [
         <p class="masthead-tagline">Singapore Parliament &middot; Hansard</p>
       </div>
 
-      <div class="flex flex-col items-end gap-0.5">
+      <div class="flex flex-col items-center md:items-end gap-0.5">
         {
           latestSession && (
             <>
               <span class="masthead-session">
-                {latestSession.parliament}
-                {latestSession.parliament === 1
-                  ? "st"
-                  : latestSession.parliament === 2
-                    ? "nd"
-                    : latestSession.parliament === 3
-                      ? "rd"
-                      : "th"}{" "}
-                Parliament, {latestSession.sessionNo}
-                {latestSession.sessionNo === 1
-                  ? "st"
-                  : latestSession.sessionNo === 2
-                    ? "nd"
-                    : latestSession.sessionNo === 3
-                      ? "rd"
-                      : "th"}{" "}
-                Session
+                {ordinal(latestSession.parliament)} Parliament, {ordinal(latestSession.sessionNo)} Session
               </span>
               <span class="status-indicator">
                 <span class="status-dot" />
