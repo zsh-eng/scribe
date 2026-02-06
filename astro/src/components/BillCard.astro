@@ -18,10 +18,9 @@ const formatDate = (dateStr: string | null) => {
   });
 };
 
-// Determine bill status based on reading dates
+// Determine bill status based on reading data
 const getStatus = (bill: Bill): { label: string; color: 'green' | 'accent' | 'muted' } => {
-  if (bill.thirdReadingDate) return { label: 'Passed', color: 'green' };
-  if (bill.secondReadingDate) return { label: '2nd Reading', color: 'accent' };
+  if (bill.hasSecondReading) return { label: '2nd Reading', color: 'accent' };
   if (bill.firstReadingDate) return { label: '1st Reading', color: 'muted' };
   return { label: 'Introduced', color: 'muted' };
 };

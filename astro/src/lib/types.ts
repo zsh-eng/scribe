@@ -24,8 +24,7 @@ export interface ListItem {
   sectionCount?: number;
   // Bill-specific fields
   firstReadingDate?: string;
-  secondReadingDate?: string;
-  thirdReadingDate?: string;
+  hasSecondReading?: boolean;
 }
 
 // Type badge configuration
@@ -81,10 +80,9 @@ export function getOrdinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-// Get bill status based on reading dates
+// Get bill status based on reading data
 export function getBillStatus(item: ListItem): { label: string; color: TagColor } {
-  if (item.thirdReadingDate) return { label: "Passed", color: "green" };
-  if (item.secondReadingDate) return { label: "2nd Reading", color: "accent" };
+  if (item.hasSecondReading) return { label: "2nd Reading", color: "accent" };
   if (item.firstReadingDate) return { label: "1st Reading", color: "muted" };
   return { label: "Introduced", color: "muted" };
 }

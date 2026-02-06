@@ -71,6 +71,7 @@ export interface Bill {
   ministry?: string | null;
   firstReadingDate: string | null;
   firstReadingSessionId: string | null;
+  hasSecondReading?: boolean;
   summary?: string | null;
 }
 
@@ -311,14 +312,19 @@ export function getBills(limit?: number, offset?: number): Bill[] {
       m.name as ministry,
       b.first_reading_date as firstReadingDate,
       b.first_reading_session_id as firstReadingSessionId,
-      b.summary
+      b.summary,
+      EXISTS(
+        SELECT 1 FROM sections sec
+        WHERE sec.bill_id = b.id AND sec.section_type = 'BP'
+      ) as hasSecondReading
     FROM bills b
     LEFT JOIN ministries m ON b.ministry_id = m.id
     ORDER BY b.first_reading_date DESC NULLS LAST
     ${limit ? `LIMIT ${limit}` : ''}
     ${offset ? `OFFSET ${offset}` : ''}
   `;
-  return db.prepare(sql).all() as Bill[];
+  const results = db.prepare(sql).all() as (Omit<Bill, 'hasSecondReading'> & { hasSecondReading: number })[];
+  return results.map(r => ({ ...r, hasSecondReading: r.hasSecondReading === 1 }));
 }
 
 export function getBillCount(): number {
@@ -335,12 +341,18 @@ export function getBill(id: string): Bill | undefined {
       m.name as ministry,
       b.first_reading_date as firstReadingDate,
       b.first_reading_session_id as firstReadingSessionId,
-      b.summary
+      b.summary,
+      EXISTS(
+        SELECT 1 FROM sections sec
+        WHERE sec.bill_id = b.id AND sec.section_type = 'BP'
+      ) as hasSecondReading
     FROM bills b
     LEFT JOIN ministries m ON b.ministry_id = m.id
     WHERE b.id = ?
   `;
-  return db.prepare(sql).get(id) as Bill | undefined;
+  const result = db.prepare(sql).get(id) as (Omit<Bill, 'hasSecondReading'> & { hasSecondReading: number }) | undefined;
+  if (!result) return undefined;
+  return { ...result, hasSecondReading: result.hasSecondReading === 1 };
 }
 
 export function getMinistries(): Ministry[] {
@@ -794,13 +806,18 @@ export function getMinistryBills(ministryId: string): Bill[] {
       m.name as ministry,
       b.first_reading_date as firstReadingDate,
       b.first_reading_session_id as firstReadingSessionId,
-      b.summary
+      b.summary,
+      EXISTS(
+        SELECT 1 FROM sections sec
+        WHERE sec.bill_id = b.id AND sec.section_type = 'BP'
+      ) as hasSecondReading
     FROM bills b
     LEFT JOIN ministries m ON b.ministry_id = m.id
     WHERE b.ministry_id = ?
     ORDER BY b.first_reading_date DESC NULLS LAST
   `;
-  return db.prepare(sql).all(ministryId) as Bill[];
+  const results = db.prepare(sql).all(ministryId) as (Omit<Bill, 'hasSecondReading'> & { hasSecondReading: number })[];
+  return results.map(r => ({ ...r, hasSecondReading: r.hasSecondReading === 1 }));
 }
 
 // Get members with extended info (constituency, designation from latest attendance)

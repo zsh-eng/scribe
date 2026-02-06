@@ -15,6 +15,7 @@ const initialItems: ListItem[] = bills.map((b) => ({
   title: b.title,
   ministry: b.ministry || undefined,
   firstReadingDate: b.firstReadingDate || undefined,
+  hasSecondReading: b.hasSecondReading || false,
 }));
 ---
 
