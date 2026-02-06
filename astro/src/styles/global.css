@@ -609,6 +609,12 @@
     }
 }
 
+@media (max-width: 768px) {
+    .ticker {
+        animation-duration: 20s;
+    }
+}
+
 /* Newspaper footer */
 .newspaper-footer {
     display: flex;
