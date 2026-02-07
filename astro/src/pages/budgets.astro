@@ -1,0 +1,614 @@
+---
+import Layout from "../layouts/Layout.astro";
+import fs from "node:fs";
+import path from "node:path";
+import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
+
+// ─── Read & parse CSV ───
+const csvPath = path.join(
+  process.cwd(),
+  "..",
+  "data",
+  "GovernmentTotalExpenditure.csv",
+);
+const csvText = fs.readFileSync(csvPath, "utf-8");
+
+function parseCSV(text: string) {
+  const lines = text.trim().split("\n");
+  return lines
+    .slice(1)
+    .map((line) => {
+      const values: string[] = [];
+      let current = "";
+      let inQuotes = false;
+      for (const char of line) {
+        if (char === '"') {
+          inQuotes = !inQuotes;
+          continue;
+        }
+        if (char === "," && !inQuotes) {
+          values.push(current.trim());
+          current = "";
+          continue;
+        }
+        current += char;
+      }
+      values.push(current.trim());
+      return {
+        year: parseInt(values[0]),
+        estimateType: values[1],
+        sector: values[2],
+        ministry: values[3],
+        expType: values[4],
+        amount: parseFloat(values[5]) || 0,
+      };
+    })
+    .filter((r) => !isNaN(r.year));
+}
+
+const rows = parseCSV(csvText);
+
+// ─── Aggregate by year → sector → ministry ───
+const yearMap = new Map<
+  number,
+  Map<
+    string,
+    {
+      sector: string;
+      ministry: string;
+      operating: number;
+      development: number;
+      estimateType: string;
+    }
+  >
+>();
+
+for (const row of rows) {
+  if (!yearMap.has(row.year)) yearMap.set(row.year, new Map());
+  const entries = yearMap.get(row.year)!;
+  const key = `${row.sector}|||${row.ministry}`;
+  if (!entries.has(key)) {
+    entries.set(key, {
+      sector: row.sector,
+      ministry: row.ministry,
+      operating: 0,
+      development: 0,
+      estimateType: row.estimateType,
+    });
+  }
+  const entry = entries.get(key)!;
+  if (row.expType === "Operating") entry.operating += row.amount;
+  else if (row.expType === "Development") entry.development += row.amount;
+}
+
+// ─── Compute treemap layout for each year ───
+const W = 1000;
+const H = 600;
+
+const sectorOrder = [
+  "Social Development",
+  "Security and External Relations",
+  "Economic Development",
+  "Government Administration",
+];
+
+interface MinistryCell {
+  name: string;
+  value: number;
+  operating: number;
+  development: number;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+interface SectorCell {
+  name: string;
+  value: number;
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  ministries: MinistryCell[];
+}
+
+interface YearData {
+  total: number;
+  estimateType: string;
+  sectors: SectorCell[];
+}
+
+const allTreemapData: Record<string, YearData> = {};
+
+for (const [year, entries] of yearMap) {
+  const entryList = [...entries.values()];
+
+  // Group by sector
+  const sectorGroups: Record<
+    string,
+    { name: string; value: number; operating: number; development: number }[]
+  > = {};
+  for (const e of entryList) {
+    const total = e.operating + e.development;
+    if (total <= 0) continue;
+    if (!sectorGroups[e.sector]) sectorGroups[e.sector] = [];
+    sectorGroups[e.sector].push({
+      name: e.ministry,
+      value: total,
+      operating: e.operating,
+      development: e.development,
+    });
+  }
+
+  const children = sectorOrder
+    .filter((s) => sectorGroups[s]?.length > 0)
+    .map((s) => ({
+      name: s,
+      children: sectorGroups[s],
+    }));
+
+  if (children.length === 0) continue;
+
+  const root = hierarchy({ name: "Budget", children })
+    .sum((d: any) => d.value)
+    .sort((a, b) => (b.value || 0) - (a.value || 0));
+
+  treemap()
+    .size([W, H])
+    .tile(treemapSquarify)
+    .paddingTop(24)
+    .paddingRight(3)
+    .paddingBottom(3)
+    .paddingLeft(3)
+    .paddingInner(2)(root as any);
+
+  const totalBudget = root.value || 0;
+
+  const sectors: SectorCell[] = (root.children || []).map((s: any) => ({
+    name: s.data.name,
+    value: s.value,
+    x0: s.x0,
+    y0: s.y0,
+    x1: s.x1,
+    y1: s.y1,
+    ministries: (s.children || []).map((m: any) => ({
+      name: m.data.name,
+      value: m.value,
+      operating: m.data.operating,
+      development: m.data.development,
+      x0: m.x0,
+      y0: m.y0,
+      x1: m.x1,
+      y1: m.y1,
+    })),
+  }));
+
+  allTreemapData[year] = {
+    total: totalBudget,
+    estimateType: entryList[0]?.estimateType || "Actual",
+    sectors,
+  };
+}
+
+const years = Object.keys(allTreemapData)
+  .map(Number)
+  .sort((a, b) => a - b);
+const defaultYear = years[years.length - 1];
+---
+
+<Layout
+  title="Budgets"
+  description="Singapore Government Budget Expenditure Treemap"
+>
+  <header class="mb-6">
+    <span class="section-label">Government Expenditure</span>
+    <h1 class="page-title">Budget</h1>
+    <p class="body-prose max-w-prose">
+      How Singapore allocates its expenditure across sectors and ministries.
+    </p>
+  </header>
+
+  <!-- Summary -->
+  <div class="flex items-baseline gap-3 mb-4">
+    <span
+      class="font-masthead text-3xl text-ink tracking-tight leading-none"
+      id="total-amount"></span>
+    <span
+      class="font-sans text-label-sm uppercase tracking-wider text-ink-muted"
+      id="estimate-type"></span>
+  </div>
+
+  <!-- Year selector -->
+  <div class="mb-5 border-b border-t border-border py-3">
+    <div id="year-buttons" class="flex gap-1 flex-wrap">
+      {
+        years.map((y) => (
+          <button
+            data-year={y}
+            class:list={[
+              "year-btn font-sans text-xs px-2 py-1 transition-colors cursor-pointer border",
+              y === defaultYear
+                ? "bg-ink text-page-bg border-ink"
+                : "bg-transparent text-ink-muted border-transparent hover:text-ink hover:border-border",
+            ]}
+          >
+            {String(y).slice(-2)}
+          </button>
+        ))
+      }
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="flex flex-wrap gap-x-5 gap-y-1.5 mb-4">
+    <div class="flex items-center gap-1.5">
+      <span class="w-3 h-3 inline-block" style="background: #e6ead8;"></span>
+      <span class="font-sans text-xs text-ink-muted">Social Development</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="w-3 h-3 inline-block" style="background: #dce0e8;"></span>
+      <span class="font-sans text-xs text-ink-muted"
+        >Security & External Relations</span
+      >
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="w-3 h-3 inline-block" style="background: #ece2ce;"></span>
+      <span class="font-sans text-xs text-ink-muted">Economic Development</span>
+    </div>
+    <div class="flex items-center gap-1.5">
+      <span class="w-3 h-3 inline-block" style="background: #e0dcd6;"></span>
+      <span class="font-sans text-xs text-ink-muted"
+        >Government Administration</span
+      >
+    </div>
+  </div>
+
+  <!-- Treemap -->
+  <div
+    id="treemap-container"
+    class="relative border border-border"
+    style="padding-bottom: 80%;"
+  >
+  </div>
+
+  <!-- Source note -->
+  <p class="font-sans text-xs text-ink-muted mt-4">
+    Source: Singapore Government Total Expenditure, data.gov.sg. Amounts in S$
+    millions.
+  </p>
+
+  <!-- Tooltip -->
+  <div
+    id="treemap-tooltip"
+    class="fixed pointer-events-none opacity-0 z-50 max-w-xs"
+    style="transition: opacity 0.12s ease;"
+  >
+  </div>
+
+  <!-- Embed data for client -->
+  <div
+    id="treemap-data"
+    class="hidden"
+    data-json={JSON.stringify({
+      data: allTreemapData,
+      W,
+      H,
+      defaultYear,
+      years,
+    })}
+  >
+  </div>
+</Layout>
+
+<style is:global>
+  /* ─── Treemap cells ─── */
+  .tm-sector {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid;
+    overflow: hidden;
+  }
+
+  .tm-sector-label {
+    padding: 4px 7px;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1;
+  }
+
+  .tm-sector-label span {
+    font-family: "Source Serif 4", Georgia, serif;
+    font-weight: 300;
+    font-size: 9px;
+    color: var(--ink-soft);
+    margin-left: 4px;
+  }
+
+  .tm-cell {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid;
+    overflow: hidden;
+    padding: 4px 6px;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+  }
+
+  .tm-cell:hover {
+    filter: brightness(0.88);
+    z-index: 5;
+  }
+
+  .tm-cell-name {
+    display: block;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 1.25;
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tm-cell-amount {
+    display: block;
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--ink);
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  .tm-cell-pct {
+    display: block;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 8px;
+    font-weight: 400;
+    color: var(--ink-muted);
+    margin-top: 1px;
+  }
+
+  /* Tooltip */
+  #treemap-tooltip {
+    background: var(--ink);
+    color: var(--page-bg);
+    padding: 12px 16px;
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 13px;
+    line-height: 1.4;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  #treemap-tooltip .tt-name {
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  #treemap-tooltip .tt-amount {
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: #c9d4b8;
+    margin-bottom: 6px;
+    line-height: 1;
+  }
+
+  #treemap-tooltip .tt-pct {
+    font-size: 11px;
+    color: #a09888;
+    margin-bottom: 1px;
+  }
+
+  #treemap-tooltip .tt-breakdown {
+    font-size: 10px;
+    color: #a09888;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 6px;
+    margin-top: 6px;
+    line-height: 1.6;
+  }
+
+  /* Year button selected state (for JS toggling) */
+  .year-btn-active {
+    background: var(--ink) !important;
+    color: var(--page-bg) !important;
+    border-color: var(--ink) !important;
+  }
+</style>
+
+<script>
+  const raw = document.getElementById("treemap-data");
+  if (!raw) throw new Error("Missing treemap data");
+  const { data, W, H, defaultYear, years } = JSON.parse(
+    raw.dataset.json || "{}",
+  );
+
+  const container = document.getElementById("treemap-container")!;
+  const tooltip = document.getElementById("treemap-tooltip")!;
+  const totalEl = document.getElementById("total-amount")!;
+  const typeEl = document.getElementById("estimate-type")!;
+
+  const SECTOR_STYLES: Record<string, { bg: string; border: string }> = {
+    "Social Development": { bg: "#e6ead8", border: "#c8ceb4" },
+    "Security and External Relations": { bg: "#dce0e8", border: "#bcc2cc" },
+    "Economic Development": { bg: "#ece2ce", border: "#d0c4a8" },
+    "Government Administration": { bg: "#e0dcd6", border: "#c4c0b8" },
+  };
+
+  function fmt(millions: number): string {
+    if (millions >= 1000) return "$" + (millions / 1000).toFixed(1) + "B";
+    if (millions >= 1) return "$" + Math.round(millions) + "M";
+    return "<$1M";
+  }
+
+  function pctX(v: number): string {
+    return (v / W) * 100 + "%";
+  }
+  function pctY(v: number): string {
+    return (v / H) * 100 + "%";
+  }
+
+  function renderTreemap(year: number) {
+    const yd = data[year];
+    if (!yd) return;
+
+    container.innerHTML = "";
+    totalEl.textContent = fmt(yd.total);
+    typeEl.textContent = yd.estimateType + " " + year;
+
+    // Update year buttons
+    document.querySelectorAll<HTMLButtonElement>(".year-btn").forEach((btn) => {
+      const y = parseInt(btn.dataset.year || "0");
+      btn.classList.toggle("year-btn-active", y === year);
+      if (y === year) {
+        btn.classList.remove(
+          "bg-transparent",
+          "text-ink-muted",
+          "border-transparent",
+        );
+      } else {
+        btn.classList.remove("bg-ink", "text-page-bg", "border-ink");
+        btn.classList.add(
+          "bg-transparent",
+          "text-ink-muted",
+          "border-transparent",
+        );
+      }
+    });
+
+    for (const sector of yd.sectors) {
+      const style = SECTOR_STYLES[sector.name] || {
+        bg: "#e0dcd6",
+        border: "#c4c0b8",
+      };
+
+      // Sector background
+      const sDiv = document.createElement("div");
+      sDiv.className = "tm-sector";
+      sDiv.style.left = pctX(sector.x0);
+      sDiv.style.top = pctY(sector.y0);
+      sDiv.style.width = pctX(sector.x1 - sector.x0);
+      sDiv.style.height = pctY(sector.y1 - sector.y0);
+      sDiv.style.background = style.bg;
+      sDiv.style.borderColor = style.border;
+
+      // Sector label
+      const label = document.createElement("div");
+      label.className = "tm-sector-label";
+      label.innerHTML = sector.name + " <span>" + fmt(sector.value) + "</span>";
+      sDiv.appendChild(label);
+      container.appendChild(sDiv);
+
+      // Ministry cells
+      for (const m of sector.ministries) {
+        const cW = m.x1 - m.x0;
+        const cH = m.y1 - m.y0;
+
+        const cell = document.createElement("div");
+        cell.className = "tm-cell";
+        cell.style.left = pctX(m.x0);
+        cell.style.top = pctY(m.y0);
+        cell.style.width = pctX(cW);
+        cell.style.height = pctY(cH);
+        cell.style.background = style.bg;
+        cell.style.borderColor = style.border;
+
+        // Name
+        const name = document.createElement("span");
+        name.className = "tm-cell-name";
+        name.textContent = m.name;
+        cell.appendChild(name);
+
+        // Amount (if cell large enough)
+        if (cW > 70 && cH > 45) {
+          const amt = document.createElement("span");
+          amt.className = "tm-cell-amount";
+          amt.textContent = fmt(m.value);
+          cell.appendChild(amt);
+        }
+
+        // Percentage (if cell has room)
+        if (cW > 90 && cH > 65) {
+          const pct = document.createElement("span");
+          pct.className = "tm-cell-pct";
+          pct.textContent =
+            ((m.value / yd.total) * 100).toFixed(1) + "% of total";
+          cell.appendChild(pct);
+        }
+
+        // Tooltip events
+        cell.addEventListener("mouseenter", (e) => {
+          const pctTotal = ((m.value / yd.total) * 100).toFixed(1);
+          const pctSector = ((m.value / sector.value) * 100).toFixed(1);
+          tooltip.innerHTML =
+            `<div class="tt-name">${m.name}</div>` +
+            `<div class="tt-amount">${fmt(m.value)}</div>` +
+            `<div class="tt-pct">${pctTotal}% of Total Budget</div>` +
+            `<div class="tt-pct">${pctSector}% of ${sector.name}</div>` +
+            `<div class="tt-breakdown">Operating: ${fmt(m.operating)}<br/>Development: ${fmt(m.development)}</div>`;
+          tooltip.style.opacity = "1";
+          positionTooltip(e);
+        });
+
+        cell.addEventListener("mousemove", positionTooltip);
+
+        cell.addEventListener("mouseleave", () => {
+          tooltip.style.opacity = "0";
+        });
+
+        container.appendChild(cell);
+      }
+    }
+  }
+
+  function positionTooltip(e: MouseEvent) {
+    const pad = 14;
+    const tw = 240;
+    const th = 180;
+    let x = e.clientX + pad;
+    let y = e.clientY + pad;
+    if (x + tw > window.innerWidth) x = e.clientX - tw - pad;
+    if (y + th > window.innerHeight) y = e.clientY - th - pad;
+    tooltip.style.left = x + "px";
+    tooltip.style.top = y + "px";
+  }
+
+  // Year button click handlers
+  document.querySelectorAll<HTMLButtonElement>(".year-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const y = parseInt(btn.dataset.year || "0");
+      if (y) renderTreemap(y);
+    });
+  });
+
+  // Keyboard navigation for year buttons
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      const activeBtn = document.querySelector(".year-btn-active");
+      if (!activeBtn) return;
+      const currentYear = parseInt(
+        (activeBtn as HTMLElement).dataset.year || "0",
+      );
+      const idx = years.indexOf(currentYear);
+      if (idx === -1) return;
+      const next =
+        e.key === "ArrowRight"
+          ? years[Math.min(idx + 1, years.length - 1)]
+          : years[Math.max(idx - 1, 0)];
+      if (next !== currentYear) renderTreemap(next);
+    }
+  });
+
+  // Initial render
+  renderTreemap(defaultYear);
+</script>
