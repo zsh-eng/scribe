@@ -275,6 +275,9 @@ const fmtSignedAmount = (millions: number, decimals = 1) =>
 const fmtSignedPct = (value: number, decimals = 1) =>
   `${value >= 0 ? "+" : ""}${value.toFixed(decimals)}%`;
 
+const isNegativeFullDrop = (previousTotal: number, latestTotal: number) =>
+  previousTotal > 0 && latestTotal <= 0;
+
 const sectorChangeRows = sectorOrder
   .map((sector) => {
     const latestPoint = sectorTrendSeries
@@ -292,14 +295,25 @@ const sectorChangeRows = sectorOrder
       previousTotal,
       change,
       changePct:
-        previousTotal > 0 ? (change / previousTotal) * 100 : latestTotal > 0 ? 100 : 0,
+        previousTotal > 0
+          ? (change / previousTotal) * 100
+          : latestTotal > 0
+            ? 100
+            : 0,
     };
   })
   .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
-const topSectorChange = sectorChangeRows[0];
+const rankedSectorChangeRows = sectorChangeRows.filter(
+  (row) => !isNegativeFullDrop(row.previousTotal, row.latestTotal),
+);
 
-const ministryTotalsByYear = new Map<number, Map<string, { sector: string; total: number }>>();
+const topSectorChange = rankedSectorChangeRows[0];
+
+const ministryTotalsByYear = new Map<
+  number,
+  Map<string, { sector: string; total: number }>
+>();
 for (const [year, entries] of yearMap) {
   const byMinistry = new Map<string, { sector: string; total: number }>();
   for (const entry of entries.values()) {
@@ -338,14 +352,22 @@ const ministryChangeRows = [...ministryNames]
       previousTotal,
       change,
       changePct:
-        previousTotal > 0 ? (change / previousTotal) * 100 : latestTotal > 0 ? 100 : 0,
+        previousTotal > 0
+          ? (change / previousTotal) * 100
+          : latestTotal > 0
+            ? 100
+            : 0,
     };
   })
   .filter((row) => row.latestTotal > 0 || row.previousTotal > 0)
   .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
 
-const topMinistryChange = ministryChangeRows[0];
-const majorMinistryMovers = ministryChangeRows.slice(0, 10);
+const rankedMinistryChangeRows = ministryChangeRows.filter(
+  (row) => !isNegativeFullDrop(row.previousTotal, row.latestTotal),
+);
+
+const topMinistryChange = rankedMinistryChangeRows[0];
+const majorMinistryMovers = rankedMinistryChangeRows.slice(0, 10);
 
 const policySpotlights = [
   {
@@ -357,6 +379,21 @@ const policySpotlights = [
       "Startup SG Equity enhancements, including S$1B investment.",
       "250% tax deduction for eligible donations extended to end-2029.",
     ],
+    links: [
+      {
+        label:
+          "Official: Advancing Our Economic Strategy (Budget 2026 factsheet)",
+        href: "https://isomer-user-content.by.gov.sg/34/51b2ffad-8dff-4469-af71-00c2a008a5b2/Advancing%20our%20Economic%20Strategy.pdf",
+      },
+      {
+        label: "CNA: S$1 billion boost for Startup SG Equity",
+        href: "https://www.channelnewsasia.com/singapore/budget-2026-tech-startups-1-billion-boost-growth-stage-companies-5925796",
+      },
+      {
+        label: "CNA: RIE2030 S$37 billion investment",
+        href: "https://www.channelnewsasia.com/singapore/national-research-foundation-research-innovation-enterprise-rie-2030-37-billion-5537496",
+      },
+    ],
   },
   {
     pillar: "Workers and talent",
@@ -366,6 +403,25 @@ const policySpotlights = [
       "Redesigned SkillsFuture with six months of free premium AI tools.",
       "Higher qualifying salaries for EP and S Pass holders.",
       "Higher work permit levies for selected sectors.",
+    ],
+    links: [
+      {
+        label:
+          "Official: Harnessing AI as a Strategic Advantage (Budget 2026 factsheet)",
+        href: "https://isomer-user-content.by.gov.sg/34/16e9696a-7c39-4846-8c9a-2fd0e1ea2cbb/Harnessing%20AI.pdf",
+      },
+      {
+        label: "CNA: National AI Council and AI Missions",
+        href: "https://www.channelnewsasia.com/singapore/budget-2026-national-artificial-intelligence-council-ai-lawrence-wong-5925886",
+      },
+      {
+        label: "CNA: Free premium AI tools via selected courses",
+        href: "https://www.channelnewsasia.com/singapore/budget-2026-free-ai-subscription-training-courses-skillsfuture-5925621",
+      },
+      {
+        label: "CNA: EP and S Pass qualifying salary increases",
+        href: "https://www.channelnewsasia.com/singapore/budget-2026-foreign-workers-employment-pass-qualifying-salary-lower-wage-workers-5925671",
+      },
     ],
   },
   {
@@ -377,6 +433,29 @@ const policySpotlights = [
       "S$200-S$400 cash payouts, up to S$570 U-Save, and S$500 CDC vouchers.",
       "Up to S$1,500 CPF top-up for eligible Singaporeans aged 50 and above.",
     ],
+    links: [
+      {
+        label: "Official: Support for Singaporeans (Budget 2026 factsheet)",
+        href: "https://isomer-user-content.by.gov.sg/34/2dcfc177-c79f-47d9-a1ae-b2b5441bcd5c/Support%20for%20Singaporeans.pdf",
+      },
+      {
+        label:
+          "Official: Supporting Families with Children (Budget 2026 factsheet)",
+        href: "https://isomer-user-content.by.gov.sg/34/6fed8368-47ef-4de6-8313-5941a2a9a8a9/Supporting%20Singaporeans%20%26%20Families%20with%20Children.pdf",
+      },
+      {
+        label: "CNA: Cost-of-living cash, U-Save and CDC vouchers",
+        href: "https://www.channelnewsasia.com/singapore/budget-2026-cost-living-payout-cdc-vouchers-5925606",
+      },
+      {
+        label: "CNA: Additional S$500 Child LifeSG credits",
+        href: "https://www.channelnewsasia.com/singapore/child-lifesg-credits-budget-2026-age-5925746",
+      },
+      {
+        label: "CNA: New CPF life-cycle investment scheme",
+        href: "https://www.channelnewsasia.com/singapore/budget-2026-cpf-life-cycle-investment-retirement-5925641",
+      },
+    ],
   },
   {
     pillar: "Other notable shifts",
@@ -386,6 +465,28 @@ const policySpotlights = [
       "Lower vehicle PARF rebates.",
       "Higher tobacco excise duty.",
       "New CPF investment scheme announced.",
+    ],
+    links: [
+      {
+        label: "Official: Budget 2026 overview page",
+        href: "https://www.gov.sg/budget2026/",
+      },
+      {
+        label: "CNA: Defence spending around 3% of GDP",
+        href: "https://www.channelnewsasia.com/singapore/defence-security-spending-cybersecurity-budget-2026-5925711",
+      },
+      {
+        label: "CNA: Tobacco excise duty increase",
+        href: "https://www.channelnewsasia.com/singapore/budget-2026-tobacco-cigarettes-duty-tax-smoking-5925896",
+      },
+      {
+        label: "CNA: Donations tax deduction extension to end-2029",
+        href: "https://www.channelnewsasia.com/singapore/sg-partnerships-fund-charities-donations-budget-2026-5925911",
+      },
+      {
+        label: "CNA: 7 key measures (includes PARF rebate changes)",
+        href: "https://www.channelnewsasia.com/singapore/budget-2026-seven-things-you-need-know-5925866",
+      },
     ],
   },
 ];
@@ -408,12 +509,8 @@ const policySpotlights = [
       <section class="mb-10">
         <div class="mb-3">
           <h2 class="font-masthead text-2xl text-ink tracking-tight leading-none">
-            {latestYear} At A Glance
+            Budget {latestYear} At A Glance
           </h2>
-          <p class="font-sans text-sm text-ink-muted mt-1">
-            Quick comparison against {previousYear || latestYear - 1} using the latest available
-            estimate type per year.
-          </p>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border border-border">
           <article class="p-4 border-b sm:border-b border-border lg:border-b-0 lg:border-r">
@@ -429,10 +526,14 @@ const policySpotlights = [
               Year-On-Year Change
             </p>
             <p class="font-masthead text-3xl text-ink leading-none">
-              {totalChangeAbs !== null ? fmtSignedAmount(totalChangeAbs) : "N/A"}
+              {totalChangeAbs !== null
+                ? fmtSignedAmount(totalChangeAbs)
+                : "N/A"}
             </p>
             <p class="font-sans text-xs text-ink-muted mt-2">
-              {totalChangePct !== null ? fmtSignedPct(totalChangePct) : "No prior-year comparison"}
+              {totalChangePct !== null
+                ? fmtSignedPct(totalChangePct)
+                : "No prior-year comparison"}
             </p>
           </article>
           <article class="p-4 border-b border-border sm:border-b-0 lg:border-r">
@@ -443,7 +544,9 @@ const policySpotlights = [
               {topSectorChange?.sector || "N/A"}
             </p>
             <p class="font-masthead text-2xl text-ink leading-none mt-1">
-              {topSectorChange ? fmtSignedAmount(topSectorChange.change) : "N/A"}
+              {topSectorChange
+                ? fmtSignedAmount(topSectorChange.change)
+                : "N/A"}
             </p>
           </article>
           <article class="p-4">
@@ -454,7 +557,9 @@ const policySpotlights = [
               {topMinistryChange?.ministry || "N/A"}
             </p>
             <p class="font-masthead text-2xl text-ink leading-none mt-1">
-              {topMinistryChange ? fmtSignedAmount(topMinistryChange.change) : "N/A"}
+              {topMinistryChange
+                ? fmtSignedAmount(topMinistryChange.change)
+                : "N/A"}
             </p>
           </article>
         </div>
@@ -477,32 +582,61 @@ const policySpotlights = [
       <h2 class="font-masthead text-2xl text-ink tracking-tight leading-none">
         Largest Ministry Shifts
       </h2>
-      <p class="font-sans text-sm text-ink-muted mt-1">
-        Biggest changes in ministry expenditure between {latestYear} and {previousYear || latestYear - 1}.
-      </p>
     </div>
-    <div class="border border-border overflow-x-auto">
+    <div
+      class="budget-ministry-shifts-table border border-border overflow-x-auto"
+    >
       <table class="w-full min-w-[760px] border-collapse">
         <thead>
           <tr class="border-b border-border">
-            <th class="text-left p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">Ministry</th>
-            <th class="text-left p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">Sector</th>
-            <th class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">{previousYear || latestYear - 1}</th>
-            <th class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">{latestYear}</th>
-            <th class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">Change</th>
-            <th class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted">Change %</th>
+            <th
+              class="text-left p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted"
+              >Ministry</th
+            >
+            <th
+              class="text-left p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted"
+              >Sector</th
+            >
+            <th
+              class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted"
+              >{previousYear || latestYear - 1}</th
+            >
+            <th
+              class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted"
+              >{latestYear}</th
+            >
+            <th
+              class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted"
+              >Change</th
+            >
+            <th
+              class="text-right p-3 font-sans text-[11px] uppercase tracking-wider text-ink-muted"
+              >Change %</th
+            >
           </tr>
         </thead>
         <tbody>
           {
             majorMinistryMovers.map((row) => (
               <tr class="border-b border-border last:border-b-0">
-                <td class="p-3 font-serif text-[15px] text-ink">{row.ministry}</td>
-                <td class="p-3 font-sans text-xs text-ink-muted">{row.sector}</td>
-                <td class="p-3 font-sans text-sm text-right text-ink-muted">{fmtAmount(row.previousTotal)}</td>
-                <td class="p-3 font-sans text-sm text-right text-ink">{fmtAmount(row.latestTotal)}</td>
-                <td class="p-3 font-sans text-sm text-right text-ink">{fmtSignedAmount(row.change)}</td>
-                <td class="p-3 font-sans text-sm text-right text-ink">{fmtSignedPct(row.changePct)}</td>
+                <td class="p-3 font-serif text-[15px] text-ink">
+                  {row.ministry}
+                </td>
+                <td class="p-3 font-sans text-xs text-ink-muted">
+                  {row.sector}
+                </td>
+                <td class="p-3 font-sans text-sm text-right text-ink-muted">
+                  {fmtAmount(row.previousTotal)}
+                </td>
+                <td class="p-3 font-sans text-sm text-right text-ink">
+                  {fmtAmount(row.latestTotal)}
+                </td>
+                <td class="p-3 font-sans text-sm text-right text-ink">
+                  {fmtSignedAmount(row.change)}
+                </td>
+                <td class="p-3 font-sans text-sm text-right text-ink">
+                  {fmtSignedPct(row.changePct)}
+                </td>
               </tr>
             ))
           }
@@ -511,36 +645,20 @@ const policySpotlights = [
     </div>
   </section>
 
-  <section class="mt-10">
-    <div class="mb-3">
-      <h2 class="font-masthead text-2xl text-ink tracking-tight leading-none">
-        Budget 2026 Policy Spotlights
-      </h2>
-      <p class="font-sans text-sm text-ink-muted mt-1">
-        Thematic highlights you can pair with the expenditure charts.
-      </p>
-    </div>
-    <div class="grid gap-4 md:grid-cols-2">
-      {
-        policySpotlights.map((spotlight) => (
-          <article class="border border-border bg-surface p-4">
-            <p class="font-sans text-[11px] uppercase tracking-wider text-ink-muted mb-1">
-              {spotlight.tone}
-            </p>
-            <h3 class="font-masthead text-xl text-ink leading-none mb-3">
-              {spotlight.pillar}
-            </h3>
-            <ul class="space-y-2">
-              {spotlight.items.map((item) => <li class="font-serif text-[15px] leading-snug text-ink">{item}</li>)}
-            </ul>
-          </article>
-        ))
-      }
-    </div>
-  </section>
-
   <p class="font-sans text-xs text-ink-muted mt-4">
     Source: Singapore Government Total Expenditure, data.gov.sg. Amounts in S$
     millions.
   </p>
 </Layout>
+
+<style is:global>
+  @media (max-width: 640px) {
+    .budget-ministry-shifts-table {
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+      margin-right: calc(50% - 50vw);
+      border-left: 0;
+      border-right: 0;
+    }
+  }
+</style>
