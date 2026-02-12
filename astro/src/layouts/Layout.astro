@@ -1,13 +1,16 @@
 ---
-import Navbar from '../components/Navbar.astro';
-import '../styles/global.css';
+import Navbar from "../components/Navbar.astro";
+import "../styles/global.css";
 
 interface Props {
   title: string;
   description?: string;
 }
 
-const { title, description = 'Singapore Parliament proceedings made accessible' } = Astro.props;
+const {
+  title,
+  description = "Singapore Parliament proceedings made accessible",
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -45,9 +48,12 @@ const { title, description = 'Singapore Parliament proceedings made accessible' 
     </main>
     <footer class="border-t border-border animate-fade-in">
       <div class="mx-auto max-w-content px-6 py-10 text-center">
-        <p class="font-sans text-sm text-ink-muted leading-relaxed">
-          Data sourced from the official <a href="https://sprs.parl.gov.sg/search/#/home" class="text-accent hover:text-accent-light no-underline">Hansard</a>.
-          Scribe is an independent project and is not affiliated with the Singapore Government.
+        <p class="font-sans text-xs text-ink-muted leading-relaxed text-left">
+          Data sourced from the official <a
+            href="https://sprs.parl.gov.sg/search/#/home"
+            class="text-accent hover:text-accent-light no-underline">Hansard</a
+          >. Scribe is an independent project and is not affiliated with the
+          Singapore Government.
         </p>
       </div>
     </footer>
