@@ -21,6 +21,22 @@ const { data, width, height, years, defaultYear } = Astro.props;
   ></span>
 </div>
 
+<div
+  id="budget-treemap-focus-controls"
+  class="hidden items-center gap-2 mb-3"
+>
+  <button
+    id="budget-treemap-focus-back"
+    class="font-sans text-xs uppercase tracking-wider px-2.5 py-1 border border-border text-ink-muted hover:text-ink cursor-pointer"
+  >
+    Back
+  </button>
+  <span
+    id="budget-treemap-focus-label"
+    class="font-sans text-xs uppercase tracking-wider text-ink-muted"
+  ></span>
+</div>
+
 <div class="mb-5 border-b border-t border-border py-3">
   <div
     id="budget-treemap-year-buttons"
@@ -63,6 +79,10 @@ const { data, width, height, years, defaultYear } = Astro.props;
     <span class="w-3 h-3 inline-block" style="background: #e0dcd6;"></span>
     <span class="font-sans text-xs text-ink-muted">Government Administration</span>
   </div>
+  <div class="flex items-center gap-1.5">
+    <span class="w-3 h-3 inline-block tm-hatch-swatch"></span>
+    <span class="font-sans text-xs text-ink-muted">Hatched area = Development</span>
+  </div>
 </div>
 
 <div id="budget-treemap-container" class="relative border border-border"></div>
@@ -100,6 +120,15 @@ const { data, width, height, years, defaultYear } = Astro.props;
     overflow: hidden;
   }
 
+  .tm-sector-focusable {
+    cursor: pointer;
+    transition: filter 0.15s ease;
+  }
+
+  .tm-sector-focusable:hover {
+    filter: brightness(0.94);
+  }
+
   .tm-sector-label {
     padding: 4px 7px;
     font-family: "Playfair Display", Georgia, serif;
@@ -129,6 +158,7 @@ const { data, width, height, years, defaultYear } = Astro.props;
     padding: 4px 6px;
     cursor: pointer;
     transition: filter 0.15s ease;
+    isolation: isolate;
   }
 
   .tm-cell:hover {
@@ -145,6 +175,8 @@ const { data, width, height, years, defaultYear } = Astro.props;
     color: var(--ink);
     overflow: hidden;
     text-overflow: ellipsis;
+    position: relative;
+    z-index: 1;
   }
 
   .tm-cell-amount {
@@ -155,6 +187,8 @@ const { data, width, height, years, defaultYear } = Astro.props;
     color: var(--ink);
     line-height: 1;
     margin-top: 2px;
+    position: relative;
+    z-index: 1;
   }
 
   .tm-cell-pct {
@@ -164,6 +198,38 @@ const { data, width, height, years, defaultYear } = Astro.props;
     font-weight: 400;
     color: var(--ink-muted);
     margin-top: 1px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .tm-cell-dev {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      repeating-linear-gradient(
+        135deg,
+        rgba(0, 0, 0, 0.18) 0px,
+        rgba(0, 0, 0, 0.18) 2px,
+        rgba(255, 255, 255, 0) 2px,
+        rgba(255, 255, 255, 0) 6px
+      );
+  }
+
+  .tm-hatch-swatch {
+    border: 1px solid #9f9a8f;
+    background-color: #f1efe9;
+    background-image:
+      repeating-linear-gradient(
+        135deg,
+        rgba(0, 0, 0, 0.2) 0px,
+        rgba(0, 0, 0, 0.2) 2px,
+        rgba(255, 255, 255, 0) 2px,
+        rgba(255, 255, 255, 0) 6px
+      );
   }
 
   #budget-treemap-tooltip {
@@ -224,8 +290,19 @@ const { data, width, height, years, defaultYear } = Astro.props;
   const tooltip = document.getElementById("budget-treemap-tooltip");
   const totalEl = document.getElementById("budget-treemap-total");
   const typeEl = document.getElementById("budget-treemap-estimate-type");
+  const focusControls = document.getElementById("budget-treemap-focus-controls");
+  const focusBackBtn = document.getElementById("budget-treemap-focus-back");
+  const focusLabel = document.getElementById("budget-treemap-focus-label");
 
-  if (!container || !tooltip || !totalEl || !typeEl) {
+  if (
+    !container ||
+    !tooltip ||
+    !totalEl ||
+    !typeEl ||
+    !focusControls ||
+    !focusBackBtn ||
+    !focusLabel
+  ) {
     throw new Error("Missing budget treemap elements");
   }
 
@@ -250,6 +327,29 @@ const { data, width, height, years, defaultYear } = Astro.props;
     return (v / height) * 100 + "%";
   }
 
+  function parseInitialState() {
+    const params = new URLSearchParams(window.location.search);
+    const yearParam = Number.parseInt(params.get("year") || "0", 10);
+    const initialYear = data[yearParam] ? yearParam : defaultYear;
+    const sectorParam = params.get("sector") || "";
+    const validSector = (data[initialYear]?.sectors || []).some((s) => s.name === sectorParam);
+    return {
+      year: initialYear,
+      sector: validSector ? sectorParam : null,
+    };
+  }
+
+  function syncUrl(year, focusedSector) {
+    const url = new URL(window.location.href);
+    url.searchParams.set("year", String(year));
+    if (focusedSector) {
+      url.searchParams.set("sector", focusedSector);
+    } else {
+      url.searchParams.delete("sector");
+    }
+    window.history.replaceState({}, "", url.toString());
+  }
+
   function positionTooltip(e) {
     const pad = 14;
     const edgePad = 8;
@@ -267,13 +367,16 @@ const { data, width, height, years, defaultYear } = Astro.props;
     tooltip.style.top = y + "px";
   }
 
-  function renderTreemap(year) {
+  function renderTreemap(year, focusedSector = null) {
     const yd = data[year];
     if (!yd) return;
 
     container.innerHTML = "";
     totalEl.textContent = fmt(yd.total);
     typeEl.textContent = yd.estimateType + " " + year;
+    focusControls.classList.toggle("hidden", !focusedSector);
+    focusControls.classList.toggle("flex", Boolean(focusedSector));
+    focusLabel.textContent = focusedSector ? focusedSector : "";
 
     document.querySelectorAll(".budget-year-btn").forEach((btn) => {
       const y = Number.parseInt(btn.dataset.year || "0", 10);
@@ -286,15 +389,24 @@ const { data, width, height, years, defaultYear } = Astro.props;
       }
     });
 
-    for (const sector of yd.sectors) {
+    const sectorsToRender = focusedSector
+      ? yd.sectors.filter((sector) => sector.name === focusedSector)
+      : yd.sectors;
+
+    for (const sector of sectorsToRender) {
       const style = SECTOR_STYLES[sector.name] || { bg: "#e0dcd6", border: "#c4c0b8" };
+      const sectorX0 = focusedSector ? 0 : sector.x0;
+      const sectorY0 = focusedSector ? 0 : sector.y0;
+      const sectorX1 = focusedSector ? width : sector.x1;
+      const sectorY1 = focusedSector ? height : sector.y1;
 
       const sectorDiv = document.createElement("div");
       sectorDiv.className = "tm-sector";
-      sectorDiv.style.left = pctX(sector.x0);
-      sectorDiv.style.top = pctY(sector.y0);
-      sectorDiv.style.width = pctX(sector.x1 - sector.x0);
-      sectorDiv.style.height = pctY(sector.y1 - sector.y0);
+      if (!focusedSector) sectorDiv.classList.add("tm-sector-focusable");
+      sectorDiv.style.left = pctX(sectorX0);
+      sectorDiv.style.top = pctY(sectorY0);
+      sectorDiv.style.width = pctX(sectorX1 - sectorX0);
+      sectorDiv.style.height = pctY(sectorY1 - sectorY0);
       sectorDiv.style.background = style.bg;
       sectorDiv.style.borderColor = style.border;
 
@@ -302,37 +414,67 @@ const { data, width, height, years, defaultYear } = Astro.props;
       label.className = "tm-sector-label";
       label.innerHTML = sector.name + " <span>" + fmt(sector.value) + "</span>";
       sectorDiv.appendChild(label);
+      if (!focusedSector) {
+        sectorDiv.title = "Click to expand";
+        sectorDiv.addEventListener("click", () => {
+          state.focusedSector = sector.name;
+          syncUrl(state.year, state.focusedSector);
+          renderTreemap(state.year, state.focusedSector);
+        });
+      }
       container.appendChild(sectorDiv);
 
       for (const ministry of sector.ministries) {
-        const cellWidth = ministry.x1 - ministry.x0;
-        const cellHeight = ministry.y1 - ministry.y0;
+        const relX0 = focusedSector
+          ? ((ministry.x0 - sector.x0) / (sector.x1 - sector.x0)) * width
+          : ministry.x0;
+        const relY0 = focusedSector
+          ? ((ministry.y0 - sector.y0) / (sector.y1 - sector.y0)) * height
+          : ministry.y0;
+        const relX1 = focusedSector
+          ? ((ministry.x1 - sector.x0) / (sector.x1 - sector.x0)) * width
+          : ministry.x1;
+        const relY1 = focusedSector
+          ? ((ministry.y1 - sector.y0) / (sector.y1 - sector.y0)) * height
+          : ministry.y1;
+        const displayWidth = relX1 - relX0;
+        const displayHeight = relY1 - relY0;
 
         const cell = document.createElement("div");
         cell.className = "tm-cell";
-        cell.style.left = pctX(ministry.x0);
-        cell.style.top = pctY(ministry.y0);
-        cell.style.width = pctX(cellWidth);
-        cell.style.height = pctY(cellHeight);
+        if (focusedSector) cell.style.cursor = "default";
+        cell.style.left = pctX(relX0);
+        cell.style.top = pctY(relY0);
+        cell.style.width = pctX(displayWidth);
+        cell.style.height = pctY(displayHeight);
         cell.style.background = style.bg;
         cell.style.borderColor = style.border;
+
+        if (focusedSector && ministry.value > 0 && ministry.development > 0) {
+          const devOverlay = document.createElement("span");
+          devOverlay.className = "tm-cell-dev";
+          devOverlay.style.width = (ministry.development / ministry.value) * 100 + "%";
+          cell.appendChild(devOverlay);
+        }
 
         const name = document.createElement("span");
         name.className = "tm-cell-name";
         name.textContent = ministry.name;
         cell.appendChild(name);
 
-        if (cellWidth > 70 && cellHeight > 45) {
+        if (displayWidth > 70 && displayHeight > 45) {
           const amount = document.createElement("span");
           amount.className = "tm-cell-amount";
           amount.textContent = fmt(ministry.value);
           cell.appendChild(amount);
         }
 
-        if (cellWidth > 90 && cellHeight > 65) {
+        if (displayWidth > 90 && displayHeight > 65) {
           const pct = document.createElement("span");
           pct.className = "tm-cell-pct";
-          pct.textContent = ((ministry.value / yd.total) * 100).toFixed(1) + "% of total";
+          const labelText = focusedSector ? "% of " + sector.name : "% of total";
+          const denominator = focusedSector ? sector.value : yd.total;
+          pct.textContent = ((ministry.value / denominator) * 100).toFixed(1) + labelText;
           cell.appendChild(pct);
         }
 
@@ -353,20 +495,48 @@ const { data, width, height, years, defaultYear } = Astro.props;
         cell.addEventListener("mouseleave", () => {
           tooltip.style.opacity = "0";
         });
+        if (!focusedSector) {
+          cell.addEventListener("click", () => {
+            state.focusedSector = sector.name;
+            syncUrl(state.year, state.focusedSector);
+            renderTreemap(state.year, state.focusedSector);
+          });
+        }
 
         container.appendChild(cell);
       }
     }
   }
 
+  const state = parseInitialState();
+
   document.querySelectorAll(".budget-year-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const year = Number.parseInt(btn.dataset.year || "0", 10);
-      if (year) renderTreemap(year);
+      if (!year) return;
+      state.year = year;
+      const hasFocusedSector =
+        state.focusedSector &&
+        (data[year]?.sectors || []).some((s) => s.name === state.focusedSector);
+      if (!hasFocusedSector) state.focusedSector = null;
+      syncUrl(state.year, state.focusedSector);
+      renderTreemap(state.year, state.focusedSector);
     });
   });
 
+  focusBackBtn.addEventListener("click", () => {
+    state.focusedSector = null;
+    syncUrl(state.year, state.focusedSector);
+    renderTreemap(state.year, state.focusedSector);
+  });
+
   document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && state.focusedSector) {
+      state.focusedSector = null;
+      syncUrl(state.year, state.focusedSector);
+      renderTreemap(state.year, state.focusedSector);
+      return;
+    }
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
 
     const activeButton = document.querySelector(".budget-year-btn-active");
@@ -386,8 +556,17 @@ const { data, width, height, years, defaultYear } = Astro.props;
         ? years[Math.min(index + 1, years.length - 1)]
         : years[Math.max(index - 1, 0)];
 
-    if (nextYear !== currentYear) renderTreemap(nextYear);
+    if (nextYear !== currentYear) {
+      state.year = nextYear;
+      const hasFocusedSector =
+        state.focusedSector &&
+        (data[nextYear]?.sectors || []).some((s) => s.name === state.focusedSector);
+      if (!hasFocusedSector) state.focusedSector = null;
+      syncUrl(state.year, state.focusedSector);
+      renderTreemap(state.year, state.focusedSector);
+    }
   });
 
-  renderTreemap(defaultYear);
+  syncUrl(state.year, state.focusedSector);
+  renderTreemap(state.year, state.focusedSector);
 </script>
