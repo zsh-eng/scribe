@@ -13,8 +13,28 @@ const { trendSeries, years } = Astro.props;
       Sector Trends
     </h2>
     <p class="font-sans text-sm text-ink-muted mt-1">
-      Total expenditure by sector over time.
+      Sector composition and expenditure over time.
     </p>
+  </div>
+  <div class="sector-trend-controls mb-3" role="tablist" aria-label="Sector trend display mode">
+    <button
+      type="button"
+      class="sector-trend-mode-btn is-active"
+      data-mode="share"
+      role="tab"
+      aria-selected="true"
+    >
+      Share of budget (%)
+    </button>
+    <button
+      type="button"
+      class="sector-trend-mode-btn"
+      data-mode="amount"
+      role="tab"
+      aria-selected="false"
+    >
+      Amount ($)
+    </button>
   </div>
   <div id="sector-trend-chart" class="relative border border-border"></div>
   <div id="sector-trend-legend" class="mt-3 sector-line-legend"></div>
@@ -38,6 +58,32 @@ const { trendSeries, years } = Astro.props;
     background: var(--page-bg);
     padding-top: 8px;
     padding-bottom: 10px;
+  }
+
+  .sector-trend-controls {
+    display: inline-flex;
+    border: 1px solid var(--border);
+  }
+
+  .sector-trend-mode-btn {
+    border: 0;
+    border-right: 1px solid var(--border);
+    background: transparent;
+    color: var(--ink-muted);
+    padding: 6px 10px;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 12px;
+    line-height: 1.2;
+    cursor: pointer;
+  }
+
+  .sector-trend-mode-btn:last-child {
+    border-right: 0;
+  }
+
+  .sector-trend-mode-btn.is-active {
+    background: var(--ink);
+    color: var(--page-bg);
   }
 
   @media (max-width: 640px) {
@@ -163,6 +209,11 @@ const { trendSeries, years } = Astro.props;
     font-size: 20px;
     line-height: 1;
   }
+
+  #sector-trend-tooltip .tt-sub {
+    margin-top: 4px;
+    color: #a09888;
+  }
 </style>
 
 <script>
@@ -173,7 +224,9 @@ const { trendSeries, years } = Astro.props;
   const lineContainer = document.getElementById("sector-trend-chart");
   const lineLegend = document.getElementById("sector-trend-legend");
   const lineTooltip = document.getElementById("sector-trend-tooltip");
+  const modeButtons = [...document.querySelectorAll(".sector-trend-mode-btn")];
   let legendPinnedSectorName = null;
+  let lineMode = "share";
 
   if (!lineContainer || !lineLegend || !lineTooltip) {
     throw new Error("Missing sector trend elements");
@@ -189,6 +242,10 @@ const { trendSeries, years } = Astro.props;
   function fmtCompactMillions(millions) {
     if (millions >= 1000) return "$" + (millions / 1000).toFixed(1) + "B";
     return "$" + Math.round(millions) + "M";
+  }
+
+  function fmtPercent(value) {
+    return value.toFixed(1) + "%";
   }
 
   function niceCeil(value) {
@@ -224,14 +281,36 @@ const { trendSeries, years } = Astro.props;
       .filter((s) => s.points.length > 0);
     if (series.length === 0) return;
 
+    const yearTotals = new Map(years.map((year) => [year, 0]));
+    for (const s of series) {
+      for (const point of s.points) {
+        yearTotals.set(point.year, (yearTotals.get(point.year) || 0) + point.total);
+      }
+    }
+
+    const displaySeries = series.map((s) => ({
+      name: s.name,
+      points: s.points.map((point) => {
+        const yearTotal = yearTotals.get(point.year) || 0;
+        const share = yearTotal > 0 ? (point.total / yearTotal) * 100 : 0;
+        const value = lineMode === "share" ? share : point.total;
+        return {
+          year: point.year,
+          total: point.total,
+          share,
+          value,
+        };
+      }),
+    }));
+
     const minYear = years[0];
     const maxYear = years[years.length - 1];
     const yearSpan = Math.max(1, maxYear - minYear);
     const maxValue = Math.max(
-      ...series.flatMap((s) => s.points.map((p) => p.total)),
+      ...displaySeries.flatMap((s) => s.points.map((p) => p.value)),
       1,
     );
-    const yMax = niceCeil(maxValue * 1.1);
+    const yMax = lineMode === "share" ? 100 : niceCeil(maxValue * 1.1);
 
     const xFor = (year) => margin.left + ((year - minYear) / yearSpan) * plotW;
     const yFor = (value) => margin.top + plotH - (value / yMax) * plotH;
@@ -242,7 +321,12 @@ const { trendSeries, years } = Astro.props;
     svg.setAttribute("width", String(width));
     svg.setAttribute("height", String(height));
     svg.setAttribute("role", "img");
-    svg.setAttribute("aria-label", "Sector expenditure over time");
+    svg.setAttribute(
+      "aria-label",
+      lineMode === "share"
+        ? "Sector share of total budget over time"
+        : "Sector expenditure over time",
+    );
     svg.style.display = "block";
     svg.style.width = "100%";
     svg.style.height = "auto";
@@ -265,7 +349,7 @@ const { trendSeries, years } = Astro.props;
       label.setAttribute("y", String(y + 4));
       label.setAttribute("text-anchor", "end");
       label.setAttribute("class", "sector-line-axis");
-      label.textContent = fmtCompactMillions(v);
+      label.textContent = lineMode === "share" ? fmtPercent(v) : fmtCompactMillions(v);
       svg.appendChild(label);
     }
 
@@ -351,7 +435,7 @@ const { trendSeries, years } = Astro.props;
       legendPinnedSectorName = null;
       setActiveSector(null);
     };
-    const seriesByName = new Map(series.map((s) => [s.name, s]));
+    const seriesByName = new Map(displaySeries.map((s) => [s.name, s]));
 
     function getYearHintForEvent(e) {
       const rect = svg.getBoundingClientRect();
@@ -368,9 +452,9 @@ const { trendSeries, years } = Astro.props;
       const localY = e.clientY - rect.top;
       let bestSeries = null;
       let bestDist = Infinity;
-      for (const s of series) {
+      for (const s of displaySeries) {
         const point = getPointForEvent(s, e);
-        const dist = Math.abs(yFor(point.total) - localY);
+        const dist = Math.abs(yFor(point.value) - localY);
         if (dist < bestDist) {
           bestDist = dist;
           bestSeries = s;
@@ -384,7 +468,14 @@ const { trendSeries, years } = Astro.props;
       lineTooltip.innerHTML =
         `<div class="tt-name">${s.name}</div>` +
         `<div class="tt-year">${point.year}</div>` +
-        `<div class="tt-amount">${fmtCompactMillions(point.total)}</div>`;
+        `<div class="tt-amount">${
+          lineMode === "share" ? fmtPercent(point.share) : fmtCompactMillions(point.total)
+        }</div>` +
+        `<div class="tt-sub">${
+          lineMode === "share"
+            ? fmtCompactMillions(point.total)
+            : `${fmtPercent(point.share)} of yearly budget`
+        }</div>`;
       lineTooltip.style.opacity = "1";
       positionLineTooltip(e);
     }
@@ -393,16 +484,23 @@ const { trendSeries, years } = Astro.props;
       lineTooltip.innerHTML =
         `<div class="tt-name">${s.name}</div>` +
         `<div class="tt-year">${point.year}</div>` +
-        `<div class="tt-amount">${fmtCompactMillions(point.total)}</div>`;
+        `<div class="tt-amount">${
+          lineMode === "share" ? fmtPercent(point.share) : fmtCompactMillions(point.total)
+        }</div>` +
+        `<div class="tt-sub">${
+          lineMode === "share"
+            ? fmtCompactMillions(point.total)
+            : `${fmtPercent(point.share)} of yearly budget`
+        }</div>`;
       lineTooltip.style.opacity = "1";
       positionLineTooltip(e);
     }
 
-    for (const s of series) {
+    for (const s of displaySeries) {
       const color = SECTOR_LINE_COLORS[s.name] || "#777";
       const points = s.points;
       const d = points
-        .map((p, index) => `${index === 0 ? "M" : "L"}${xFor(p.year)},${yFor(p.total)}`)
+        .map((p, index) => `${index === 0 ? "M" : "L"}${xFor(p.year)},${yFor(p.value)}`)
         .join(" ");
 
       const group = document.createElementNS(ns, "g");
@@ -416,7 +514,7 @@ const { trendSeries, years } = Astro.props;
 
       const last = points[points.length - 1];
       const endX = xFor(last.year);
-      const endY = yFor(last.total);
+      const endY = yFor(last.value);
 
       const endpoint = document.createElementNS(ns, "circle");
       endpoint.setAttribute("cx", String(endX));
@@ -491,6 +589,25 @@ const { trendSeries, years } = Astro.props;
   }
 
   renderSectorLineChart();
+
+  function setLineMode(mode) {
+    if (mode !== "share" && mode !== "amount") return;
+    lineMode = mode;
+    modeButtons.forEach((button) => {
+      const isActive = button.dataset.mode === mode;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-selected", isActive ? "true" : "false");
+    });
+    legendPinnedSectorName = null;
+    lineTooltip.style.opacity = "0";
+    renderSectorLineChart();
+  }
+
+  modeButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      setLineMode(button.dataset.mode || "share");
+    });
+  });
 
   let resizeTimer;
   window.addEventListener("resize", () => {
