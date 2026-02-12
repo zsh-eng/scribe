@@ -172,6 +172,7 @@ const { trendSeries, years } = Astro.props;
   const lineContainer = document.getElementById("sector-trend-chart");
   const lineLegend = document.getElementById("sector-trend-legend");
   const lineTooltip = document.getElementById("sector-trend-tooltip");
+  let legendPinnedSectorName = null;
 
   if (!lineContainer || !lineLegend || !lineTooltip) {
     throw new Error("Missing sector trend elements");
@@ -345,7 +346,47 @@ const { trendSeries, years } = Astro.props;
     }
 
     lineLegend.innerHTML = "";
-    lineLegend.onmouseleave = () => setActiveSector(null);
+    lineLegend.onmouseleave = () => {
+      legendPinnedSectorName = null;
+      setActiveSector(null);
+    };
+    const seriesByName = new Map(series.map((s) => [s.name, s]));
+
+    function getYearHintForEvent(e) {
+      const rect = svg.getBoundingClientRect();
+      const localX = e.clientX - rect.left;
+      return minYear + Math.max(0, Math.min(1, (localX - margin.left) / plotW)) * yearSpan;
+    }
+
+    function getPointForEvent(s, e) {
+      return nearestPoint(s.points, getYearHintForEvent(e));
+    }
+
+    function getNearestSeriesForEvent(e) {
+      const rect = svg.getBoundingClientRect();
+      const localY = e.clientY - rect.top;
+      let bestSeries = null;
+      let bestDist = Infinity;
+      for (const s of series) {
+        const point = getPointForEvent(s, e);
+        const dist = Math.abs(yFor(point.total) - localY);
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestSeries = s;
+        }
+      }
+      return bestSeries;
+    }
+
+    function showLineTooltipForSeries(s, e) {
+      const point = getPointForEvent(s, e);
+      lineTooltip.innerHTML =
+        `<div class="tt-name">${s.name}</div>` +
+        `<div class="tt-year">${point.year}</div>` +
+        `<div class="tt-amount">${fmtCompactMillions(point.total)}</div>`;
+      lineTooltip.style.opacity = "1";
+      positionLineTooltip(e);
+    }
 
     for (const s of series) {
       const color = SECTOR_LINE_COLORS[s.name] || "#777";
@@ -357,13 +398,6 @@ const { trendSeries, years } = Astro.props;
       const group = document.createElementNS(ns, "g");
       group.setAttribute("class", "line-series");
       group.dataset.sector = s.name;
-
-      const hitPath = document.createElementNS(ns, "path");
-      hitPath.setAttribute("d", d);
-      hitPath.setAttribute("fill", "none");
-      hitPath.setAttribute("stroke", "transparent");
-      hitPath.setAttribute("stroke-width", isMobile ? "36" : "28");
-      hitPath.style.pointerEvents = "stroke";
 
       const path = document.createElementNS(ns, "path");
       path.setAttribute("d", d);
@@ -389,29 +423,6 @@ const { trendSeries, years } = Astro.props;
       endLabel.setAttribute("fill", color);
       endLabel.textContent = `${s.name} ${fmtCompactMillions(last.total)}`;
 
-      function showLineTooltip(e) {
-        const rect = svg.getBoundingClientRect();
-        const localX = e.clientX - rect.left;
-        const approxYear = minYear + Math.max(0, Math.min(1, (localX - margin.left) / plotW)) * yearSpan;
-        const point = nearestPoint(points, approxYear);
-        lineTooltip.innerHTML =
-          `<div class="tt-name">${s.name}</div>` +
-          `<div class="tt-year">${point.year}</div>` +
-          `<div class="tt-amount">${fmtCompactMillions(point.total)}</div>`;
-        lineTooltip.style.opacity = "1";
-        positionLineTooltip(e);
-      }
-
-      hitPath.addEventListener("mouseenter", () => setActiveSector(s.name));
-      hitPath.addEventListener("mousemove", (e) => {
-        setActiveSector(s.name);
-        showLineTooltip(e);
-      });
-      hitPath.addEventListener("mouseleave", () => {
-        lineTooltip.style.opacity = "0";
-      });
-
-      group.appendChild(hitPath);
       group.appendChild(path);
       group.appendChild(endpoint);
       group.appendChild(endLabel);
@@ -421,14 +432,38 @@ const { trendSeries, years } = Astro.props;
       legendItem.className = "sector-line-legend-item";
       legendItem.dataset.sector = s.name;
       legendItem.innerHTML = `<span class="sector-line-legend-swatch" style="background:${color};"></span><span>${s.name}</span>`;
-      legendItem.addEventListener("mouseenter", () => setActiveSector(s.name));
+      legendItem.addEventListener("mouseenter", () => {
+        legendPinnedSectorName = s.name;
+        setActiveSector(s.name);
+      });
       lineLegend.appendChild(legendItem);
     }
+
+    const interactionLayer = document.createElementNS(ns, "rect");
+    interactionLayer.setAttribute("x", String(margin.left));
+    interactionLayer.setAttribute("y", String(margin.top));
+    interactionLayer.setAttribute("width", String(plotW));
+    interactionLayer.setAttribute("height", String(plotH));
+    interactionLayer.setAttribute("fill", "transparent");
+    interactionLayer.style.pointerEvents = "all";
+    interactionLayer.addEventListener("mousemove", (e) => {
+      const targetSeries =
+        (legendPinnedSectorName && seriesByName.get(legendPinnedSectorName)) ||
+        getNearestSeriesForEvent(e);
+      if (!targetSeries) return;
+      setActiveSector(targetSeries.name);
+      showLineTooltipForSeries(targetSeries, e);
+    });
+    interactionLayer.addEventListener("mouseleave", () => {
+      lineTooltip.style.opacity = "0";
+    });
+    svg.appendChild(interactionLayer);
 
     lineContainer.innerHTML = "";
     lineContainer.appendChild(svg);
 
     lineContainer.onmouseleave = () => {
+      legendPinnedSectorName = null;
       setActiveSector(null);
       lineTooltip.style.opacity = "0";
     };
