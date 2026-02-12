@@ -79,7 +79,8 @@ const { trendSeries, years } = Astro.props;
     font-family: "DM Sans", system-ui, sans-serif;
     font-size: 11px;
     transition: opacity 0.12s ease;
-    pointer-events: none;
+    pointer-events: auto;
+    cursor: pointer;
   }
 
   .line-series.is-dim .line-path,
@@ -388,6 +389,15 @@ const { trendSeries, years } = Astro.props;
       positionLineTooltip(e);
     }
 
+    function showLineTooltipForPoint(s, point, e) {
+      lineTooltip.innerHTML =
+        `<div class="tt-name">${s.name}</div>` +
+        `<div class="tt-year">${point.year}</div>` +
+        `<div class="tt-amount">${fmtCompactMillions(point.total)}</div>`;
+      lineTooltip.style.opacity = "1";
+      positionLineTooltip(e);
+    }
+
     for (const s of series) {
       const color = SECTOR_LINE_COLORS[s.name] || "#777";
       const points = s.points;
@@ -422,6 +432,17 @@ const { trendSeries, years } = Astro.props;
       endLabel.setAttribute("class", "line-end-label");
       endLabel.setAttribute("fill", color);
       endLabel.textContent = s.name;
+      endLabel.addEventListener("mouseenter", (e) => {
+        setActiveSector(s.name);
+        showLineTooltipForPoint(s, last, e);
+      });
+      endLabel.addEventListener("mousemove", (e) => {
+        setActiveSector(s.name);
+        showLineTooltipForPoint(s, last, e);
+      });
+      endLabel.addEventListener("mouseleave", () => {
+        lineTooltip.style.opacity = "0";
+      });
 
       group.appendChild(path);
       group.appendChild(endpoint);
