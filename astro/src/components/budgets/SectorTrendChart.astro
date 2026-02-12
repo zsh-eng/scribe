@@ -1,0 +1,440 @@
+---
+interface Props {
+  trendSeries: Array<{ name: string; points: Array<{ year: number; total: number }> }>;
+  years: number[];
+}
+
+const { trendSeries, years } = Astro.props;
+---
+
+<section class="mt-8">
+  <div class="mb-3">
+    <h2 class="font-masthead text-2xl text-ink tracking-tight leading-none">
+      Sector Trends
+    </h2>
+    <p class="font-sans text-sm text-ink-muted mt-1">
+      Total expenditure by sector over time.
+    </p>
+  </div>
+  <div id="sector-trend-chart" class="relative border border-border"></div>
+  <div id="sector-trend-legend" class="mt-3 flex flex-wrap gap-x-5 gap-y-2"></div>
+</section>
+
+<div
+  id="sector-trend-tooltip"
+  class="fixed pointer-events-none opacity-0 z-50 max-w-xs"
+  style="transition: opacity 0.1s ease;"
+></div>
+
+<div
+  id="sector-trend-data"
+  class="hidden"
+  data-json={JSON.stringify({ trendSeries, years })}
+></div>
+
+<style is:global>
+  #sector-trend-chart {
+    min-height: 320px;
+    background: var(--page-bg);
+    padding-top: 8px;
+    padding-bottom: 10px;
+  }
+
+  @media (max-width: 640px) {
+    #sector-trend-chart {
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+      margin-right: calc(50% - 50vw);
+      border-left: 0;
+      border-right: 0;
+    }
+  }
+
+  .sector-line-grid {
+    stroke: var(--border);
+    stroke-width: 1;
+  }
+
+  .sector-line-axis {
+    fill: var(--ink-muted);
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 11px;
+  }
+
+  .line-series .line-path {
+    fill: none;
+    stroke-width: 2.5;
+    transition:
+      opacity 0.12s ease,
+      stroke-width 0.12s ease;
+  }
+
+  .line-series .line-endpoint {
+    transition:
+      opacity 0.12s ease,
+      stroke-width 0.12s ease;
+  }
+
+  .line-series .line-end-label {
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 11px;
+    transition: opacity 0.12s ease;
+    pointer-events: none;
+  }
+
+  .line-series.is-dim .line-path,
+  .line-series.is-dim .line-endpoint,
+  .line-series.is-dim .line-end-label {
+    opacity: 0.2;
+  }
+
+  .line-series.is-active .line-path {
+    stroke-width: 3.5;
+  }
+
+  .line-series.is-active .line-endpoint {
+    stroke: var(--ink);
+    stroke-width: 1.2;
+  }
+
+  @media (max-width: 1024px) {
+    .line-end-label {
+      display: none;
+    }
+  }
+
+  .sector-line-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+    padding: 2px 0;
+    color: var(--ink-muted);
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .sector-line-legend-item.is-active {
+    color: var(--ink);
+  }
+
+  .sector-line-legend-item.is-dim {
+    opacity: 0.35;
+  }
+
+  .sector-line-legend-swatch {
+    width: 14px;
+    height: 2px;
+    display: inline-block;
+  }
+
+  #sector-trend-tooltip {
+    background: var(--ink);
+    color: var(--page-bg);
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    font-family: "Source Serif 4", Georgia, serif;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  #sector-trend-tooltip .tt-name {
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  #sector-trend-tooltip .tt-year {
+    color: #a09888;
+    margin-bottom: 2px;
+  }
+
+  #sector-trend-tooltip .tt-amount {
+    font-family: "Playfair Display", Georgia, serif;
+    font-size: 20px;
+    line-height: 1;
+  }
+</style>
+
+<script>
+  const raw = document.getElementById("sector-trend-data");
+  if (!raw) throw new Error("Missing sector trend data");
+
+  const { trendSeries, years } = JSON.parse(raw.dataset.json || "{}");
+  const lineContainer = document.getElementById("sector-trend-chart");
+  const lineLegend = document.getElementById("sector-trend-legend");
+  const lineTooltip = document.getElementById("sector-trend-tooltip");
+
+  if (!lineContainer || !lineLegend || !lineTooltip) {
+    throw new Error("Missing sector trend elements");
+  }
+
+  const SECTOR_LINE_COLORS = {
+    "Social Development": "#6c7b4f",
+    "Security and External Relations": "#6f829f",
+    "Economic Development": "#a08a58",
+    "Government Administration": "#8d7c68",
+  };
+
+  function fmtCompactMillions(millions) {
+    if (millions >= 1000) return "$" + (millions / 1000).toFixed(1) + "B";
+    return "$" + Math.round(millions) + "M";
+  }
+
+  function niceCeil(value) {
+    if (value <= 0) return 1;
+    const power = 10 ** Math.floor(Math.log10(value));
+    const n = value / power;
+    const step = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+    return step * power;
+  }
+
+  function renderSectorLineChart() {
+    if (!Array.isArray(trendSeries) || trendSeries.length === 0) return;
+
+    const width = lineContainer.clientWidth || 900;
+    const height = Math.max(320, Math.round(width * 0.5));
+    const isMobile = window.matchMedia("(max-width: 640px)").matches;
+    const isNarrow = window.matchMedia("(max-width: 1024px)").matches;
+    const margin = {
+      top: 30,
+      right: isNarrow ? 24 : 136,
+      bottom: 56,
+      left: isMobile ? 62 : 56,
+    };
+    const plotW = width - margin.left - margin.right;
+    const plotH = height - margin.top - margin.bottom;
+    if (plotW <= 0 || plotH <= 0) return;
+
+    const series = trendSeries
+      .map((s) => ({
+        name: s.name,
+        points: [...(s.points || [])].sort((a, b) => a.year - b.year),
+      }))
+      .filter((s) => s.points.length > 0);
+    if (series.length === 0) return;
+
+    const minYear = years[0];
+    const maxYear = years[years.length - 1];
+    const yearSpan = Math.max(1, maxYear - minYear);
+    const maxValue = Math.max(
+      ...series.flatMap((s) => s.points.map((p) => p.total)),
+      1,
+    );
+    const yMax = niceCeil(maxValue * 1.1);
+
+    const xFor = (year) => margin.left + ((year - minYear) / yearSpan) * plotW;
+    const yFor = (value) => margin.top + plotH - (value / yMax) * plotH;
+
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+    svg.setAttribute("width", String(width));
+    svg.setAttribute("height", String(height));
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", "Sector expenditure over time");
+    svg.style.display = "block";
+    svg.style.width = "100%";
+    svg.style.height = "auto";
+
+    const yTicks = 5;
+    for (let i = 0; i <= yTicks; i++) {
+      const v = (yMax * i) / yTicks;
+      const y = yFor(v);
+
+      const line = document.createElementNS(ns, "line");
+      line.setAttribute("x1", String(margin.left));
+      line.setAttribute("x2", String(margin.left + plotW));
+      line.setAttribute("y1", String(y));
+      line.setAttribute("y2", String(y));
+      line.setAttribute("class", "sector-line-grid");
+      svg.appendChild(line);
+
+      const label = document.createElementNS(ns, "text");
+      label.setAttribute("x", String(margin.left - 8));
+      label.setAttribute("y", String(y + 4));
+      label.setAttribute("text-anchor", "end");
+      label.setAttribute("class", "sector-line-axis");
+      label.textContent = fmtCompactMillions(v);
+      svg.appendChild(label);
+    }
+
+    const xLabelStep = Math.max(1, Math.ceil(years.length / (isMobile ? 5 : 8)));
+    const minTickGapPx = isMobile ? 52 : 40;
+    const selectedTickYears = [];
+    let lastTickX = -Infinity;
+
+    for (let index = 0; index < years.length; index++) {
+      const year = years[index];
+      const isCandidate = index % xLabelStep === 0 || index === years.length - 1;
+      if (!isCandidate) continue;
+      const x = xFor(year);
+      if (x - lastTickX < minTickGapPx && index !== years.length - 1) continue;
+      if (index === years.length - 1 && x - lastTickX < minTickGapPx) {
+        selectedTickYears.pop();
+      }
+      selectedTickYears.push(year);
+      lastTickX = x;
+    }
+
+    selectedTickYears.forEach((year) => {
+      const x = xFor(year);
+      const label = document.createElementNS(ns, "text");
+      label.setAttribute("x", String(x));
+      label.setAttribute("y", String(height - 12));
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("class", "sector-line-axis");
+      label.textContent = String(year);
+      svg.appendChild(label);
+    });
+
+    function nearestPoint(points, yearHint) {
+      let best = points[0];
+      let bestDist = Math.abs(best.year - yearHint);
+      for (const point of points) {
+        const dist = Math.abs(point.year - yearHint);
+        if (dist < bestDist) {
+          best = point;
+          bestDist = dist;
+        }
+      }
+      return best;
+    }
+
+    function positionLineTooltip(e) {
+      const pad = 12;
+      const edgePad = 8;
+      const rect = lineTooltip.getBoundingClientRect();
+      let x = e.clientX + pad;
+      let y = e.clientY + pad;
+
+      if (x + rect.width + edgePad > window.innerWidth) x = e.clientX - rect.width - pad;
+      if (y + rect.height + edgePad > window.innerHeight) y = e.clientY - rect.height - pad;
+
+      x = Math.max(edgePad, Math.min(x, window.innerWidth - rect.width - edgePad));
+      y = Math.max(edgePad, Math.min(y, window.innerHeight - rect.height - edgePad));
+
+      lineTooltip.style.left = x + "px";
+      lineTooltip.style.top = y + "px";
+    }
+
+    function setActiveSector(sectorName) {
+      svg.querySelectorAll(".line-series").forEach((group) => {
+        const isActive = sectorName !== null && group.dataset.sector === sectorName;
+        const isDim = sectorName !== null && group.dataset.sector !== sectorName;
+        group.classList.toggle("is-active", isActive);
+        group.classList.toggle("is-dim", isDim);
+        const endpoint = group.querySelector(".line-endpoint");
+        if (endpoint) endpoint.setAttribute("r", isActive ? "5" : "4");
+      });
+
+      lineLegend.querySelectorAll(".sector-line-legend-item").forEach((item) => {
+        const isActive = sectorName !== null && item.dataset.sector === sectorName;
+        const isDim = sectorName !== null && item.dataset.sector !== sectorName;
+        item.classList.toggle("is-active", isActive);
+        item.classList.toggle("is-dim", isDim);
+      });
+    }
+
+    lineLegend.innerHTML = "";
+
+    for (const s of series) {
+      const color = SECTOR_LINE_COLORS[s.name] || "#777";
+      const points = s.points;
+      const d = points
+        .map((p, index) => `${index === 0 ? "M" : "L"}${xFor(p.year)},${yFor(p.total)}`)
+        .join(" ");
+
+      const group = document.createElementNS(ns, "g");
+      group.setAttribute("class", "line-series");
+      group.dataset.sector = s.name;
+
+      const hitPath = document.createElementNS(ns, "path");
+      hitPath.setAttribute("d", d);
+      hitPath.setAttribute("fill", "none");
+      hitPath.setAttribute("stroke", "transparent");
+      hitPath.setAttribute("stroke-width", isMobile ? "36" : "28");
+      hitPath.style.pointerEvents = "stroke";
+
+      const path = document.createElementNS(ns, "path");
+      path.setAttribute("d", d);
+      path.setAttribute("class", "line-path");
+      path.setAttribute("stroke", color);
+
+      const last = points[points.length - 1];
+      const endX = xFor(last.year);
+      const endY = yFor(last.total);
+
+      const endpoint = document.createElementNS(ns, "circle");
+      endpoint.setAttribute("cx", String(endX));
+      endpoint.setAttribute("cy", String(endY));
+      endpoint.setAttribute("r", "4");
+      endpoint.setAttribute("fill", color);
+      endpoint.setAttribute("class", "line-endpoint");
+      endpoint.setAttribute("stroke", "none");
+
+      const endLabel = document.createElementNS(ns, "text");
+      endLabel.setAttribute("x", String(width - margin.right + 10));
+      endLabel.setAttribute("y", String(endY + 4));
+      endLabel.setAttribute("class", "line-end-label");
+      endLabel.setAttribute("fill", color);
+      endLabel.textContent = `${s.name} ${fmtCompactMillions(last.total)}`;
+
+      function showLineTooltip(e) {
+        const rect = svg.getBoundingClientRect();
+        const localX = e.clientX - rect.left;
+        const approxYear = minYear + Math.max(0, Math.min(1, (localX - margin.left) / plotW)) * yearSpan;
+        const point = nearestPoint(points, approxYear);
+        lineTooltip.innerHTML =
+          `<div class="tt-name">${s.name}</div>` +
+          `<div class="tt-year">${point.year}</div>` +
+          `<div class="tt-amount">${fmtCompactMillions(point.total)}</div>`;
+        lineTooltip.style.opacity = "1";
+        positionLineTooltip(e);
+      }
+
+      hitPath.addEventListener("mouseenter", () => setActiveSector(s.name));
+      hitPath.addEventListener("mousemove", (e) => {
+        setActiveSector(s.name);
+        showLineTooltip(e);
+      });
+      hitPath.addEventListener("mouseleave", () => {
+        lineTooltip.style.opacity = "0";
+      });
+
+      group.appendChild(hitPath);
+      group.appendChild(path);
+      group.appendChild(endpoint);
+      group.appendChild(endLabel);
+      svg.appendChild(group);
+
+      const legendItem = document.createElement("div");
+      legendItem.className = "sector-line-legend-item";
+      legendItem.dataset.sector = s.name;
+      legendItem.innerHTML = `<span class="sector-line-legend-swatch" style="background:${color};"></span><span>${s.name}</span>`;
+      legendItem.addEventListener("mouseenter", () => setActiveSector(s.name));
+      legendItem.addEventListener("mouseleave", () => setActiveSector(null));
+      lineLegend.appendChild(legendItem);
+    }
+
+    lineContainer.innerHTML = "";
+    lineContainer.appendChild(svg);
+
+    lineContainer.onmouseleave = () => {
+      setActiveSector(null);
+      lineTooltip.style.opacity = "0";
+    };
+  }
+
+  renderSectorLineChart();
+
+  let resizeTimer;
+  window.addEventListener("resize", () => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(() => {
+      renderSectorLineChart();
+    }, 140);
+  });
+</script>
