@@ -369,6 +369,20 @@ const rankedMinistryChangeRows = ministryChangeRows.filter(
 const topMinistryChange = rankedMinistryChangeRows[0];
 const majorMinistryMovers = rankedMinistryChangeRows.slice(0, 10);
 
+const sectorAccentColors: Record<string, string> = {
+  "Social Development": "#6c7b4f",
+  "Security and External Relations": "#6f829f",
+  "Economic Development": "#a08a58",
+  "Government Administration": "#8d7c68",
+};
+
+const topSectorAccent = topSectorChange
+  ? sectorAccentColors[topSectorChange.sector] || "#8d7c68"
+  : "#8d7c68";
+const topMinistryAccent = topMinistryChange
+  ? sectorAccentColors[topMinistryChange.sector] || "#8d7c68"
+  : "#8d7c68";
+
 const policySpotlights = [
   {
     pillar: "Businesses",
@@ -503,69 +517,6 @@ const policySpotlights = [
       How Singapore allocates its expenditure across sectors and ministries.
     </p>
   </header>
-
-  {
-    latestData && (
-      <section class="mb-10">
-        <div class="mb-3">
-          <h2 class="font-masthead text-2xl text-ink tracking-tight leading-none">
-            Budget {latestYear} At A Glance
-          </h2>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border border-border">
-          <article class="p-4 border-b sm:border-b border-border lg:border-b-0 lg:border-r">
-            <p class="font-sans text-[11px] uppercase tracking-wider text-ink-muted mb-2">
-              Total Budget ({latestYear})
-            </p>
-            <p class="font-masthead text-3xl text-ink leading-none">
-              {fmtAmount(latestData.total)}
-            </p>
-          </article>
-          <article class="p-4 border-b sm:border-b border-border lg:border-b-0 lg:border-r">
-            <p class="font-sans text-[11px] uppercase tracking-wider text-ink-muted mb-2">
-              Year-On-Year Change
-            </p>
-            <p class="font-masthead text-3xl text-ink leading-none">
-              {totalChangeAbs !== null
-                ? fmtSignedAmount(totalChangeAbs)
-                : "N/A"}
-            </p>
-            <p class="font-sans text-xs text-ink-muted mt-2">
-              {totalChangePct !== null
-                ? fmtSignedPct(totalChangePct)
-                : "No prior-year comparison"}
-            </p>
-          </article>
-          <article class="p-4 border-b border-border sm:border-b-0 lg:border-r">
-            <p class="font-sans text-[11px] uppercase tracking-wider text-ink-muted mb-2">
-              Largest Sector Shift
-            </p>
-            <p class="font-serif text-sm text-ink">
-              {topSectorChange?.sector || "N/A"}
-            </p>
-            <p class="font-masthead text-2xl text-ink leading-none mt-1">
-              {topSectorChange
-                ? fmtSignedAmount(topSectorChange.change)
-                : "N/A"}
-            </p>
-          </article>
-          <article class="p-4">
-            <p class="font-sans text-[11px] uppercase tracking-wider text-ink-muted mb-2">
-              Largest Ministry Shift
-            </p>
-            <p class="font-serif text-sm text-ink">
-              {topMinistryChange?.ministry || "N/A"}
-            </p>
-            <p class="font-masthead text-2xl text-ink leading-none mt-1">
-              {topMinistryChange
-                ? fmtSignedAmount(topMinistryChange.change)
-                : "N/A"}
-            </p>
-          </article>
-        </div>
-      </section>
-    )
-  }
 
   <BudgetTreemapGraph
     data={allTreemapData}
