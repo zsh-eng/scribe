@@ -182,7 +182,7 @@ for (const [year, entries] of yearMap) {
   treemap()
     .size([W, H])
     .tile(treemapSquarify)
-    .paddingTop((d: any) => (d.depth === 0 ? 0 : 24))
+    .paddingTop((d: any) => (d.depth === 0 ? 0 : 18))
     .paddingRight((d: any) => (d.depth === 0 ? 0 : 3))
     .paddingBottom((d: any) => (d.depth === 0 ? 0 : 3))
     .paddingLeft((d: any) => (d.depth === 0 ? 0 : 3))
