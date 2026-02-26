@@ -91,6 +91,8 @@ export default function PaginatedList({
   const pagefindResultsRef = useRef<PagefindResult[]>([]);
   // Cache of resolved pagefind result index -> meta.id
   const resolvedIdsRef = useRef<Map<number, string>>(new Map());
+  // Tracks fragment indices currently being resolved to avoid duplicate fetches
+  const resolvingIndicesRef = useRef<Set<number>>(new Set());
 
   const hasDateFilter = dateFrom !== "" || dateTo !== "";
   const isDateFilterMode = hasDateFilter && !isSearchMode;
@@ -169,9 +171,62 @@ export default function PaginatedList({
     }
   }, [dataUrl, allData]);
 
-  // Resolve pagefind fragments for a page window and return current page's ListItems.
-  // Fetches fragments for pageNum through pageNum + PREFETCH_PAGES in parallel,
-  // skipping any already-resolved indices. Returns items for pageNum only.
+  // Resolve a set of pagefind result indices and cache index -> id mappings.
+  const resolveFragmentIndices = useCallback(
+    async (indices: number[], seq: number): Promise<void> => {
+      const pfResults = pagefindResultsRef.current;
+      const pending: number[] = [];
+
+      for (const idx of indices) {
+        if (
+          idx >= 0 &&
+          idx < pfResults.length &&
+          !resolvedIdsRef.current.has(idx) &&
+          !resolvingIndicesRef.current.has(idx)
+        ) {
+          pending.push(idx);
+          resolvingIndicesRef.current.add(idx);
+        }
+      }
+
+      if (!pending.length) return;
+
+      try {
+        const resolved = await Promise.all(
+          pending.map(async (idx) => {
+            try {
+              const resultData = await pfResults[idx].data();
+              return { idx, id: resultData.meta?.id };
+            } catch {
+              return { idx, id: undefined };
+            }
+          }),
+        );
+
+        // Ignore stale async work from a previous search/query.
+        if (
+          seq !== searchSeqRef.current ||
+          pagefindResultsRef.current !== pfResults
+        ) {
+          return;
+        }
+
+        for (const { idx, id } of resolved) {
+          if (id) {
+            resolvedIdsRef.current.set(idx, id);
+          }
+        }
+      } finally {
+        for (const idx of pending) {
+          resolvingIndicesRef.current.delete(idx);
+        }
+      }
+    },
+    [],
+  );
+
+  // Resolve and return ListItems for the requested page.
+  // Prefetches additional pages in the background without blocking UI update.
   const resolveSearchPage = useCallback(
     async (
       pageNum: number,
@@ -185,40 +240,20 @@ export default function PaginatedList({
 
       // Determine the window of indices to resolve (current page + prefetch buffer)
       const startIdx = (pageNum - 1) * pageSize;
-      const endIdx = Math.min(
-        (pageNum + PREFETCH_PAGES) * pageSize,
-        pfResults.length,
-      );
+      const pageEndIdx = Math.min(pageNum * pageSize, pfResults.length);
 
-      // Find indices that haven't been resolved yet
-      const unresolvedIndices: number[] = [];
-      for (let i = startIdx; i < endIdx; i++) {
+      // Resolve current page first so we can render quickly.
+      const unresolvedCurrentPage: number[] = [];
+      for (let i = startIdx; i < pageEndIdx; i++) {
         if (!resolvedIdsRef.current.has(i)) {
-          unresolvedIndices.push(i);
+          unresolvedCurrentPage.push(i);
         }
       }
 
-      // Fetch unresolved fragments in parallel
-      if (unresolvedIndices.length > 0) {
-        const fragmentPromises = unresolvedIndices.map(async (idx) => {
-          const resultData = await pfResults[idx].data();
-          return { idx, id: resultData.meta?.id };
-        });
-        const resolved = await Promise.all(fragmentPromises);
-
-        // Check if search was superseded
-        if (seq !== searchSeqRef.current) return null;
-
-        // Cache resolved mappings
-        for (const { idx, id } of resolved) {
-          if (id) {
-            resolvedIdsRef.current.set(idx, id);
-          }
-        }
-      }
+      await resolveFragmentIndices(unresolvedCurrentPage, seq);
+      if (seq !== searchSeqRef.current) return null;
 
       // Build ListItems for the current page only
-      const pageEndIdx = Math.min(pageNum * pageSize, pfResults.length);
       const pageItems: ListItem[] = [];
       for (let i = startIdx; i < pageEndIdx; i++) {
         const id = resolvedIdsRef.current.get(i);
@@ -228,9 +263,26 @@ export default function PaginatedList({
         }
       }
 
+      // Prefetch subsequent pages in the background.
+      const prefetchEndIdx = Math.min(
+        (pageNum + PREFETCH_PAGES) * pageSize,
+        pfResults.length,
+      );
+      if (pageEndIdx < prefetchEndIdx) {
+        const prefetchIndices: number[] = [];
+        for (let i = pageEndIdx; i < prefetchEndIdx; i++) {
+          if (!resolvedIdsRef.current.has(i)) {
+            prefetchIndices.push(i);
+          }
+        }
+        if (prefetchIndices.length > 0) {
+          void resolveFragmentIndices(prefetchIndices, seq);
+        }
+      }
+
       return pageItems;
     },
-    [pageSize],
+    [pageSize, resolveFragmentIndices],
   );
 
   // Update URL parameters
@@ -303,6 +355,7 @@ export default function PaginatedList({
         setSearchHasDateFilter(false);
         pagefindResultsRef.current = [];
         resolvedIdsRef.current = new Map();
+        resolvingIndicesRef.current.clear();
         setPage(1);
         setItems(initialItems);
         // If date filter active, apply it
@@ -379,6 +432,7 @@ export default function PaginatedList({
 
         pagefindResultsRef.current = [];
         resolvedIdsRef.current = new Map();
+        resolvingIndicesRef.current.clear();
         setIsSearchMode(true);
         setSearchHasDateFilter(true);
         setSearchResults(matched);
@@ -393,6 +447,7 @@ export default function PaginatedList({
         // Store raw results and only resolve fragments for the first few pages.
         pagefindResultsRef.current = results.results;
         resolvedIdsRef.current = new Map();
+        resolvingIndicesRef.current.clear();
 
         setIsSearchMode(true);
         setSearchHasDateFilter(false);
@@ -602,6 +657,7 @@ export default function PaginatedList({
         setSearchHasDateFilter(false);
         pagefindResultsRef.current = [];
         resolvedIdsRef.current = new Map();
+        resolvingIndicesRef.current.clear();
         applyDateFilter(fromParam, toParam);
       } else {
         setQuery("");
@@ -611,6 +667,7 @@ export default function PaginatedList({
         setSearchHasDateFilter(false);
         pagefindResultsRef.current = [];
         resolvedIdsRef.current = new Map();
+        resolvingIndicesRef.current.clear();
         setFilteredResults([]);
         const pageNum = pageParam ? parseInt(pageParam, 10) : 1;
         const validPage =
