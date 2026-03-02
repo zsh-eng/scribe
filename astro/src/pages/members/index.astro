@@ -3,7 +3,6 @@ import Layout from "../../layouts/Layout.astro";
 import SectionLabel from "../../components/SectionLabel.astro";
 import MemberCard from "../../components/MemberCard.astro";
 import Avatar from "../../components/Avatar.astro";
-import SearchFilter from "../../components/SearchFilter.astro";
 import {
   getMembersForParliament,
   getMemberCount,
@@ -25,8 +24,9 @@ const parliamentData = parliaments.map((p) => {
   return { parliament: p, members };
 });
 
-// Former members not in any parliament's attendance
-const formerMembers = allMembers.filter((m) => !allMemberIds.has(m.id));
+// Deduped flat list for search results (one card per member, overall stats)
+// Use allMembers which has overall stats
+const searchMembers = allMembers;
 
 const STAGGER_LIMIT = 12;
 const totalCount = getMemberCount();
@@ -86,12 +86,47 @@ const totalCount = getMemberCount();
 
   <div class="flex flex-col sm:flex-row gap-4 mb-6">
     <div class="flex-1">
-      <SearchFilter
-        containerId="members-list"
-        itemSelector=".member-item"
-        contentType="member"
-        placeholder="Search MPs (past and present) by name, constituency, or designation..."
-      />
+      <div class="relative">
+        <svg
+          class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 pointer-events-none"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="1.5"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+        <input
+          type="text"
+          id="member-search-input"
+          class="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pl-10 pr-10 font-ui text-sm text-ink placeholder:text-ink/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors"
+          placeholder="Search MPs (past and present) by name, constituency, or designation..."
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button
+          type="button"
+          id="member-search-clear"
+          class="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink/40 hover:text-ink transition-colors hidden"
+          aria-label="Clear search"
+        >
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <p
+        id="member-search-status"
+        class="mt-2 font-sans text-sm text-ink-muted hidden"
+      >
+      </p>
     </div>
     <div class="flex items-start gap-3">
       <select
@@ -105,7 +140,8 @@ const totalCount = getMemberCount();
     </div>
   </div>
 
-  <div id="members-list">
+  <!-- Parliament dropdown sections (shown when not searching) -->
+  <div id="parliament-sections">
     {
       parliamentData.map(({ parliament, members }, pIdx) => {
         const isCurrent = parliament === latestParliament;
@@ -173,101 +209,179 @@ const totalCount = getMemberCount();
         );
       })
     }
+  </div>
 
-    {/* Former members: hidden by default, shown only when matching search */}
-    {
-      formerMembers.map((member) => (
-        <div
-          class="member-item member-former h-full"
-          style="display: none;"
-          data-name={member.name}
-          data-involvements={member.sectionCount || 0}
-          data-attendance={0}
-          data-parliament="former"
-        >
-          <a
-            href={`/members/${slugify(member.name, member.id)}`}
-            class="group flex h-full gap-4 items-start p-4 bg-surface border border-border rounded-md transition-colors hover:bg-warm hover:border-ink-muted cursor-pointer opacity-75"
-            data-search-id={member.id}
-          >
-            <Avatar name={member.name} />
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-0.5">
-                <span class="font-display text-base text-ink font-medium group-hover:text-accent transition-colors">
-                  {member.name}
-                </span>
-                <span class="font-sans text-[10px] uppercase tracking-wider text-ink-muted bg-surface-alt px-1.5 py-0.5 rounded">
-                  Former
-                </span>
-              </div>
-              <div class="font-sans text-xs text-accent font-medium">
-                {member.sectionCount !== undefined &&
-                  member.sectionCount > 0 && (
-                    <span>{member.sectionCount} involvements</span>
-                  )}
-              </div>
+  <!-- Search results (hidden by default, shown when searching) -->
+  <div id="search-results" class="hidden">
+    <div id="search-results-grid" class="grid gap-4 sm:grid-cols-2">
+      {
+        searchMembers.map((member) => {
+          const attendancePercent =
+            member.attendanceTotal && member.attendanceTotal > 0
+              ? Math.round(
+                  (member.attendancePresent! / member.attendanceTotal) * 100,
+                )
+              : 0;
+          return (
+            <div
+              class="search-member-item h-full"
+              style="display: none;"
+              data-name={member.name}
+              data-member-id={member.id}
+              data-involvements={member.sectionCount || 0}
+              data-attendance={attendancePercent}
+            >
+              <MemberCard member={member} />
             </div>
-          </a>
-        </div>
-      ))
-    }
+          );
+        })
+      }
+    </div>
   </div>
 
   <script>
     function initMemberPage() {
+      const input = document.getElementById(
+        "member-search-input",
+      ) as HTMLInputElement | null;
+      const clearBtn = document.getElementById(
+        "member-search-clear",
+      ) as HTMLButtonElement | null;
+      const status = document.getElementById(
+        "member-search-status",
+      ) as HTMLElement | null;
       const select = document.getElementById(
         "member-sort",
       ) as HTMLSelectElement | null;
-      const container = document.getElementById("members-list");
+      const parliamentSections = document.getElementById("parliament-sections");
+      const searchResults = document.getElementById("search-results");
+      const searchGrid = document.getElementById("search-results-grid");
 
       if (
-        select &&
-        container &&
-        !select.hasAttribute("data-sort-initialized")
-      ) {
+        !input ||
+        !clearBtn ||
+        !status ||
+        !parliamentSections ||
+        !searchResults ||
+        !searchGrid
+      )
+        return;
+      if (input.hasAttribute("data-search-initialized")) return;
+      input.setAttribute("data-search-initialized", "true");
+
+      const searchItems = Array.from(
+        searchGrid.querySelectorAll(".search-member-item"),
+      ) as HTMLElement[];
+
+      // Sort within parliament grids
+      if (select && !select.hasAttribute("data-sort-initialized")) {
         select.setAttribute("data-sort-initialized", "true");
 
         select.addEventListener("change", () => {
           const [key, dir] = select.value.split("-");
-          // Sort within each parliament grid separately
-          const grids = container.querySelectorAll(
+
+          // Sort parliament grids
+          const grids = parliamentSections.querySelectorAll(
             ".parliament-grid",
           ) as NodeListOf<HTMLElement>;
           grids.forEach((grid) => {
             const items = Array.from(
               grid.querySelectorAll(".member-item"),
             ) as HTMLElement[];
-
-            items.sort((a, b) => {
-              if (key === "name") {
-                const aVal = (a.dataset.name || "").toLowerCase();
-                const bVal = (b.dataset.name || "").toLowerCase();
-                return dir === "asc"
-                  ? aVal.localeCompare(bVal)
-                  : bVal.localeCompare(aVal);
-              }
-              const aVal = parseInt(a.dataset[key] || "0", 10);
-              const bVal = parseInt(b.dataset[key] || "0", 10);
-              return dir === "asc" ? aVal - bVal : bVal - aVal;
-            });
-
+            sortItems(items, key, dir);
             const fragment = document.createDocumentFragment();
             items.forEach((item) => fragment.appendChild(item));
             grid.appendChild(fragment);
           });
+
+          // Also sort search results if visible
+          if (!searchResults.classList.contains("hidden")) {
+            const visibleItems = searchItems.filter(
+              (i) => i.style.display !== "none",
+            );
+            sortItems(visibleItems, key, dir);
+            const fragment = document.createDocumentFragment();
+            visibleItems.forEach((i) => fragment.appendChild(i));
+            // Append hidden ones after
+            searchItems
+              .filter((i) => i.style.display === "none")
+              .forEach((i) => fragment.appendChild(i));
+            searchGrid.appendChild(fragment);
+          }
         });
       }
 
-      // Re-hide former members when search is cleared
-      if (container && !container.hasAttribute("data-former-initialized")) {
-        container.setAttribute("data-former-initialized", "true");
+      function sortItems(items: HTMLElement[], key: string, dir: string) {
+        items.sort((a, b) => {
+          if (key === "name") {
+            const aVal = (a.dataset.name || "").toLowerCase();
+            const bVal = (b.dataset.name || "").toLowerCase();
+            return dir === "asc"
+              ? aVal.localeCompare(bVal)
+              : bVal.localeCompare(aVal);
+          }
+          const aVal = parseInt(a.dataset[key] || "0", 10);
+          const bVal = parseInt(b.dataset[key] || "0", 10);
+          return dir === "asc" ? aVal - bVal : bVal - aVal;
+        });
+      }
 
-        container.addEventListener("search-cleared", () => {
-          container.querySelectorAll(".member-former").forEach((el) => {
-            (el as HTMLElement).style.display = "none";
+      let debounceTimer: ReturnType<typeof setTimeout>;
+
+      function performSearch(query: string) {
+        const lowerQuery = query.toLowerCase().trim();
+
+        if (!lowerQuery) {
+          // Clear search: show parliament sections, hide search results
+          parliamentSections.style.display = "";
+          searchResults.classList.add("hidden");
+          searchItems.forEach((item) => {
+            item.style.display = "none";
           });
+          status.classList.add("hidden");
+          clearBtn.classList.add("hidden");
+          return;
+        }
+
+        clearBtn.classList.remove("hidden");
+
+        // Hide parliament sections, show search results
+        parliamentSections.style.display = "none";
+        searchResults.classList.remove("hidden");
+
+        // Filter search items by text match
+        let matchCount = 0;
+        searchItems.forEach((item) => {
+          const text = item.textContent?.toLowerCase() || "";
+          if (text.includes(lowerQuery)) {
+            item.style.display = "";
+            matchCount++;
+          } else {
+            item.style.display = "none";
+          }
         });
+
+        status.textContent = `Found ${matchCount} result${matchCount !== 1 ? "s" : ""}`;
+        status.classList.remove("hidden");
       }
+
+      input.addEventListener("input", () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => performSearch(input.value), 150);
+      });
+
+      clearBtn.addEventListener("click", () => {
+        input.value = "";
+        performSearch("");
+        input.focus();
+      });
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && input.value) {
+          input.value = "";
+          performSearch("");
+        }
+      });
     }
 
     initMemberPage();
