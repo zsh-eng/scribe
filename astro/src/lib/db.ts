@@ -143,10 +143,11 @@ export function getSittingSections(sittingId: string): Section[] {
       sec.source_url as sourceUrl,
       sec.summary,
       m.name as ministry,
-      sec.ministry_id as ministryId,
+      COALESCE(b.ministry_id, sec.ministry_id) as ministryId,
       sec.bill_id as billId
     FROM sections sec
-    LEFT JOIN ministries m ON sec.ministry_id = m.id
+    LEFT JOIN bills b ON sec.bill_id = b.id
+    LEFT JOIN ministries m ON COALESCE(b.ministry_id, sec.ministry_id) = m.id
     WHERE sec.sitting_id = ?
     ORDER BY sec.section_order ASC
   `;
@@ -216,12 +217,12 @@ export function getSittingBills(sittingId: string): { billId: string; billTitle:
       b.title as billTitle,
       sec.section_title as sectionTitle,
       m.name as ministry,
-      sec.ministry_id as ministryId,
+      COALESCE(b.ministry_id, sec.ministry_id) as ministryId,
       sec.section_type as sectionType,
       sec.section_order as sectionOrder
     FROM sections sec
-    LEFT JOIN ministries m ON sec.ministry_id = m.id
     LEFT JOIN bills b ON sec.bill_id = b.id
+    LEFT JOIN ministries m ON COALESCE(b.ministry_id, sec.ministry_id) = m.id
     WHERE sec.sitting_id = ? AND sec.bill_id IS NOT NULL
     ORDER BY sec.section_order ASC
   `;
@@ -633,10 +634,11 @@ export function getSection(id: string): Section | undefined {
       sec.source_url as sourceUrl,
       sec.summary,
       m.name as ministry,
-      sec.ministry_id as ministryId
+      COALESCE(b.ministry_id, sec.ministry_id) as ministryId
     FROM sections sec
     JOIN sittings s ON sec.sitting_id = s.id
-    LEFT JOIN ministries m ON sec.ministry_id = m.id
+    LEFT JOIN bills b ON sec.bill_id = b.id
+    LEFT JOIN ministries m ON COALESCE(b.ministry_id, sec.ministry_id) = m.id
     WHERE sec.id = ?
   `;
   const section = db.prepare(sql).get(id) as Section | undefined;
@@ -675,13 +677,13 @@ export function getMemberSections(memberId: string): Section[] {
       sec.source_url as sourceUrl,
       sec.summary,
       m.name as ministry,
-      sec.ministry_id as ministryId,
+      COALESCE(b.ministry_id, sec.ministry_id) as ministryId,
       sec.bill_id as billId,
       b.title as billTitle
     FROM sections sec
     JOIN sittings s ON sec.sitting_id = s.id
-    LEFT JOIN ministries m ON sec.ministry_id = m.id
     LEFT JOIN bills b ON sec.bill_id = b.id
+    LEFT JOIN ministries m ON COALESCE(b.ministry_id, sec.ministry_id) = m.id
     JOIN section_speakers ss ON sec.id = ss.section_id
     WHERE ss.member_id = ?
     ORDER BY s.date DESC, sec.section_order ASC
@@ -909,12 +911,13 @@ export function getMinistrySections(ministryId: string): Section[] {
       sec.source_url as sourceUrl,
       sec.summary,
       m.name as ministry,
-      sec.ministry_id as ministryId,
+      COALESCE(b.ministry_id, sec.ministry_id) as ministryId,
       sec.bill_id as billId
     FROM sections sec
     JOIN sittings s ON sec.sitting_id = s.id
-    LEFT JOIN ministries m ON sec.ministry_id = m.id
-    WHERE sec.ministry_id = ?
+    LEFT JOIN bills b ON sec.bill_id = b.id
+    LEFT JOIN ministries m ON COALESCE(b.ministry_id, sec.ministry_id) = m.id
+    WHERE COALESCE(b.ministry_id, sec.ministry_id) = ?
     ORDER BY s.date DESC, sec.section_order ASC
   `;
   const sections = db.prepare(sql).all(ministryId) as Section[];
