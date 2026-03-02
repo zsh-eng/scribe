@@ -263,11 +263,23 @@ def ingest_sitting(date_str: str) -> str:
 
     logger.info(f"   Saved attendance for {attendance_count} members")
 
-    # Process sections
+    # Process sections — ensure BI (first readings) are processed before BP (second readings)
+    # so that bills exist before second reading sections try to find them (same-day case)
+    def section_sort_key(item):
+        idx, section = item
+        st = section.get("section_type", "")
+        if st == "BI":
+            return (0, idx)  # BI first
+        elif st == "BP":
+            return (2, idx)  # BP last
+        return (1, idx)      # everything else in between
+
+    sorted_sections = sorted(enumerate(sections), key=section_sort_key)
+
     logger.info(f"   Processing {len(sections)} sections...")
     section_ids = []
 
-    for idx, section in enumerate(sections):
+    for idx, section in sorted_sections:
         section_id = process_section(sitting_id, idx, section, metadata.get("date"))
         section_ids.append(section_id)
 

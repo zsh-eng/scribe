@@ -283,8 +283,8 @@ class ParliamentSitting:
             source_url = f"https://sprs.parl.gov.sg/search/sprs3topic?reportid={section_id}" if section_id else None
             
             
-            # MERGING LOGIC: Check if we already have a section with this title
-            existing_index = next((i for i, s in enumerate(self.sections) if s['title'] == title), None)
+            # MERGING LOGIC: Check if we already have a section with this title AND same type
+            existing_index = next((i for i, s in enumerate(self.sections) if s['title'] == title and s['section_type'] == section_type), None)
             
             if existing_index is not None:
                 # Merge into existing section
