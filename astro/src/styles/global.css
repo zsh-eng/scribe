@@ -198,6 +198,11 @@
     .text-balance {
         text-wrap: balance;
     }
+
+    /* Rotate chevron arrow when details is open */
+    details[open] > summary .details-arrow {
+        transform: rotate(90deg);
+    }
 }
 
 /* ─── Newspaper Front Page Styles ─── */

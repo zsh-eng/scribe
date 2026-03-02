@@ -1142,6 +1142,62 @@ export function getMembersWithInfo(limit?: number, offset?: number): Member[] {
   return db.prepare(sql).all(latestParl, latestParl, latestParl, latestParl) as Member[];
 }
 
+// Get all parliament numbers in descending order
+export function getParliaments(): number[] {
+  const rows = db.prepare('SELECT DISTINCT parliament FROM sittings ORDER BY parliament DESC').all() as { parliament: number }[];
+  return rows.map(r => r.parliament);
+}
+
+// Get members for a specific parliament with stats scoped to that parliament
+export function getMembersForParliament(parliament: number): Member[] {
+  const sql = `
+    SELECT
+      m.id,
+      m.name,
+      ms.summary,
+      (
+        SELECT COUNT(DISTINCT ss2.section_id) FROM section_speakers ss2
+        JOIN sections sec ON ss2.section_id = sec.id
+        JOIN sittings sit ON sec.sitting_id = sit.id
+        WHERE ss2.member_id = m.id AND sit.parliament = ?
+      ) as sectionCount,
+      (
+        SELECT COUNT(*) FROM sitting_attendance sa2
+        JOIN sittings s2 ON sa2.sitting_id = s2.id
+        WHERE sa2.member_id = m.id AND s2.parliament = ?
+      ) as attendanceTotal,
+      (
+        SELECT COUNT(*) FROM sitting_attendance sa3
+        JOIN sittings s3 ON sa3.sitting_id = s3.id
+        WHERE sa3.member_id = m.id AND sa3.present = 1 AND s3.parliament = ?
+      ) as attendancePresent,
+      (
+        SELECT sa.constituency FROM sitting_attendance sa
+        JOIN sittings s ON sa.sitting_id = s.id
+        WHERE sa.member_id = m.id AND s.parliament = ?
+        ORDER BY s.date DESC
+        LIMIT 1
+      ) as constituency,
+      (
+        SELECT sa.designation FROM sitting_attendance sa
+        JOIN sittings s ON sa.sitting_id = s.id
+        WHERE sa.member_id = m.id AND s.parliament = ?
+        ORDER BY s.date DESC
+        LIMIT 1
+      ) as designation
+    FROM members m
+    LEFT JOIN member_summaries ms ON m.id = ms.member_id
+    WHERE m.id IN (
+      SELECT DISTINCT sa.member_id FROM sitting_attendance sa
+      JOIN sittings s ON sa.sitting_id = s.id
+      WHERE s.parliament = ?
+    )
+    GROUP BY m.id
+    ORDER BY m.name ASC
+  `;
+  return db.prepare(sql).all(parliament, parliament, parliament, parliament, parliament, parliament) as Member[];
+}
+
 // Get all sections (for static path generation)
 export function getAllSections(): { id: string; sectionTitle: string }[] {
   const sql = `SELECT id, section_title as sectionTitle FROM sections`;

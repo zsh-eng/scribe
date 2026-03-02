@@ -5,16 +5,29 @@ import MemberCard from "../../components/MemberCard.astro";
 import Avatar from "../../components/Avatar.astro";
 import SearchFilter from "../../components/SearchFilter.astro";
 import {
-  getMembersWithInfo,
+  getMembersForParliament,
   getMemberCount,
   getAllMembersWithInfo,
+  getParliaments,
+  getLatestParliament,
 } from "../../lib/db";
 import { slugify } from "../../lib/slugify";
 
-const currentMembers = getMembersWithInfo();
+const parliaments = getParliaments(); // descending order (e.g. [15, 14, 13])
+const latestParliament = getLatestParliament();
 const allMembers = getAllMembersWithInfo();
-const currentMemberIds = new Set(currentMembers.map((m) => m.id));
-const formerMembers = allMembers.filter((m) => !currentMemberIds.has(m.id));
+const allMemberIds = new Set<string>();
+
+// Build per-parliament member lists
+const parliamentData = parliaments.map((p) => {
+  const members = getMembersForParliament(p);
+  members.forEach((m) => allMemberIds.add(m.id));
+  return { parliament: p, members };
+});
+
+// Former members not in any parliament's attendance
+const formerMembers = allMembers.filter((m) => !allMemberIds.has(m.id));
+
 const STAGGER_LIMIT = 12;
 const totalCount = getMemberCount();
 ---
@@ -92,46 +105,73 @@ const totalCount = getMemberCount();
     </div>
   </div>
 
-  <h1 class="font-display text-lg text-ink mb-2 flex items-center gap-2">
-    Current MPs
-    <span
-      class="font-sans text-xs font-normal text-ink-muted bg-surface-alt px-2 py-0.5 rounded-full"
-    >
-      {currentMembers.length}
-    </span>
-  </h1>
-
-  <div id="members-list" class="grid gap-4 sm:grid-cols-2">
+  <div id="members-list">
     {
-      currentMembers.length === 0 ? (
-        <p class="col-span-full py-12 text-center font-body text-ink-muted">
-          No members found
-        </p>
-      ) : (
-        currentMembers.map((member, i) => {
-          const isStaggered = i < STAGGER_LIMIT;
-          const attendancePercent =
-            member.attendanceTotal && member.attendanceTotal > 0
-              ? Math.round(
-                  (member.attendancePresent! / member.attendanceTotal) * 100,
-                )
-              : 0;
-          return (
+      parliamentData.map(({ parliament, members }, pIdx) => {
+        const isCurrent = parliament === latestParliament;
+        const parlLabel = isCurrent
+          ? `Current (${parliament}th Parliament)`
+          : `${parliament}th Parliament`;
+        return (
+          <details
+            class="mb-6 parliament-group"
+            open={isCurrent}
+            data-parliament={parliament}
+          >
+            <summary class="cursor-pointer font-display text-lg text-ink mb-2 flex items-center gap-2 select-none hover:text-accent transition-colors list-none [&::-webkit-details-marker]:hidden">
+              <svg
+                class="w-4 h-4 text-ink-muted transition-transform duration-200 details-arrow shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+              {parlLabel}
+              <span class="font-sans text-xs font-normal text-ink-muted bg-surface-alt px-2 py-0.5 rounded-full">
+                {members.length}
+              </span>
+            </summary>
+
             <div
-              class={`member-item h-full${isStaggered ? " animate-fade-up" : ""}`}
-              style={
-                isStaggered ? `animation-delay: ${0.1 + i * 0.03}s` : undefined
-              }
-              data-name={member.name}
-              data-involvements={member.sectionCount || 0}
-              data-attendance={attendancePercent}
-              data-parliament="current"
+              class="grid gap-4 sm:grid-cols-2 mt-3 parliament-grid"
+              data-parliament={parliament}
             >
-              <MemberCard member={member} />
+              {members.map((member, i) => {
+                const isStaggered = isCurrent && i < STAGGER_LIMIT;
+                const attendancePercent =
+                  member.attendanceTotal && member.attendanceTotal > 0
+                    ? Math.round(
+                        (member.attendancePresent! / member.attendanceTotal) *
+                          100,
+                      )
+                    : 0;
+                return (
+                  <div
+                    class={`member-item h-full${isStaggered ? " animate-fade-up" : ""}`}
+                    style={
+                      isStaggered
+                        ? `animation-delay: ${0.1 + i * 0.03}s`
+                        : undefined
+                    }
+                    data-name={member.name}
+                    data-involvements={member.sectionCount || 0}
+                    data-attendance={attendancePercent}
+                    data-parliament={parliament}
+                  >
+                    <MemberCard member={member} />
+                  </div>
+                );
+              })}
             </div>
-          );
-        })
-      )
+          </details>
+        );
+      })
     }
 
     {/* Former members: hidden by default, shown only when matching search */}
@@ -189,35 +229,32 @@ const totalCount = getMemberCount();
 
         select.addEventListener("change", () => {
           const [key, dir] = select.value.split("-");
-          // Only sort visible current parliament items
-          const items = Array.from(
-            container.querySelectorAll(
-              '.member-item[data-parliament="current"]',
-            ),
-          ) as HTMLElement[];
+          // Sort within each parliament grid separately
+          const grids = container.querySelectorAll(
+            ".parliament-grid",
+          ) as NodeListOf<HTMLElement>;
+          grids.forEach((grid) => {
+            const items = Array.from(
+              grid.querySelectorAll(".member-item"),
+            ) as HTMLElement[];
 
-          items.sort((a, b) => {
-            if (key === "name") {
-              const aVal = (a.dataset.name || "").toLowerCase();
-              const bVal = (b.dataset.name || "").toLowerCase();
-              return dir === "asc"
-                ? aVal.localeCompare(bVal)
-                : bVal.localeCompare(aVal);
-            }
-            const aVal = parseInt(a.dataset[key] || "0", 10);
-            const bVal = parseInt(b.dataset[key] || "0", 10);
-            return dir === "asc" ? aVal - bVal : bVal - aVal;
+            items.sort((a, b) => {
+              if (key === "name") {
+                const aVal = (a.dataset.name || "").toLowerCase();
+                const bVal = (b.dataset.name || "").toLowerCase();
+                return dir === "asc"
+                  ? aVal.localeCompare(bVal)
+                  : bVal.localeCompare(aVal);
+              }
+              const aVal = parseInt(a.dataset[key] || "0", 10);
+              const bVal = parseInt(b.dataset[key] || "0", 10);
+              return dir === "asc" ? aVal - bVal : bVal - aVal;
+            });
+
+            const fragment = document.createDocumentFragment();
+            items.forEach((item) => fragment.appendChild(item));
+            grid.appendChild(fragment);
           });
-
-          const fragment = document.createDocumentFragment();
-          items.forEach((item) => fragment.appendChild(item));
-          // Insert before the first former member (or at end)
-          const firstFormer = container.querySelector(".member-former");
-          if (firstFormer) {
-            container.insertBefore(fragment, firstFormer);
-          } else {
-            container.appendChild(fragment);
-          }
         });
       }
 
