@@ -830,7 +830,8 @@ export function getMemberCurrentParliamentStats(memberId: string): CurrentParlia
 export interface ParliamentStats {
   parliament: number;
   involvements: number;
-  questions: number;
+  oralQuestions: number;
+  writtenQuestions: number;
   motions: number;
   bills: number;
   attendancePresent: number;
@@ -856,13 +857,22 @@ export function getMemberParliamentStats(memberId: string): ParliamentStats[] {
       WHERE ss.member_id = ? AND sit.parliament = ?
     `).get(memberId, parliament) as { count: number }).count;
 
-    const questions = (db.prepare(`
+    const oralQuestions = (db.prepare(`
       SELECT COUNT(DISTINCT ss.section_id) as count
       FROM section_speakers ss
       JOIN sections sec ON ss.section_id = sec.id
       JOIN sittings sit ON sec.sitting_id = sit.id
       WHERE ss.member_id = ? AND sit.parliament = ?
-        AND sec.section_type IN ('OA', 'WA', 'WANA')
+        AND sec.section_type = 'OA'
+    `).get(memberId, parliament) as { count: number }).count;
+
+    const writtenQuestions = (db.prepare(`
+      SELECT COUNT(DISTINCT ss.section_id) as count
+      FROM section_speakers ss
+      JOIN sections sec ON ss.section_id = sec.id
+      JOIN sittings sit ON sec.sitting_id = sit.id
+      WHERE ss.member_id = ? AND sit.parliament = ?
+        AND sec.section_type IN ('WA', 'WANA')
     `).get(memberId, parliament) as { count: number }).count;
 
     const motions = (db.prepare(`
@@ -895,7 +905,7 @@ export function getMemberParliamentStats(memberId: string): ParliamentStats[] {
       WHERE sa.member_id = ? AND s.parliament = ? AND sa.present = 1
     `).get(memberId, parliament) as { count: number }).count;
 
-    return { parliament, involvements, questions, motions, bills, attendancePresent, attendanceTotal };
+    return { parliament, involvements, oralQuestions, writtenQuestions, motions, bills, attendancePresent, attendanceTotal };
   });
 }
 
@@ -904,7 +914,8 @@ export interface MemberMinistryStats {
   ministryId: string;
   ministryName: string;
   total: number;
-  questions: number;
+  oralQuestions: number;
+  writtenQuestions: number;
   motions: number;
   bills: number;
 }
@@ -915,7 +926,8 @@ export function getMemberMinistryStats(memberId: string): MemberMinistryStats[] 
       m.id as ministryId,
       m.name as ministryName,
       COUNT(DISTINCT sec.id) as total,
-      COUNT(DISTINCT CASE WHEN sec.section_type IN ('OA', 'WA', 'WANA') THEN sec.id END) as questions,
+      COUNT(DISTINCT CASE WHEN sec.section_type = 'OA' THEN sec.id END) as oralQuestions,
+      COUNT(DISTINCT CASE WHEN sec.section_type IN ('WA', 'WANA') THEN sec.id END) as writtenQuestions,
       COUNT(DISTINCT CASE WHEN sec.category IN ('motion', 'adjournment_motion', 'statement') THEN sec.id END) as motions,
       COUNT(DISTINCT CASE WHEN sec.section_type IN ('BI', 'BP') THEN sec.id END) as bills
     FROM ministries m
@@ -1068,7 +1080,8 @@ export function getMinistrySections(ministryId: string): Section[] {
 export interface MinistryParliamentStats {
   parliament: number;
   involvements: number;
-  questions: number;
+  oralQuestions: number;
+  writtenQuestions: number;
   motions: number;
   bills: number;
 }
@@ -1078,7 +1091,8 @@ export function getMinistryParliamentStats(ministryId: string): MinistryParliame
     SELECT
       sit.parliament,
       COUNT(DISTINCT sec.id) as involvements,
-      COUNT(DISTINCT CASE WHEN sec.section_type IN ('OA', 'WA', 'WANA') THEN sec.id END) as questions,
+      COUNT(DISTINCT CASE WHEN sec.section_type = 'OA' THEN sec.id END) as oralQuestions,
+      COUNT(DISTINCT CASE WHEN sec.section_type IN ('WA', 'WANA') THEN sec.id END) as writtenQuestions,
       COUNT(DISTINCT CASE WHEN sec.category IN ('motion', 'adjournment_motion', 'statement') THEN sec.id END) as motions,
       COUNT(DISTINCT CASE WHEN sec.section_type IN ('BI', 'BP') THEN sec.id END) as bills
     FROM sections sec

@@ -52,9 +52,15 @@ const clarifications = sections.filter((s) => s.category === "clarification");
 const bills = sections.filter(
   (s) => s.sectionType === "BI" || s.sectionType === "BP",
 );
-const questions = sections.filter(
+const oralQuestions = sections.filter(
   (s) =>
-    ["OA", "WA", "WANA"].includes(s.sectionType) &&
+    s.sectionType === "OA" &&
+    !motions.includes(s) &&
+    !clarifications.includes(s),
+);
+const writtenQuestions = sections.filter(
+  (s) =>
+    ["WA", "WANA"].includes(s.sectionType) &&
     !motions.includes(s) &&
     !clarifications.includes(s),
 );
@@ -121,68 +127,119 @@ const attendancePercent =
       <!-- Parliament stats table -->
       <div class="border border-border rounded-lg overflow-hidden mb-8">
         <!-- Column headers -->
-        <div class="grid grid-cols-6 gap-0 bg-surface-alt border-b border-border">
+        <div
+          class="grid grid-cols-7 gap-0 bg-surface-alt border-b border-border"
+        >
           <div class="px-4 py-2.5"></div>
-          <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-            Total <br> Involvements
+          <div
+            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
+          >
+            Total
           </div>
-          <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-            Questions <br> Asked/Answered
+          <div
+            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
+          >
+            Oral <br /> Questions
           </div>
-          <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-            Motions <br> Spoken On
+          <div
+            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
+          >
+            Written <br /> Questions
           </div>
-          <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-            Bills <br> Spoken On
+          <div
+            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
+          >
+            Motions
           </div>
-          <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+          <div
+            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
+          >
+            Bills
+          </div>
+          <div
+            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
+          >
             Attendance
           </div>
         </div>
         {/* Parliament rows */}
-        {parliamentStats.map((ps) => {
-          const isCurrent = ps.parliament === latestParliament;
-          const attendPct = ps.attendanceTotal > 0 ? Math.round((ps.attendancePresent / ps.attendanceTotal) * 100) : null;
-          return (
-            <div class:list={["grid grid-cols-6 gap-0 border-b border-border", isCurrent && "bg-amber-50/30"]}>
-              <div class="px-4 py-4 flex items-center">
-                <span class:list={["font-sans text-xs uppercase tracking-wide font-semibold", isCurrent ? "text-accent" : "text-ink-muted"]}>
-                  {isCurrent ? `Current (${ps.parliament}th Parliament)` : `${ps.parliament}th Parliament`}
-                </span>
-              </div>
-              <div class="px-4 py-4">
-                <span class="font-display text-xl text-ink">{ps.involvements}</span>
-              </div>
-              <div class="px-4 py-4">
-                <span class="font-display text-xl text-ink">{ps.questions}</span>
-              </div>
-              <div class="px-4 py-4">
-                <span class="font-display text-xl text-ink">{ps.motions}</span>
-              </div>
-              <div class="px-4 py-4">
-                <span class="font-display text-xl text-ink">{ps.bills}</span>
-              </div>
-              <div class="px-4 py-4">
-                {attendPct !== null ? (
+        {
+          parliamentStats.map((ps) => {
+            const isCurrent = ps.parliament === latestParliament;
+            const attendPct =
+              ps.attendanceTotal > 0
+                ? Math.round((ps.attendancePresent / ps.attendanceTotal) * 100)
+                : null;
+            return (
+              <div
+                class:list={[
+                  "grid grid-cols-7 gap-0 border-b border-border",
+                  isCurrent && "bg-amber-50/30",
+                ]}
+              >
+                <div class="px-4 py-4 flex items-center">
                   <span
                     class:list={[
-                      "font-display text-xl",
-                      attendPct >= 80 ? "text-status-passed" : attendPct >= 50 ? "text-status-reading" : "text-red-600",
+                      "font-sans text-xs uppercase tracking-wide font-semibold",
+                      isCurrent ? "text-accent" : "text-ink-muted",
                     ]}
                   >
-                    {attendPct}%
+                    {isCurrent
+                      ? `Current (${ps.parliament}th Parliament)`
+                      : `${ps.parliament}th Parliament`}
                   </span>
-                ) : (
-                  <span class="font-sans text-sm text-ink-muted">—</span>
-                )}
+                </div>
+                <div class="px-4 py-4">
+                  <span class="font-display text-xl text-ink">
+                    {ps.involvements}
+                  </span>
+                </div>
+                <div class="px-4 py-4">
+                  <span class="font-display text-xl text-ink">
+                    {ps.oralQuestions}
+                  </span>
+                </div>
+                <div class="px-4 py-4">
+                  <span class="font-display text-xl text-ink">
+                    {ps.writtenQuestions}
+                  </span>
+                </div>
+                <div class="px-4 py-4">
+                  <span class="font-display text-xl text-ink">
+                    {ps.motions}
+                  </span>
+                </div>
+                <div class="px-4 py-4">
+                  <span class="font-display text-xl text-ink">{ps.bills}</span>
+                </div>
+                <div class="px-4 py-4">
+                  {attendPct !== null ? (
+                    <span
+                      class:list={[
+                        "font-display text-xl",
+                        attendPct >= 80
+                          ? "text-status-passed"
+                          : attendPct >= 50
+                            ? "text-status-reading"
+                            : "text-red-600",
+                      ]}
+                    >
+                      {attendPct}%
+                    </span>
+                  ) : (
+                    <span class="font-sans text-sm text-ink-muted">—</span>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        }
         {/* Overall row */}
-        <div class="grid grid-cols-6 gap-0">
+        <div class="grid grid-cols-7 gap-0">
           <div class="px-4 py-4 flex items-center">
-            <span class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold">
+            <span
+              class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold"
+            >
               Overall
             </span>
           </div>
@@ -190,7 +247,14 @@ const attendancePercent =
             <span class="font-display text-xl text-ink">{sections.length}</span>
           </div>
           <div class="px-4 py-4">
-            <span class="font-display text-xl text-ink">{questions.length}</span>
+            <span class="font-display text-xl text-ink"
+              >{oralQuestions.length}</span
+            >
+          </div>
+          <div class="px-4 py-4">
+            <span class="font-display text-xl text-ink"
+              >{writtenQuestions.length}</span
+            >
           </div>
           <div class="px-4 py-4">
             <span class="font-display text-xl text-ink">{motions.length}</span>
@@ -199,73 +263,119 @@ const attendancePercent =
             <span class="font-display text-xl text-ink">{bills.length}</span>
           </div>
           <div class="px-4 py-4">
-            {attendancePercent !== null ? (
-              <span
-                class:list={[
-                  "font-display text-xl",
-                  attendancePercent >= 80 ? "text-status-passed" : attendancePercent >= 50 ? "text-status-reading" : "text-red-600",
-                ]}
-              >
-                {attendancePercent}%
-              </span>
-            ) : (
-              <span class="font-sans text-sm text-ink-muted">—</span>
-            )}
+            {
+              attendancePercent !== null ? (
+                <span
+                  class:list={[
+                    "font-display text-xl",
+                    attendancePercent >= 80
+                      ? "text-status-passed"
+                      : attendancePercent >= 50
+                        ? "text-status-reading"
+                        : "text-red-600",
+                  ]}
+                >
+                  {attendancePercent}%
+                </span>
+              ) : (
+                <span class="font-sans text-sm text-ink-muted">—</span>
+              )
+            }
           </div>
         </div>
       </div>
 
       <!-- Member Summary -->
-      {ministryStats.length > 0 && (
-        <details class="mb-8 border border-border rounded-lg overflow-hidden">
-          <summary class="px-4 py-3 bg-surface-alt cursor-pointer font-sans text-sm font-semibold text-ink hover:bg-warm transition-colors select-none flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
-            <svg class="w-4 h-4 text-ink-muted transition-transform duration-200 details-arrow shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-            Involvements by Ministry
-            <span class="font-normal text-ink-muted ml-1">({ministryStats.length} ministries)</span>
-          </summary>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left">
-              <thead>
-                <tr class="border-b border-border bg-surface-alt/50">
-                  <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">Ministry</th>
-                  <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">Total</th>
-                  <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">Questions</th>
-                  <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">Motions</th>
-                  <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">Bills</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ministryStats.map((ms) => (
-                  <tr class="border-b border-border last:border-0 hover:bg-warm/50 transition-colors">
-                    <td class="px-4 py-3">
-                      <a
-                        href={`/ministries/${slugify(ms.ministryName, ms.ministryId)}`}
-                        class="font-sans text-sm text-accent hover:text-accent-light no-underline"
-                      >
-                        {ms.ministryName}
-                      </a>
-                    </td>
-                    <td class="px-4 py-3 font-display text-sm text-ink text-right">{ms.total}</td>
-                    <td class="px-4 py-3 font-display text-sm text-ink text-right">{ms.questions}</td>
-                    <td class="px-4 py-3 font-display text-sm text-ink text-right">{ms.motions}</td>
-                    <td class="px-4 py-3 font-display text-sm text-ink text-right">{ms.bills}</td>
+      {
+        ministryStats.length > 0 && (
+          <details class="mb-8 border border-border rounded-lg overflow-hidden">
+            <summary class="px-4 py-3 bg-surface-alt cursor-pointer font-sans text-sm font-semibold text-ink hover:bg-warm transition-colors select-none flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+              <svg
+                class="w-4 h-4 text-ink-muted transition-transform duration-200 details-arrow shrink-0"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+              Involvements by Ministry
+              <span class="font-normal text-ink-muted ml-1">
+                ({ministryStats.length} ministries)
+              </span>
+            </summary>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left">
+                <thead>
+                  <tr class="border-b border-border bg-surface-alt/50">
+                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+                      Ministry
+                    </th>
+                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">
+                      Total
+                    </th>
+                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">
+                      Oral
+                    </th>
+                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">
+                      Written
+                    </th>
+                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">
+                      Motions
+                    </th>
+                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right">
+                      Bills
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {ministryStats.map((ms) => (
+                    <tr class="border-b border-border last:border-0 hover:bg-warm/50 transition-colors">
+                      <td class="px-4 py-3">
+                        <a
+                          href={`/ministries/${slugify(ms.ministryName, ms.ministryId)}`}
+                          class="font-sans text-sm text-accent hover:text-accent-light no-underline"
+                        >
+                          {ms.ministryName}
+                        </a>
+                      </td>
+                      <td class="px-4 py-3 font-display text-sm text-ink text-right">
+                        {ms.total}
+                      </td>
+                      <td class="px-4 py-3 font-display text-sm text-ink text-right">
+                        {ms.oralQuestions}
+                      </td>
+                      <td class="px-4 py-3 font-display text-sm text-ink text-right">
+                        {ms.writtenQuestions}
+                      </td>
+                      <td class="px-4 py-3 font-display text-sm text-ink text-right">
+                        {ms.motions}
+                      </td>
+                      <td class="px-4 py-3 font-display text-sm text-ink text-right">
+                        {ms.bills}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        )
+      }
+      {
+        member.summary && (
+          <div class="mb-8">
+            <AISummaryCard
+              title="Summary of Recent Topics"
+              content={member.summary}
+            />
           </div>
-        </details>
-      )}
-      {member.summary && (
-        <div class="mb-8">
-          <AISummaryCard
-            title="Summary of Recent Topics"
-            content={member.summary}
-          />
-        </div>
-      )}
+        )
+      }
 
       <!-- Attendance Components (both shown for comparison) -->
       {
@@ -438,29 +548,65 @@ const attendancePercent =
     )
   }
 
-  <!-- Questions Section -->
-  <section data-pagefind-ignore>
-    <h2 class="font-display text-xl text-ink mb-4">
-      Parliamentary Questions <span
-        class="font-sans text-sm text-ink-muted font-normal"
-        >({questions.length})</span
-      >
-    </h2>
-    {
-          <div id="questions-list" class="flex flex-col border-t border-border">
-            {questions.map((section) => (
-              <div class="question-item">
-                <QuestionCard section={section} showSpeakers={false} />
-              </div>
-            ))}
-          </div>
-          <Pagination
-            containerId="questions-list"
-            itemSelector=".question-item"
-            itemsPerPage={10}
-          />
-    }
-  </section>
+  <!-- Oral Questions Section -->
+  {
+    (
+      <section class="mb-10" data-pagefind-ignore>
+        <h2 class="font-display text-xl text-ink mb-4">
+          Oral Questions{" "}
+          <span class="font-sans text-sm text-ink-muted font-normal">
+            ({oralQuestions.length})
+          </span>
+        </h2>
+
+        <div
+          id="oral-questions-list"
+          class="flex flex-col border-t border-border"
+        >
+          {oralQuestions.map((section) => (
+            <div class="oral-question-item">
+              <QuestionCard section={section} showSpeakers={false} />
+            </div>
+          ))}
+        </div>
+        <Pagination
+          containerId="oral-questions-list"
+          itemSelector=".oral-question-item"
+          itemsPerPage={10}
+        />
+      </section>
+    )
+  }
+
+  <!-- Written Questions Section -->
+  {
+    (
+      <section data-pagefind-ignore>
+        <h2 class="font-display text-xl text-ink mb-4">
+          Written Questions{" "}
+          <span class="font-sans text-sm text-ink-muted font-normal">
+            ({writtenQuestions.length})
+          </span>
+        </h2>
+
+        <div
+          id="written-questions-list"
+          class="flex flex-col border-t border-border"
+        >
+          {writtenQuestions.map((section) => (
+            <div class="written-question-item">
+              <QuestionCard section={section} showSpeakers={false} />
+            </div>
+          ))}
+        </div>
+        <Pagination
+          containerId="written-questions-list"
+          itemSelector=".written-question-item"
+          itemsPerPage={10}
+        />
+      </section>
+    )
+  }
   <script>
     interface PagefindResult {
       id: string;
@@ -520,7 +666,8 @@ const attendancePercent =
         { id: "motions-list", selector: ".motion-item" },
         { id: "bills-list", selector: ".bill-item" },
         { id: "clarifications-list", selector: ".clarification-item" },
-        { id: "questions-list", selector: ".question-item" },
+        { id: "oral-questions-list", selector: ".oral-question-item" },
+        { id: "written-questions-list", selector: ".written-question-item" },
       ]
         .map((s) => {
           const container = document.getElementById(s.id);
@@ -538,7 +685,13 @@ const attendancePercent =
       }[];
 
       function getItemId(item: HTMLElement): string | null {
-        return item.getAttribute("data-search-id") || item.querySelector("[data-search-id]")?.getAttribute("data-search-id") || null;
+        return (
+          item.getAttribute("data-search-id") ||
+          item
+            .querySelector("[data-search-id]")
+            ?.getAttribute("data-search-id") ||
+          null
+        );
       }
 
       let debounceTimer: ReturnType<typeof setTimeout>;

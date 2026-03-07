@@ -36,8 +36,9 @@ const parliamentStats = getMinistryParliamentStats(id);
 const latestParliament = getLatestParliament();
 
 // Categorize sections
-const questions = sections.filter((s) =>
-  ["OA", "WA", "WANA"].includes(s.sectionType),
+const oralQuestions = sections.filter((s) => s.sectionType === "OA");
+const writtenQuestions = sections.filter((s) =>
+  ["WA", "WANA"].includes(s.sectionType),
 );
 const motions = sections.filter(
   (s) => s.category === "motion" || s.category === "adjournment_motion",
@@ -72,13 +73,16 @@ const clarifications = sections.filter((s) => s.category === "clarification");
   {parliamentStats.length > 0 && (
     <div class="border border-border rounded-lg overflow-hidden mb-8">
       <!-- Column headers -->
-      <div class="grid grid-cols-5 gap-0 bg-surface-alt border-b border-border">
+      <div class="grid grid-cols-6 gap-0 bg-surface-alt border-b border-border">
         <div class="px-4 py-2.5"></div>
         <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
           Total
         </div>
         <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-          Questions
+          Oral <br> Questions
+        </div>
+        <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+          Written <br> Questions
         </div>
         <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
           Motions
@@ -91,7 +95,7 @@ const clarifications = sections.filter((s) => s.category === "clarification");
       {parliamentStats.map((ps) => {
         const isCurrent = ps.parliament === latestParliament;
         return (
-          <div class:list={["grid grid-cols-5 gap-0 border-b border-border", isCurrent && "bg-amber-50/30"]}>
+          <div class:list={["grid grid-cols-6 gap-0 border-b border-border", isCurrent && "bg-amber-50/30"]}>
             <div class="px-4 py-4 flex items-center">
               <span class:list={["font-sans text-xs uppercase tracking-wide font-semibold", isCurrent ? "text-accent" : "text-ink-muted"]}>
                 {isCurrent ? `Current (${ps.parliament}th Parliament)` : `${ps.parliament}th Parliament`}
@@ -101,7 +105,10 @@ const clarifications = sections.filter((s) => s.category === "clarification");
               <span class="font-display text-xl text-ink">{ps.involvements}</span>
             </div>
             <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{ps.questions}</span>
+              <span class="font-display text-xl text-ink">{ps.oralQuestions}</span>
+            </div>
+            <div class="px-4 py-4">
+              <span class="font-display text-xl text-ink">{ps.writtenQuestions}</span>
             </div>
             <div class="px-4 py-4">
               <span class="font-display text-xl text-ink">{ps.motions}</span>
@@ -113,7 +120,7 @@ const clarifications = sections.filter((s) => s.category === "clarification");
         );
       })}
       {/* Overall row */}
-      <div class="grid grid-cols-5 gap-0">
+      <div class="grid grid-cols-6 gap-0">
         <div class="px-4 py-4 flex items-center">
           <span class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold">
             Overall
@@ -123,7 +130,10 @@ const clarifications = sections.filter((s) => s.category === "clarification");
           <span class="font-display text-xl text-ink">{sections.length + bills.length}</span>
         </div>
         <div class="px-4 py-4">
-          <span class="font-display text-xl text-ink">{questions.length}</span>
+          <span class="font-display text-xl text-ink">{oralQuestions.length}</span>
+        </div>
+        <div class="px-4 py-4">
+          <span class="font-display text-xl text-ink">{writtenQuestions.length}</span>
         </div>
         <div class="px-4 py-4">
           <span class="font-display text-xl text-ink">{motions.length}</span>
@@ -273,19 +283,19 @@ const clarifications = sections.filter((s) => s.category === "clarification");
     )
   }
 
-  <!-- Questions -->
+  <!-- Oral Questions -->
   {
-    questions.length > 0 && (
+    oralQuestions.length > 0 && (
       <section class="mb-10">
         <h2 class="font-display text-xl text-ink mb-4">
-          Questions{" "}
+          Oral Questions{" "}
           <span class="font-sans text-sm text-ink-muted font-normal">
-            ({questions.length})
+            ({oralQuestions.length})
           </span>
         </h2>
-        <div id="questions-list" class="flex flex-col border-t border-border">
-          {questions.map((section) => (
-            <div class="question-item">
+        <div id="oral-questions-list" class="flex flex-col border-t border-border">
+          {oralQuestions.map((section) => (
+            <div class="oral-question-item">
               <div class="hidden" data-pagefind-body>
                 <span data-pagefind-meta={`id:${section.id}`} />
                 <span data-pagefind-filter={`ministry:${ministry.name}`} />
@@ -295,8 +305,38 @@ const clarifications = sections.filter((s) => s.category === "clarification");
           ))}
         </div>
         <Pagination
-          containerId="questions-list"
-          itemSelector=".question-item"
+          containerId="oral-questions-list"
+          itemSelector=".oral-question-item"
+          itemsPerPage={10}
+        />
+      </section>
+    )
+  }
+
+  <!-- Written Questions -->
+  {
+    writtenQuestions.length > 0 && (
+      <section class="mb-10">
+        <h2 class="font-display text-xl text-ink mb-4">
+          Written Questions{" "}
+          <span class="font-sans text-sm text-ink-muted font-normal">
+            ({writtenQuestions.length})
+          </span>
+        </h2>
+        <div id="written-questions-list" class="flex flex-col border-t border-border">
+          {writtenQuestions.map((section) => (
+            <div class="written-question-item">
+              <div class="hidden" data-pagefind-body>
+                <span data-pagefind-meta={`id:${section.id}`} />
+                <span data-pagefind-filter={`ministry:${ministry.name}`} />
+              </div>
+              <QuestionCard section={section} />
+            </div>
+          ))}
+        </div>
+        <Pagination
+          containerId="written-questions-list"
+          itemSelector=".written-question-item"
           itemsPerPage={10}
         />
       </section>
@@ -370,7 +410,8 @@ const clarifications = sections.filter((s) => s.category === "clarification");
         { id: "bills-list", selector: ".bill-item" },
         { id: "motions-list", selector: ".motion-item" },
         { id: "clarifications-list", selector: ".clarification-item" },
-        { id: "questions-list", selector: ".question-item" },
+        { id: "oral-questions-list", selector: ".oral-question-item" },
+        { id: "written-questions-list", selector: ".written-question-item" },
       ]
         .map((s) => {
           const container = document.getElementById(s.id);
