@@ -10,6 +10,8 @@ import {
   getMinistry,
   getMinistrySections,
   getMinistryBills,
+  getMinistryParliamentStats,
+  getLatestParliament,
 } from "../../lib/db";
 import { slugify } from "../../lib/slugify";
 
@@ -30,6 +32,8 @@ if (!ministry) {
 
 const sections = getMinistrySections(id);
 const bills = getMinistryBills(id);
+const parliamentStats = getMinistryParliamentStats(id);
+const latestParliament = getLatestParliament();
 
 // Categorize sections
 const questions = sections.filter((s) =>
@@ -64,6 +68,73 @@ const clarifications = sections.filter((s) => s.category === "clarification");
     </p>
   </header>
 
+  <!-- Parliament stats table -->
+  {parliamentStats.length > 0 && (
+    <div class="border border-border rounded-lg overflow-hidden mb-8">
+      <!-- Column headers -->
+      <div class="grid grid-cols-5 gap-0 bg-surface-alt border-b border-border">
+        <div class="px-4 py-2.5"></div>
+        <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+          Total
+        </div>
+        <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+          Questions
+        </div>
+        <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+          Motions
+        </div>
+        <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
+          Bills
+        </div>
+      </div>
+      {/* Parliament rows */}
+      {parliamentStats.map((ps) => {
+        const isCurrent = ps.parliament === latestParliament;
+        return (
+          <div class:list={["grid grid-cols-5 gap-0 border-b border-border", isCurrent && "bg-amber-50/30"]}>
+            <div class="px-4 py-4 flex items-center">
+              <span class:list={["font-sans text-xs uppercase tracking-wide font-semibold", isCurrent ? "text-accent" : "text-ink-muted"]}>
+                {isCurrent ? `Current (${ps.parliament}th Parliament)` : `${ps.parliament}th Parliament`}
+              </span>
+            </div>
+            <div class="px-4 py-4">
+              <span class="font-display text-xl text-ink">{ps.involvements}</span>
+            </div>
+            <div class="px-4 py-4">
+              <span class="font-display text-xl text-ink">{ps.questions}</span>
+            </div>
+            <div class="px-4 py-4">
+              <span class="font-display text-xl text-ink">{ps.motions}</span>
+            </div>
+            <div class="px-4 py-4">
+              <span class="font-display text-xl text-ink">{ps.bills}</span>
+            </div>
+          </div>
+        );
+      })}
+      {/* Overall row */}
+      <div class="grid grid-cols-5 gap-0">
+        <div class="px-4 py-4 flex items-center">
+          <span class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold">
+            Overall
+          </span>
+        </div>
+        <div class="px-4 py-4">
+          <span class="font-display text-xl text-ink">{sections.length + bills.length}</span>
+        </div>
+        <div class="px-4 py-4">
+          <span class="font-display text-xl text-ink">{questions.length}</span>
+        </div>
+        <div class="px-4 py-4">
+          <span class="font-display text-xl text-ink">{motions.length}</span>
+        </div>
+        <div class="px-4 py-4">
+          <span class="font-display text-xl text-ink">{bills.length}</span>
+        </div>
+      </div>
+    </div>
+  )}
+
   <!-- Unified search across all sections -->
   <div class="mb-8" data-pagefind-ignore data-ministry-name={ministry.name}>
     <div class="relative">
@@ -83,7 +154,7 @@ const clarifications = sections.filter((s) => s.category === "clarification");
         type="text"
         id="ministry-search-input"
         class="w-full rounded-lg border border-border bg-surface px-4 py-2.5 pl-10 pr-10 font-ui text-sm text-ink placeholder:text-ink/40 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/20 transition-colors"
-        placeholder="Search this ministry's parliamentary activity..."
+        placeholder="Search parliamentary activity related to this ministry..."
         autocomplete="off"
         spellcheck="false"
       />

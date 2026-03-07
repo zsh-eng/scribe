@@ -1064,6 +1064,33 @@ export function getMinistrySections(ministryId: string): Section[] {
   return sections;
 }
 
+// Get stats for each parliament a ministry has sections in
+export interface MinistryParliamentStats {
+  parliament: number;
+  involvements: number;
+  questions: number;
+  motions: number;
+  bills: number;
+}
+
+export function getMinistryParliamentStats(ministryId: string): MinistryParliamentStats[] {
+  const sql = `
+    SELECT
+      sit.parliament,
+      COUNT(DISTINCT sec.id) as involvements,
+      COUNT(DISTINCT CASE WHEN sec.section_type IN ('OA', 'WA', 'WANA') THEN sec.id END) as questions,
+      COUNT(DISTINCT CASE WHEN sec.category IN ('motion', 'adjournment_motion', 'statement') THEN sec.id END) as motions,
+      COUNT(DISTINCT CASE WHEN sec.section_type IN ('BI', 'BP') THEN sec.id END) as bills
+    FROM sections sec
+    JOIN sittings sit ON sec.sitting_id = sit.id
+    LEFT JOIN bills b ON sec.bill_id = b.id
+    WHERE COALESCE(b.ministry_id, sec.ministry_id) = ?
+    GROUP BY sit.parliament
+    ORDER BY sit.parliament DESC
+  `;
+  return db.prepare(sql).all(ministryId) as MinistryParliamentStats[];
+}
+
 // Get all bills for a ministry
 export function getMinistryBills(ministryId: string): Bill[] {
   const sql = `
