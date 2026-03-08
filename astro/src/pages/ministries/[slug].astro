@@ -43,6 +43,35 @@ const motions = sections.filter(
   (s) => s.category === "motion" || s.category === "adjournment_motion",
 );
 const clarifications = sections.filter((s) => s.category === "clarification");
+
+const parliamentRows = parliamentStats.map((ps) => ({
+  id: `parliament-${ps.parliament}`,
+  label: `${ps.parliament}th Parliament`,
+  shortLabel: `${ps.parliament}th`,
+  isCurrent: ps.parliament === latestParliament,
+  involvements: ps.involvements,
+  oralQuestions: ps.oralQuestions,
+  unansweredQuestions: ps.unansweredQuestions,
+  writtenQuestions: ps.writtenQuestions,
+  motions: ps.motions,
+  bills: ps.bills,
+}));
+
+const overallParliamentRow = {
+  id: "overall",
+  label: "Overall",
+  shortLabel: "Overall",
+  isCurrent: false,
+  involvements: sections.length + bills.length,
+  oralQuestions: oralQuestions.length,
+  unansweredQuestions: unansweredQuestions.length,
+  writtenQuestions: writtenQuestions.length,
+  motions: motions.length,
+  bills: bills.length,
+};
+
+const allParliamentRows = [...parliamentRows, overallParliamentRow];
+const mobileParliamentRows = [overallParliamentRow, ...parliamentRows];
 ---
 
 <Layout
@@ -70,84 +99,185 @@ const clarifications = sections.filter((s) => s.category === "clarification");
 
   <!-- Parliament stats table -->
   {parliamentStats.length > 0 && (
-    <div class="border border-border rounded-lg overflow-hidden mb-8">
-      <!-- Column headers -->
-      <div class="grid grid-cols-7 gap-0 bg-surface-alt border-b border-border">
-        <div class="px-4 py-2.5"></div>
-        <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-          Total
-        </div>
-        <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-          Oral Questions
-        </div>
-        <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-          Oral Questions (Unanswered)
-        </div>
-        <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-          Written Questions
-        </div>
-        <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-          Motions
-        </div>
-        <div class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-          Bills
-        </div>
+    <div class="mb-8">
+      <h4 class="font-sans text-sm font-semibold text-ink mb-3">
+        Parliament activity
+      </h4>
+
+      <div class="hidden md:block overflow-x-auto rounded-lg border border-border">
+        <table class="w-full min-w-[860px] text-left">
+          <thead class="bg-surface-alt/70 border-b border-border">
+            <tr>
+              <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted">
+                Period
+              </th>
+              <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                Total
+              </th>
+              <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                Oral Questions
+              </th>
+              <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                Oral Questions (Unanswered)
+              </th>
+              <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                Written Questions
+              </th>
+              <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                Motions
+              </th>
+              <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                Bills
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              allParliamentRows.map((row, index) => (
+                <tr
+                  class:list={[
+                    "border-b border-border last:border-0",
+                    index % 2 === 0 ? "bg-white" : "bg-surface-alt/20",
+                    row.isCurrent && "bg-amber-50/70",
+                  ]}
+                >
+                  <td class="px-4 py-3 font-sans text-sm text-ink">
+                    <div class="flex items-center gap-2">
+                      <span>{row.label}</span>
+                      {
+                        row.isCurrent && (
+                          <span class="font-sans text-[10px] uppercase tracking-wide text-accent bg-white border border-accent/30 px-1.5 py-0.5 rounded-full">
+                            Current
+                          </span>
+                        )
+                      }
+                    </div>
+                  </td>
+                  <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                    {row.involvements}
+                  </td>
+                  <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                    {row.oralQuestions}
+                  </td>
+                  <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                    {row.unansweredQuestions}
+                  </td>
+                  <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                    {row.writtenQuestions}
+                  </td>
+                  <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                    {row.motions}
+                  </td>
+                  <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                    {row.bills}
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
       </div>
-      {/* Parliament rows */}
-      {parliamentStats.map((ps) => {
-        const isCurrent = ps.parliament === latestParliament;
-        return (
-          <div class:list={["grid grid-cols-7 gap-0 border-b border-border", isCurrent && "bg-amber-50/30"]}>
-            <div class="px-4 py-4 flex items-center">
-              <span class:list={["font-sans text-xs uppercase tracking-wide font-semibold", isCurrent ? "text-accent" : "text-ink-muted"]}>
-                {isCurrent ? `Current (${ps.parliament}th Parliament)` : `${ps.parliament}th Parliament`}
-              </span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{ps.involvements}</span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{ps.oralQuestions}</span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{ps.unansweredQuestions}</span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{ps.writtenQuestions}</span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{ps.motions}</span>
-            </div>
-            <div class="px-4 py-4">
-              <span class="font-display text-xl text-ink">{ps.bills}</span>
-            </div>
-          </div>
-        );
-      })}
-      {/* Overall row */}
-      <div class="grid grid-cols-7 gap-0">
-        <div class="px-4 py-4 flex items-center">
-          <span class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold">
-            Overall
-          </span>
+
+      <div class="md:hidden" data-parliament-switcher>
+        <div
+          class="ministry-parliament-controls mb-3"
+          role="tablist"
+          aria-label="Parliament activity period"
+        >
+          {
+            mobileParliamentRows.map((row, index) => (
+              <button
+                type="button"
+                role="tab"
+                class:list={[
+                  "ministry-parliament-mode-btn",
+                  index === 0 && "is-active",
+                ]}
+                data-parliament-target={row.id}
+                aria-selected={index === 0 ? "true" : "false"}
+                tabindex={index === 0 ? 0 : -1}
+              >
+                <span>{row.shortLabel}</span>
+                {
+                  row.isCurrent && (
+                    <span class="ministry-parliament-mode-pill">[current]</span>
+                  )
+                }
+              </button>
+            ))
+          }
         </div>
-        <div class="px-4 py-4">
-          <span class="font-display text-xl text-ink">{sections.length + bills.length}</span>
-        </div>
-        <div class="px-4 py-4">
-          <span class="font-display text-xl text-ink">{oralQuestions.length}</span>
-        </div>
-        <div class="px-4 py-4">
-          <span class="font-display text-xl text-ink">{unansweredQuestions.length}</span>
-        </div>
-        <div class="px-4 py-4">
-          <span class="font-display text-xl text-ink">{writtenQuestions.length}</span>
-        </div>
-        <div class="px-4 py-4">
-          <span class="font-display text-xl text-ink">{motions.length}</span>
-        </div>
-        <div class="px-4 py-4">
-          <span class="font-display text-xl text-ink">{bills.length}</span>
+
+        <div class="space-y-3">
+          {
+            mobileParliamentRows.map((row, index) => (
+              <article
+                class:list={[
+                  "ministry-parliament-panel rounded-lg border border-border bg-surface p-4",
+                  row.isCurrent && "ring-1 ring-accent/35",
+                  index !== 0 && "hidden",
+                ]}
+                data-parliament-panel={row.id}
+                hidden={index !== 0}
+                role="tabpanel"
+              >
+                <div class="flex items-center justify-between gap-2 mb-3">
+                  <h5 class="font-sans text-sm font-semibold text-ink">
+                    {row.label}
+                  </h5>
+                  {
+                    row.isCurrent && (
+                      <span class="font-sans text-[10px] uppercase tracking-wide text-accent">
+                        Current
+                      </span>
+                    )
+                  }
+                </div>
+                <dl class="grid grid-cols-2 gap-x-3 gap-y-2">
+                  <div class="flex items-baseline justify-between col-span-2 border-b border-border/70 pb-2 mb-1">
+                    <dt class="font-sans text-xs text-ink-muted">Total</dt>
+                    <dd class="font-display text-2xl text-ink">
+                      {row.involvements}
+                    </dd>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <dt class="font-sans text-xs text-ink-muted">
+                      Oral Questions
+                    </dt>
+                    <dd class="font-display text-base text-ink">
+                      {row.oralQuestions}
+                    </dd>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <dt class="font-sans text-xs text-ink-muted">
+                      Oral Questions (Unanswered)
+                    </dt>
+                    <dd class="font-display text-base text-ink">
+                      {row.unansweredQuestions}
+                    </dd>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <dt class="font-sans text-xs text-ink-muted">
+                      Written Questions
+                    </dt>
+                    <dd class="font-display text-base text-ink">
+                      {row.writtenQuestions}
+                    </dd>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <dt class="font-sans text-xs text-ink-muted">Motions</dt>
+                    <dd class="font-display text-base text-ink">
+                      {row.motions}
+                    </dd>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <dt class="font-sans text-xs text-ink-muted">Bills</dt>
+                    <dd class="font-display text-base text-ink">{row.bills}</dd>
+                  </div>
+                </dl>
+              </article>
+            ))
+          }
         </div>
       </div>
     </div>
@@ -389,6 +519,55 @@ const clarifications = sections.filter((s) => s.category === "clarification");
     )
   }
 
+  <style is:global>
+    .ministry-parliament-controls {
+      display: inline-flex;
+      width: fit-content;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border: 1px solid var(--border);
+      scrollbar-width: none;
+    }
+
+    .ministry-parliament-controls::-webkit-scrollbar {
+      display: none;
+    }
+
+    .ministry-parliament-mode-btn {
+      border: 0;
+      border-right: 1px solid var(--border);
+      background: transparent;
+      color: var(--ink-muted);
+      padding: 6px 10px;
+      font-family: "DM Sans", system-ui, sans-serif;
+      font-size: 12px;
+      line-height: 1.2;
+      white-space: nowrap;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .ministry-parliament-mode-btn:last-child {
+      border-right: 0;
+    }
+
+    .ministry-parliament-mode-btn.is-active {
+      background: var(--ink);
+      color: var(--page-bg);
+    }
+
+    .ministry-parliament-mode-pill {
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 10px;
+      line-height: 1;
+      padding: 2px 2px;
+    }
+  </style>
   <script>
     interface PagefindResult {
       id: string;
@@ -421,6 +600,58 @@ const clarifications = sections.filter((s) => s.category === "clarification");
         return pagefind;
       } catch {
         return null;
+      }
+    }
+
+    function initParliamentSwitcher() {
+      const switchers = Array.from(
+        document.querySelectorAll("[data-parliament-switcher]"),
+      ) as HTMLElement[];
+
+      for (const switcher of switchers) {
+        if (switcher.hasAttribute("data-parliament-switcher-initialized")) {
+          continue;
+        }
+        switcher.setAttribute("data-parliament-switcher-initialized", "true");
+
+        const buttons = Array.from(
+          switcher.querySelectorAll("[data-parliament-target]"),
+        ) as HTMLButtonElement[];
+        const panels = Array.from(
+          switcher.querySelectorAll("[data-parliament-panel]"),
+        ) as HTMLElement[];
+
+        if (buttons.length === 0 || panels.length === 0) continue;
+
+        const setActivePanel = (targetId: string) => {
+          for (const button of buttons) {
+            const isActive = button.dataset.parliamentTarget === targetId;
+            button.classList.toggle("is-active", isActive);
+            button.setAttribute("aria-selected", isActive ? "true" : "false");
+            button.tabIndex = isActive ? 0 : -1;
+          }
+
+          for (const panel of panels) {
+            const isActive = panel.dataset.parliamentPanel === targetId;
+            panel.classList.toggle("hidden", !isActive);
+            panel.hidden = !isActive;
+          }
+        };
+
+        for (const button of buttons) {
+          button.addEventListener("click", () => {
+            const targetId = button.dataset.parliamentTarget;
+            if (!targetId) return;
+            setActivePanel(targetId);
+          });
+        }
+
+        const initialTarget =
+          buttons.find((button) => button.classList.contains("is-active"))
+            ?.dataset.parliamentTarget || buttons[0]?.dataset.parliamentTarget;
+        if (initialTarget) {
+          setActivePanel(initialTarget);
+        }
       }
     }
 
@@ -603,7 +834,12 @@ const clarifications = sections.filter((s) => s.category === "clarification");
       );
     }
 
-    initMinistrySearch();
-    document.addEventListener("astro:after-swap", initMinistrySearch);
+    function initMinistryPage() {
+      initParliamentSwitcher();
+      initMinistrySearch();
+    }
+
+    initMinistryPage();
+    document.addEventListener("astro:after-swap", initMinistryPage);
   </script>
 </Layout>
