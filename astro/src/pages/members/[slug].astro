@@ -1,6 +1,5 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import SectionLabel from "../../components/SectionLabel.astro";
 import AISummaryCard from "../../components/AISummaryCard.astro";
 import QuestionCard from "../../components/QuestionCard.astro";
 import Pagination from "../../components/Pagination.astro";
@@ -85,6 +84,53 @@ const attendancePercent =
   member.attendanceTotal && member.attendanceTotal > 0
     ? Math.round((member.attendancePresent! / member.attendanceTotal) * 100)
     : null;
+
+const getAttendanceTone = (attendancePct: number | null) => {
+  if (attendancePct === null) return "text-ink-muted";
+  if (attendancePct >= 80) return "text-status-passed";
+  if (attendancePct >= 50) return "text-status-reading";
+  return "text-red-600";
+};
+
+const parliamentRows = parliamentStats.map((ps) => ({
+  id: `parliament-${ps.parliament}`,
+  label:
+    ps.parliament === latestParliament
+      ? `Current (${ps.parliament}th Parliament)`
+      : `${ps.parliament}th Parliament`,
+  shortLabel:
+    ps.parliament === latestParliament
+      ? `Current (${ps.parliament}th)`
+      : `${ps.parliament}th`,
+  isCurrent: ps.parliament === latestParliament,
+  involvements: ps.involvements,
+  oralQuestions: ps.oralQuestions,
+  unansweredQuestions: ps.unansweredQuestions,
+  writtenQuestions: ps.writtenQuestions,
+  motions: ps.motions,
+  bills: ps.bills,
+  attendancePct:
+    ps.attendanceTotal > 0
+      ? Math.round((ps.attendancePresent / ps.attendanceTotal) * 100)
+      : null,
+}));
+
+const overallParliamentRow = {
+  id: "overall",
+  label: "Overall",
+  shortLabel: "Overall",
+  isCurrent: false,
+  involvements: sections.length,
+  oralQuestions: oralQuestions.length,
+  unansweredQuestions: unansweredQuestions.length,
+  writtenQuestions: writtenQuestions.length,
+  motions: motions.length,
+  bills: bills.length,
+  attendancePct: attendancePercent,
+};
+
+const allParliamentRows = [...parliamentRows, overallParliamentRow];
+const rankedMinistryRows = [...ministryStats].sort((a, b) => b.total - a.total);
 ---
 
 <Layout
@@ -151,269 +197,328 @@ const attendancePercent =
         them.
       </p>
 
-      <!-- Parliament stats table -->
-      <div class="border border-border rounded-lg overflow-hidden mb-8">
-        <!-- Column headers -->
-        <div
-          class="grid grid-cols-8 gap-0 bg-surface-alt border-b border-border"
-        >
-          <div class="px-4 py-2.5"></div>
-          <div
-            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
-          >
-            Total Involvements
-          </div>
-          <div
-            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
-          >
-            Oral Questions
-          </div>
-          <div
-            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
-          >
-            Oral Questions (Unanswered)
-          </div>
-          <div
-            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
-          >
-            Written Questions
-          </div>
-          <div
-            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
-          >
-            Motions
-          </div>
-          <div
-            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
-          >
-            Bills
-          </div>
-          <div
-            class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold"
-          >
-            Attendance
-          </div>
-        </div>
-        {/* Parliament rows */}
-        {
-          parliamentStats.map((ps) => {
-            const isCurrent = ps.parliament === latestParliament;
-            const attendPct =
-              ps.attendanceTotal > 0
-                ? Math.round((ps.attendancePresent / ps.attendanceTotal) * 100)
-                : null;
-            return (
-              <div
-                class:list={[
-                  "grid grid-cols-8 gap-0 border-b border-border",
-                  isCurrent && "bg-amber-50/30",
-                ]}
-              >
-                <div class="px-4 py-4 flex items-center">
-                  <span
-                    class:list={[
-                      "font-sans text-xs uppercase tracking-wide font-semibold",
-                      isCurrent ? "text-accent" : "text-ink-muted",
-                    ]}
-                  >
-                    {isCurrent
-                      ? `Current (${ps.parliament}th Parliament)`
-                      : `${ps.parliament}th Parliament`}
-                  </span>
-                </div>
-                <div class="px-4 py-4">
-                  <span class="font-display text-xl text-ink">
-                    {ps.involvements}
-                  </span>
-                </div>
-                <div class="px-4 py-4">
-                  <span class="font-display text-xl text-ink">
-                    {ps.oralQuestions}
-                  </span>
-                </div>
-                <div class="px-4 py-4">
-                  <span class="font-display text-xl text-ink">
-                    {ps.unansweredQuestions}
-                  </span>
-                </div>
-                <div class="px-4 py-4">
-                  <span class="font-display text-xl text-ink">
-                    {ps.writtenQuestions}
-                  </span>
-                </div>
-                <div class="px-4 py-4">
-                  <span class="font-display text-xl text-ink">
-                    {ps.motions}
-                  </span>
-                </div>
-                <div class="px-4 py-4">
-                  <span class="font-display text-xl text-ink">{ps.bills}</span>
-                </div>
-                <div class="px-4 py-4">
-                  {attendPct !== null ? (
-                    <span
-                      class:list={[
-                        "font-display text-xl",
-                        attendPct >= 80
-                          ? "text-status-passed"
-                          : attendPct >= 50
-                            ? "text-status-reading"
-                            : "text-red-600",
-                      ]}
-                    >
-                      {attendPct}%
-                    </span>
-                  ) : (
-                    <span class="font-sans text-sm text-ink-muted">—</span>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        }
-        {/* Overall row */}
-        <div class="grid grid-cols-8 gap-0">
-          <div class="px-4 py-4 flex items-center">
-            <span
-              class="font-sans text-xs uppercase tracking-wide text-ink-muted font-semibold"
-            >
-              Overall
-            </span>
-          </div>
-          <div class="px-4 py-4">
-            <span class="font-display text-xl text-ink">{sections.length}</span>
-          </div>
-          <div class="px-4 py-4">
-            <span class="font-display text-xl text-ink"
-              >{oralQuestions.length}</span
-            >
-          </div>
-          <div class="px-4 py-4">
-            <span class="font-display text-xl text-ink"
-              >{unansweredQuestions.length}</span
-            >
-          </div>
-          <div class="px-4 py-4">
-            <span class="font-display text-xl text-ink"
-              >{writtenQuestions.length}</span
-            >
-          </div>
-          <div class="px-4 py-4">
-            <span class="font-display text-xl text-ink">{motions.length}</span>
-          </div>
-          <div class="px-4 py-4">
-            <span class="font-display text-xl text-ink">{bills.length}</span>
-          </div>
-          <div class="px-4 py-4">
-            {
-              attendancePercent !== null ? (
-                <span
-                  class:list={[
-                    "font-display text-xl",
-                    attendancePercent >= 80
-                      ? "text-status-passed"
-                      : attendancePercent >= 50
-                        ? "text-status-reading"
-                        : "text-red-600",
-                  ]}
-                >
-                  {attendancePercent}%
-                </span>
-              ) : (
-                <span class="font-sans text-sm text-ink-muted">—</span>
-              )
-            }
-          </div>
-        </div>
-      </div>
-
-      <!-- Member Summary -->
-      {
-        ministryStats.length > 0 && (
-          <details class="mb-8 border border-border rounded-lg overflow-hidden">
-            <summary class="px-4 py-3 bg-surface-alt cursor-pointer font-sans text-sm font-semibold text-ink hover:bg-warm transition-colors select-none flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
-              <svg
-                class="w-4 h-4 text-ink-muted transition-transform duration-200 details-arrow shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-              Involvements by Ministry
-              <span class="font-normal text-ink-muted ml-1">
-                ({ministryStats.length} ministries)
-              </span>
-            </summary>
-            <div class="overflow-x-auto">
-              <table class="w-full text-left table-fixed">
-                <thead>
-                  <tr class="border-b border-border bg-surface-alt/50">
-                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold">
-                      Ministry
+      <div class="mb-8 space-y-6">
+          <div>
+            <h4 class="font-sans text-sm font-semibold text-ink mb-3">
+              Parliament activity
+            </h4>
+            <div class="hidden md:block overflow-x-auto rounded-lg border border-border">
+              <table class="w-full min-w-[960px] text-left">
+                <thead class="bg-surface-alt/70 border-b border-border">
+                  <tr>
+                    <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted">
+                      Period
                     </th>
-                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right w-[12%]">
+                    <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
                       Total
                     </th>
-                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right w-[12%]">
-                      Oral PQs
+                    <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                      Oral
                     </th>
-                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right w-[12%]">
-                      Unanswered Oral PQs
+                    <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                      Unanswered
                     </th>
-                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right w-[12%]">
-                      Written PQs
+                    <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                      Written
                     </th>
-                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right w-[12%]">
+                    <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
                       Motions
                     </th>
-                    <th class="px-4 py-2.5 font-sans text-[10px] uppercase tracking-wider text-ink-muted font-semibold text-right w-[12%]">
+                    <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
                       Bills
+                    </th>
+                    <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                      Attendance
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {ministryStats.map((ms) => (
-                    <tr class="border-b border-border last:border-0 hover:bg-warm/50 transition-colors">
-                      <td class="px-4 py-3">
-                        <a
-                          href={`/ministries/${slugify(ms.ministryName, ms.ministryId)}`}
-                          class="font-sans text-sm text-accent hover:text-accent-light no-underline"
-                        >
-                          {ms.ministryName}
-                        </a>
-                      </td>
-                      <td class="px-4 py-3 font-display text-sm text-ink text-right">
-                        {ms.total}
-                      </td>
-                      <td class="px-4 py-3 font-display text-sm text-ink text-right">
-                        {ms.oralQuestions}
-                      </td>
-                      <td class="px-4 py-3 font-display text-sm text-ink text-right">
-                        {ms.unansweredQuestions}
-                      </td>
-                      <td class="px-4 py-3 font-display text-sm text-ink text-right">
-                        {ms.writtenQuestions}
-                      </td>
-                      <td class="px-4 py-3 font-display text-sm text-ink text-right">
-                        {ms.motions}
-                      </td>
-                      <td class="px-4 py-3 font-display text-sm text-ink text-right">
-                        {ms.bills}
-                      </td>
-                    </tr>
-                  ))}
+                  {
+                    allParliamentRows.map((row, index) => (
+                      <tr
+                        class:list={[
+                          "border-b border-border last:border-0",
+                          index % 2 === 0 ? "bg-white" : "bg-surface-alt/20",
+                          row.isCurrent && "bg-amber-50/70",
+                        ]}
+                      >
+                        <td class="px-4 py-3 font-sans text-sm text-ink">
+                          <div class="flex items-center gap-2">
+                            <span>{row.label}</span>
+                            {
+                              row.isCurrent && (
+                                <span class="font-sans text-[10px] uppercase tracking-wide text-accent bg-white border border-accent/30 px-1.5 py-0.5 rounded-full">
+                                  Current
+                                </span>
+                              )
+                            }
+                          </div>
+                        </td>
+                        <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                          {row.involvements}
+                        </td>
+                        <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                          {row.oralQuestions}
+                        </td>
+                        <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                          {row.unansweredQuestions}
+                        </td>
+                        <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                          {row.writtenQuestions}
+                        </td>
+                        <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                          {row.motions}
+                        </td>
+                        <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                          {row.bills}
+                        </td>
+                        <td class="px-4 py-3 text-right font-display text-lg">
+                          {
+                            row.attendancePct !== null ? (
+                              <span class:list={[getAttendanceTone(row.attendancePct)]}>
+                                {row.attendancePct}%
+                              </span>
+                            ) : (
+                              <span class="font-sans text-sm text-ink-muted">—</span>
+                            )
+                          }
+                        </td>
+                      </tr>
+                    ))
+                  }
                 </tbody>
               </table>
             </div>
-          </details>
-        )
-      }
+            <div class="md:hidden space-y-3">
+              {
+                allParliamentRows.map((row) => (
+                  <article
+                    class:list={[
+                      "rounded-lg border border-border bg-surface p-4",
+                      row.isCurrent && "ring-1 ring-accent/35",
+                    ]}
+                  >
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                      <h5 class="font-sans text-sm font-semibold text-ink">
+                        {row.shortLabel}
+                      </h5>
+                      {
+                        row.isCurrent && (
+                          <span class="font-sans text-[10px] uppercase tracking-wide text-accent">
+                            Current
+                          </span>
+                        )
+                      }
+                    </div>
+                    <dl class="grid grid-cols-2 gap-x-3 gap-y-2">
+                      <div class="flex items-baseline justify-between col-span-2 border-b border-border/70 pb-2 mb-1">
+                        <dt class="font-sans text-xs text-ink-muted">Total</dt>
+                        <dd class="font-display text-2xl text-ink">
+                          {row.involvements}
+                        </dd>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <dt class="font-sans text-xs text-ink-muted">Oral</dt>
+                        <dd class="font-display text-base text-ink">
+                          {row.oralQuestions}
+                        </dd>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <dt class="font-sans text-xs text-ink-muted">
+                          Unanswered
+                        </dt>
+                        <dd class="font-display text-base text-ink">
+                          {row.unansweredQuestions}
+                        </dd>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <dt class="font-sans text-xs text-ink-muted">Written</dt>
+                        <dd class="font-display text-base text-ink">
+                          {row.writtenQuestions}
+                        </dd>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <dt class="font-sans text-xs text-ink-muted">Motions</dt>
+                        <dd class="font-display text-base text-ink">{row.motions}</dd>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <dt class="font-sans text-xs text-ink-muted">Bills</dt>
+                        <dd class="font-display text-base text-ink">{row.bills}</dd>
+                      </div>
+                      <div class="flex items-center justify-between">
+                        <dt class="font-sans text-xs text-ink-muted">Attendance</dt>
+                        <dd class:list={["font-display text-base", getAttendanceTone(row.attendancePct)]}>
+                          {row.attendancePct !== null ? `${row.attendancePct}%` : "—"}
+                        </dd>
+                      </div>
+                    </dl>
+                  </article>
+                ))
+              }
+            </div>
+          </div>
+
+          <div>
+            {
+              ministryStats.length > 0 ? (
+                <details class="rounded-lg border border-border overflow-hidden">
+                  <summary class="px-4 py-3 bg-surface-alt cursor-pointer font-sans text-sm font-semibold text-ink hover:bg-warm transition-colors select-none flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+                    <svg
+                      class="w-4 h-4 text-ink-muted shrink-0"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                    Involvements by ministry
+                    <span class="font-normal text-ink-muted ml-1">
+                      ({ministryStats.length} ministries)
+                    </span>
+                  </summary>
+
+                  <div class="p-4 md:p-5 space-y-3">
+                    <div class="hidden md:block overflow-x-auto rounded-lg border border-border">
+                      <table class="w-full min-w-[980px] text-left">
+                        <thead class="bg-surface-alt/70 border-b border-border">
+                          <tr>
+                            <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted min-w-[18rem]">
+                              Ministry
+                            </th>
+                            <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                              Total
+                            </th>
+                            <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                              Oral
+                            </th>
+                            <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                              Unanswered
+                            </th>
+                            <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                              Written
+                            </th>
+                            <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                              Motions
+                            </th>
+                            <th class="px-4 py-3 font-sans text-xs font-semibold tracking-wide text-ink-muted text-right">
+                              Bills
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {
+                            rankedMinistryRows.map((row, index) => (
+                              <tr
+                                class:list={[
+                                  "border-b border-border last:border-0",
+                                  index % 2 === 0 ? "bg-white" : "bg-surface-alt/20",
+                                ]}
+                              >
+                                <td class="px-4 py-3">
+                                  <a
+                                    href={`/ministries/${slugify(row.ministryName, row.ministryId)}`}
+                                    class="font-sans text-sm text-accent hover:text-accent-light no-underline"
+                                  >
+                                    {row.ministryName}
+                                  </a>
+                                </td>
+                                <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                                  {row.total}
+                                </td>
+                                <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                                  {row.oralQuestions}
+                                </td>
+                                <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                                  {row.unansweredQuestions}
+                                </td>
+                                <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                                  {row.writtenQuestions}
+                                </td>
+                                <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                                  {row.motions}
+                                </td>
+                                <td class="px-4 py-3 text-right font-display text-lg text-ink">
+                                  {row.bills}
+                                </td>
+                              </tr>
+                            ))
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div class="md:hidden space-y-3">
+                      {
+                        rankedMinistryRows.map((row) => (
+                          <article class="rounded-lg border border-border bg-surface p-4">
+                            <div class="flex items-baseline justify-between gap-3 mb-3">
+                              <a
+                                href={`/ministries/${slugify(row.ministryName, row.ministryId)}`}
+                                class="font-sans text-sm font-semibold text-accent hover:text-accent-light no-underline leading-snug"
+                              >
+                                {row.ministryName}
+                              </a>
+                              <div class="text-right">
+                                <p class="font-sans text-[11px] text-ink-muted uppercase tracking-wide">
+                                  Total
+                                </p>
+                                <p class="font-display text-2xl text-ink">{row.total}</p>
+                              </div>
+                            </div>
+                            <dl class="grid grid-cols-2 gap-x-3 gap-y-2">
+                              <div class="flex items-center justify-between">
+                                <dt class="font-sans text-xs text-ink-muted">Oral</dt>
+                                <dd class="font-display text-base text-ink">
+                                  {row.oralQuestions}
+                                </dd>
+                              </div>
+                              <div class="flex items-center justify-between">
+                                <dt class="font-sans text-xs text-ink-muted">
+                                  Unanswered
+                                </dt>
+                                <dd class="font-display text-base text-ink">
+                                  {row.unansweredQuestions}
+                                </dd>
+                              </div>
+                              <div class="flex items-center justify-between">
+                                <dt class="font-sans text-xs text-ink-muted">Written</dt>
+                                <dd class="font-display text-base text-ink">
+                                  {row.writtenQuestions}
+                                </dd>
+                              </div>
+                              <div class="flex items-center justify-between">
+                                <dt class="font-sans text-xs text-ink-muted">Motions</dt>
+                                <dd class="font-display text-base text-ink">
+                                  {row.motions}
+                                </dd>
+                              </div>
+                              <div class="flex items-center justify-between">
+                                <dt class="font-sans text-xs text-ink-muted">Bills</dt>
+                                <dd class="font-display text-base text-ink">
+                                  {row.bills}
+                                </dd>
+                              </div>
+                            </dl>
+                          </article>
+                        ))
+                      }
+                    </div>
+                  </div>
+                </details>
+              ) : (
+                <p class="font-sans text-sm text-ink-muted">
+                  No ministry-level data available for this member.
+                </p>
+              )
+            }
+          </div>
+      </div>
+
       {
         member.summary && (
           <div class="mb-8">
@@ -425,7 +530,7 @@ const attendancePercent =
         )
       }
 
-      <!-- Attendance Components (both shown for comparison) -->
+      <!-- Attendance -->
       {
         attendance.length > 0 &&
           member.attendancePresent != null &&
