@@ -88,7 +88,8 @@ The repository includes:
 - `launchd/com.secondreading.daily.plist` (LaunchAgent template scheduled for 13:00 Asia/Singapore)
 
 ### Script defaults
-- Date window: `today-14` to `today-5` (`DD-MM-YYYY`, Asia/Singapore)
+- Date window: latest ingested sitting date in DB + 1 day, through `today` (`DD-MM-YYYY`, Asia/Singapore)
+  - If no sittings exist in DB yet, fallback window is `today-2` to `today`
 - Pipeline order: ingest -> dedupe (`--keep-newest`) -> sitting summaries (`--only-blank`)
 - Deploy policy: only when semantic data digest changes, and only on clean `main` git state
 
@@ -103,7 +104,12 @@ scripts/daily_pipeline.sh \
   [--force-deploy] \
   [--dry-run]
 ```
-`--lookback-days` overrides the lag-aware default and uses a recent window of `today-N` to `today`.
+`--lookback-days` overrides the incremental default and uses a recent window of `today-N` to `today`.
+
+### Current limitation
+- `batch_process_sqlite.py` is not fully idempotent for overlapping date re-ingestion. Re-running a date can create duplicate `sections` and `bills` rows.
+- `scripts/daily_pipeline.sh` now defaults to incremental non-overlapping ingestion (`max(sittings.date)+1` to `today`) to reduce this risk.
+- The dedupe step in the pipeline currently cleans duplicate sections only.
 
 ### Setup
 1. Sync dependencies and ensure deploy auth

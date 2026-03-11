@@ -11,14 +11,14 @@ export PATH
 TZ_REGION="Asia/Singapore"
 LOOKBACK_DAYS=2
 LOOKBACK_SET=0
-DEFAULT_START_OFFSET_DAYS=14
-DEFAULT_END_OFFSET_DAYS=5
 START_DATE=""
 END_DATE=""
 SKIP_SUMMARIES=0
 SKIP_DEPLOY=0
 FORCE_DEPLOY=0
 DRY_RUN=0
+DATE_WINDOW_MODE="manual"
+LATEST_SITTING_ISO=""
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -114,6 +114,18 @@ run_in_dir() {
 to_iso_date() {
   local input="$1"
   TZ="${TZ_REGION}" date -j -f "%d-%m-%Y" "${input}" "+%Y-%m-%d" 2>/dev/null
+}
+
+get_latest_sitting_iso() {
+  local db_path="$1"
+  local latest=""
+
+  if [[ -f "${db_path}" ]]; then
+    latest="$(sqlite3 -readonly "${db_path}" "SELECT MAX(date) FROM sittings;" 2>/dev/null || true)"
+  fi
+
+  latest="${latest//$'\r'/}"
+  printf '%s' "${latest}"
 }
 
 compute_digest() {
@@ -265,20 +277,35 @@ fi
 
 if [[ -z "${START_DATE}" ]]; then
   if [[ "${LOOKBACK_SET}" -eq 1 ]]; then
+    DATE_WINDOW_MODE="lookback"
     END_DATE="$(TZ="${TZ_REGION}" date '+%d-%m-%Y')"
     START_DATE="$(TZ="${TZ_REGION}" date -v-"${LOOKBACK_DAYS}"d '+%d-%m-%Y')"
   else
-    END_DATE="$(TZ="${TZ_REGION}" date -v-"${DEFAULT_END_OFFSET_DAYS}"d '+%d-%m-%Y')"
-    START_DATE="$(TZ="${TZ_REGION}" date -v-"${DEFAULT_START_OFFSET_DAYS}"d '+%d-%m-%Y')"
+    DATE_WINDOW_MODE="incremental"
+    LATEST_SITTING_ISO="$(get_latest_sitting_iso "${DB_PATH}")"
+    END_DATE="$(TZ="${TZ_REGION}" date '+%d-%m-%Y')"
+
+    if [[ -n "${LATEST_SITTING_ISO}" ]]; then
+      START_DATE="$(TZ="${TZ_REGION}" date -j -v+1d -f "%Y-%m-%d" "${LATEST_SITTING_ISO}" '+%d-%m-%Y' 2>/dev/null || true)"
+      [[ -n "${START_DATE}" ]] || fail "Failed to parse latest sitting date from DB: ${LATEST_SITTING_ISO}"
+    else
+      DATE_WINDOW_MODE="lookback-fallback"
+      START_DATE="$(TZ="${TZ_REGION}" date -v-"${LOOKBACK_DAYS}"d '+%d-%m-%Y')"
+      log "No sittings found in DB; falling back to lookback window (today-${LOOKBACK_DAYS} to today)."
+    fi
   fi
 fi
 
-ISO_START="$(to_iso_date "${START_DATE}")"
+ISO_START="$(to_iso_date "${START_DATE}" || true)"
 [[ -n "${ISO_START}" ]] || fail "Invalid --start-date format (expected DD-MM-YYYY): ${START_DATE}"
-ISO_END="$(to_iso_date "${END_DATE}")"
+ISO_END="$(to_iso_date "${END_DATE}" || true)"
 [[ -n "${ISO_END}" ]] || fail "Invalid --end-date format (expected DD-MM-YYYY): ${END_DATE}"
 
 if [[ "${ISO_START}" > "${ISO_END}" ]]; then
+  if [[ "${DATE_WINDOW_MODE}" == "incremental" && "${LATEST_SITTING_ISO}" == "${ISO_END}" ]]; then
+    log "No new sittings to ingest. Latest ingested date is ${LATEST_SITTING_ISO}."
+    exit 0
+  fi
   fail "Start date must be <= end date (${START_DATE} > ${END_DATE})"
 fi
 
@@ -299,6 +326,10 @@ require_cmd shasum
 log "Starting daily pipeline."
 log "Repo root: ${REPO_ROOT}"
 log "Date range: ${START_DATE} to ${END_DATE} (ISO ${ISO_START} to ${ISO_END})"
+log "Date window mode: ${DATE_WINDOW_MODE}"
+if [[ -n "${LATEST_SITTING_ISO}" ]]; then
+  log "Latest ingested sitting date in DB: ${LATEST_SITTING_ISO}"
+fi
 log "DB path: ${DB_PATH}"
 log "Flags: skip_summaries=${SKIP_SUMMARIES}, skip_deploy=${SKIP_DEPLOY}, force_deploy=${FORCE_DEPLOY}, dry_run=${DRY_RUN}"
 
