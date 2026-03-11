@@ -55,10 +55,10 @@ const getReadingLabel = (sectionType: string) => {
 
 // Navigation links
 const navLinks = [
-  { href: "/sittings", label: "Sittings" },
-  { href: "/bills", label: "Bills" },
-  { href: "/questions", label: "Questions" },
-  { href: "/motions", label: "Motions" },
+  { href: "/sittings", label: "Sittings", prefetch: "load" },
+  { href: "/bills", label: "Bills", prefetch: "load" },
+  { href: "/questions", label: "Questions", prefetch: "load" },
+  { href: "/motions", label: "Motions", prefetch: "load" },
   { href: "/members", label: "MPs" },
   { href: "/ministries", label: "Ministries" },
   { href: "/budgets", label: "Budgets" },
@@ -102,14 +102,20 @@ const navLinks = [
 
     <!-- Navigation -->
     <nav class="nav-bar">
-      {navLinks.map((link) => <a href={link.href}>{link.label}</a>)}
+      {
+        navLinks.map((link) => (
+          <a href={link.href} data-astro-prefetch={link.prefetch}>
+            {link.label}
+          </a>
+        ))
+      }
     </nav>
 
     <!-- Main content grid -->
     <main class="main-grid">
       <!-- Left Column -->
       <div class="column column-left flex flex-col gap-6">
-        <a href="/bills" class="section-card">
+        <a href="/bills" data-astro-prefetch="load" class="section-card">
           <div class="section-card-header">
             <span class="section-card-title">Bills</span>
             {
@@ -126,7 +132,7 @@ const navLinks = [
 
         <div class="section-divider"></div>
 
-        <a href="/questions" class="section-card">
+        <a href="/questions" data-astro-prefetch="load" class="section-card">
           <div class="section-card-header">
             <span class="section-card-title">Questions</span>
           </div>
@@ -168,7 +174,9 @@ const navLinks = [
           happening in Parliament without wading through walls of text.
         </p>
         <div class="hero-actions">
-          <a href="/bills" class="btn-primary">Browse Bills</a>
+          <a href="/bills" data-astro-prefetch="load" class="btn-primary">
+            Browse Bills
+          </a>
           <a href="/members" class="btn-secondary">Find Your MP</a>
         </div>
       </div>
@@ -187,7 +195,7 @@ const navLinks = [
 
         <div class="section-divider"></div>
 
-        <a href="/motions" class="section-card">
+        <a href="/motions" data-astro-prefetch="load" class="section-card">
           <div class="section-card-header">
             <span class="section-card-title">Motions</span>
             {
