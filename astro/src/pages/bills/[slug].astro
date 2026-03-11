@@ -131,13 +131,13 @@ const fmtDate = (d: string) =>
     </header>
 
     <!-- Bill Summary -->
-    <div class="mb-8" data-pagefind-weight="3">
-      <AISummaryCard
-        title="Bill Summary"
-        content={bill.summary}
-        fallbackMessage="Summary will be generated in a future update."
-      />
-    </div>
+    {
+      bill.summary && (
+        <div class="mb-8" data-pagefind-weight="3">
+          <AISummaryCard title="Bill Summary" content={bill.summary} />
+        </div>
+      )
+    }
 
     <!-- Reading Timeline -->
     <div class="mb-8">

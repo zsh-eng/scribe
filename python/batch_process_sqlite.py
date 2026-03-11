@@ -33,24 +33,37 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Maps ministerial designations to ministry acronyms.
+# Includes "Minister for X", "Minister of State for X", and
+# "Parliamentary Secretary for X" variants so that all designation
+# forms (including "Senior Minister of State for X") are matched.
+_MINISTRY_TOPICS = {
+    "Culture, Community and Youth": "MCCY",
+    "Defence": "MINDEF",
+    "Digital Development and Information": "MDDI",
+    "Education": "MOE",
+    "Finance": "MOF",
+    "Foreign Affairs": "MFA",
+    "Health": "MOH",
+    "Home Affairs": "MHA",
+    "Law": "MINLAW",
+    "Manpower": "MOM",
+    "National Development": "MND",
+    "Social and Family Development": "MSF",
+    "Sustainability and the Environment": "MSE",
+    "Trade and Industry": "MTI",
+    "Transport": "MOT",
+}
+
 DESIGNATION_TO_MINISTRY = {
     "Prime Minister": "PMO",
-    "Minister for Culture, Community and Youth": "MCCY",
-    "Minister for Defence": "MINDEF",
-    "Minister for Digital Development and Information": "MDDI",
-    "Minister for Education": "MOE",
-    "Minister for Finance": "MOF",
-    "Minister for Foreign Affairs": "MFA",
-    "Minister for Health": "MOH",
-    "Minister for Home Affairs": "MHA",
-    "Minister for Law": "MINLAW",
-    "Minister for Manpower": "MOM",
-    "Minister for National Development": "MND",
-    "Minister for Social and Family Development": "MSF",
-    "Minister for Sustainability and the Environment": "MSE",
-    "Minister for Trade and Industry": "MTI",
-    "Minister for Transport": "MOT",
+    "Minister, Prime Minister's Office": "PMO",
+    "Minister of State, Prime Minister's Office": "PMO",
 }
+for _topic, _acronym in _MINISTRY_TOPICS.items():
+    DESIGNATION_TO_MINISTRY[f"Minister for {_topic}"] = _acronym
+    DESIGNATION_TO_MINISTRY[f"Minister of State for {_topic}"] = _acronym
+    DESIGNATION_TO_MINISTRY[f"Parliamentary Secretary for {_topic}"] = _acronym
 
 
 FULL_NAME_TO_MINISTRY = {
@@ -73,7 +86,11 @@ FULL_NAME_TO_MINISTRY = {
 }
 
 def detect_ministry_from_designation(designation):
-    """Extract ministry acronym from a ministerial designation."""
+    """Extract ministry acronym from a ministerial designation.
+
+    Handles variants like "Minister of State for Education",
+    "Senior Minister of State for Health", "Parliamentary Secretary for Transport", etc.
+    """
     if not designation:
         return None
     designation_lower = designation.lower()

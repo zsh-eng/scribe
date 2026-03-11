@@ -29,7 +29,7 @@ Second Reading is written in [Astro](https://astro.build/) and uses SQLite for i
 ### Data Processing
 Data is fetched from the Hansard API, processed, and then inserted into the database using the Python scripts found in the `python/` directory. For more details, please refer to the [`README.md`](python/README.md) there.
 
-Note that the script only works for Hansard data for sittings from ~2012 onwards, as earlier sittings have their data stored in a different format.
+Note that the script only works for Hansard data for sittings from ~2012 onwards, as earlier sittings have their data stored in a different format. Additionally, after ingesting the data, we performed several [manual modifications](python/README.md#manual-changes) to our database to correct some errors in the Hansard API.
 
 ## Setup
 If you wish to replicate Second Reading independently, you can follow the steps below.
