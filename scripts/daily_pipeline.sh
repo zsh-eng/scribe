@@ -132,13 +132,19 @@ compute_digest() {
   local db_path="$1"
   local iso_start="$2"
   local iso_end="$3"
+  local digest=""
+  local max_attempts=3
+  local attempt
 
   if [[ ! -f "${db_path}" ]]; then
     printf 'MISSING'
     return 0
   fi
 
-  sqlite3 -readonly "${db_path}" <<SQL | shasum -a 256 | awk '{print $1}'
+  for ((attempt = 1; attempt <= max_attempts; attempt++)); do
+    if digest="$(
+      sqlite3 "${db_path}" <<SQL | shasum -a 256 | awk '{print $1}'
+PRAGMA query_only = ON;
 .mode list
 .separator |
 SELECT 'sittings', s.id, s.date,
@@ -188,6 +194,18 @@ WHERE b.id IN (
 )
 ORDER BY b.id;
 SQL
+    )"; then
+      printf '%s' "${digest}"
+      return 0
+    fi
+
+    if [[ "${attempt}" -lt "${max_attempts}" ]]; then
+      log "Digest query failed (attempt ${attempt}/${max_attempts}); retrying in 1s."
+      sleep 1
+    fi
+  done
+
+  return 1
 }
 
 git_is_deploy_safe() {
