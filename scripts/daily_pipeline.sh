@@ -362,7 +362,7 @@ run_in_dir "${PYTHON_DIR}" uv run batch_process_sqlite.py "${START_DATE}" "${END
 run_in_dir "${PYTHON_DIR}" uv run cleanup_duplicates_sqlite.py "${START_DATE}" "${END_DATE}" --keep-newest
 
 if [[ "${SKIP_SUMMARIES}" -eq 0 ]]; then
-  run_in_dir "${PYTHON_DIR}" uv run generate_summaries_sqlite.py --sittings "${START_DATE}" "${END_DATE}" --only-blank
+  run_in_dir "${PYTHON_DIR}" env -u GOOGLE_API_KEY -u GEMINI_API_KEY uv run generate_summaries_sqlite.py --sittings "${START_DATE}" "${END_DATE}" --only-blank
 else
   log "Skipping sitting summaries (--skip-summaries)."
 fi
