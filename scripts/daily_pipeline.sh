@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+LAUNCHD_PATH_PREFIX="/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin"
+SCRIPT_PATH_SUFFIX="/Users/admin/.local/bin:/Users/admin/.bun/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+
 if [[ -n "${PATH:-}" ]]; then
-  PATH="${PATH}:/Users/admin/.local/bin:/Users/admin/.bun/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+  PATH="${LAUNCHD_PATH_PREFIX}:${PATH}:${SCRIPT_PATH_SUFFIX}"
 else
-  PATH="/Users/admin/.local/bin:/Users/admin/.bun/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+  PATH="${LAUNCHD_PATH_PREFIX}:${SCRIPT_PATH_SUFFIX}"
 fi
 export PATH
 
@@ -337,6 +340,7 @@ trap cleanup EXIT
 
 require_cmd uv
 require_cmd bun
+require_cmd node
 require_cmd git
 require_cmd sqlite3
 require_cmd shasum
