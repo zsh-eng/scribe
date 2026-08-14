@@ -25,7 +25,7 @@ client = genai.Client()
 AI_SEMAPHORE = asyncio.Semaphore(20)  # Can do more parallel with Gemini but keeping safe limit
 AI_COOLDOWN = 0.5                    # Adjust to Gemini rate limitations (15 RPM free, higher paid)
 
-async def generate_summary(prompt_template: str, model='gemini-3-flash-preview') -> str:
+async def generate_summary(prompt_template: str, model='gemini-3.7-flash') -> str:
     async with AI_SEMAPHORE:
         try:
             response = await client.aio.models.generate_content(
