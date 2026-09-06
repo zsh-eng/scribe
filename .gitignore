@@ -8,6 +8,7 @@ node_modules/
 next-env.d.ts
 .vercel
 
-/data/
+/data/*
+!/data/curated/
 logs/
 .locks/

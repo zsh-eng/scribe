@@ -46,7 +46,7 @@ uv run batch_process_sqlite.py 12-01-2026 14-01-2026
 
 ### `generate_summaries_sqlite.py`
 
-Generates AI summaries for sitting sections and MP profiles using Gemini. The `--only-blank` flag generates summaries only for entries that don't have one yet.
+Generates AI summaries for sitting sections and MP profiles using Gemini. By default, only missing summaries are generated (`--only-blank` remains an alias). Replacing existing text requires `--regenerate`; changing the configured model or prompts never triggers replacement on its own.
 
 #### Usage
 ```bash
@@ -69,6 +69,49 @@ uv run generate_summaries_sqlite.py --members
 uv run generate_summaries_sqlite.py --sittings 12-01-2026 --only-blank
 ```
 
+## Summary provenance and review
+
+`summary_jobs.py` assembles deterministic inputs for sections, bills and members.
+Each generation attempt records entity ID/type, full input hash, prompt key and template hash
+(the prompt version), model, UTC timestamp, status, input size and available token usage.
+Successful text and its provenance commit together. A failed replacement leaves the last
+successful text and its provenance intact. Old summaries are labelled `provenance_unknown`;
+we do not guess their model or backfill fabricated metadata.
+
+Review is read-only, works on databases without the new history table, and makes no API calls:
+
+```bash
+uv run generate_summaries_sqlite.py --sittings 05-08-2026 --review
+uv run generate_summaries_sqlite.py --members --review
+uv run generate_summaries_sqlite.py --sittings 05-08-2026 --review --model MODEL_TO_COMPARE
+```
+
+JSONL output reports `missing`, `provenance_unknown`, `input_changed`, `prompt_changed`,
+`model_changed` and `over_input_limit`, plus the current summary's generation metadata and
+latest attempt status. These are review signals, not a regeneration queue.
+
+To explicitly replace selected summaries after reviewing cost/scope:
+
+```bash
+uv run generate_summaries_sqlite.py --sittings 05-08-2026 --id SECTION_OR_BILL_ID --regenerate
+uv run generate_summaries_sqlite.py --members --id MEMBER_ID --regenerate
+```
+
+`--id` is repeatable. Without it, `--regenerate` replaces all eligible summaries in the selected
+scope. The daily job continues to fill blanks only; member generation remains a separate command.
+Members without a `member_summaries` row are included when filling blanks.
+
+Prompts are no longer silently truncated. A prompt over the default **20,000 characters** is
+recorded as `blocked` without an LLM request; shorter eligible jobs still run. To process a
+reviewed long input, explicitly raise `--max-input-chars N`. This limit includes the prompt
+instructions and title as well as source text. No chunking or automatic extra requests are added.
+Blocked jobs are reported in counts but do not fail the process; provider failures exit nonzero.
+
+History lives in `summary_attempts`, created by normal schema initialisation on a generation
+run. It is excluded from publication fingerprints: metadata-only changes do not rebuild the site.
+Changes to the successful summary text do trigger publication. Usage fields are stored separately;
+cached tokens are a subset of prompt tokens, not an additional total.
+
 ## Reruns and offline replay
 
 Each sitting is imported in one SQLite transaction. Replaying a sitting preserves its IDs,
@@ -77,8 +120,8 @@ bill links and summaries. Merged transcript sections retain all Hansard source I
 
 Existing titles, categories, types and ministry assignments are treated as curated metadata
 and preserved. Transcript bodies, order, speakers and attendance refresh from the source.
-Changed transcripts retain their old summaries pending explicit review; this phase does not
-add automatic regeneration or model/prompt versioning.
+Changed transcripts retain their old summaries pending explicit review. Summary provenance records
+input and prompt hashes so subsequent reviews can identify changes without making LLM calls.
 
 Ambiguous matches, removed sections or splits of an existing merged section abort and roll
 back the sitting. Resolve those cases explicitly; `cleanup_duplicates_sqlite.py` remains a
@@ -122,6 +165,7 @@ they do not call Hansard, Gemini or Cloudflare.
 | `prompts.py` | Prompt templates for AI summary generation |
 | `util.py` | Shared utility functions |
 | `publication.py` | Fingerprint frontend inputs and record successful publication |
+| `summary_jobs.py` | Deterministic summary inputs, provenance and read-only review |
 
 ## Manual changes
 Below are the manual changes that were made post-ingestion.

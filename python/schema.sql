@@ -85,6 +85,25 @@ CREATE TABLE IF NOT EXISTS section_sources (
 );
 CREATE INDEX IF NOT EXISTS idx_section_sources_section ON section_sources(section_id);
 
+-- LLM attempt history is provenance, not an automatic regeneration queue.
+-- Existing summary text without a matching successful attempt has unknown provenance.
+CREATE TABLE IF NOT EXISTS summary_attempts (
+    id INTEGER PRIMARY KEY,
+    entity_type TEXT NOT NULL CHECK (entity_type IN ('section', 'bill', 'member')),
+    entity_id TEXT NOT NULL,
+    input_hash TEXT NOT NULL,
+    prompt_key TEXT NOT NULL,
+    prompt_version TEXT NOT NULL,
+    model TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('success', 'failed', 'blocked')),
+    summary_hash TEXT,
+    input_chars INTEGER NOT NULL,
+    error TEXT,
+    usage_json TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_summary_attempts_entity ON summary_attempts(entity_type, entity_id, id);
+
 -- Section speakers (junction: sections <-> members with time snapshot)
 CREATE TABLE IF NOT EXISTS section_speakers (
     section_id TEXT NOT NULL REFERENCES sections(id) ON DELETE CASCADE,

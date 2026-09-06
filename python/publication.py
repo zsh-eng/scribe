@@ -50,6 +50,7 @@ def fingerprint(db_path, root=ROOT):
     paths = {root / name for name in files if name and not name.endswith('.DS_Store')}
     paths.update((root / 'data').glob('*.csv'))
     paths.update((root / 'data').glob('GovernmentBudgetandFiscalPositionAnnual/*.csv'))
+    paths.update((root / 'data' / 'curated').rglob('*.json'))
     for path in sorted(paths):
         add(str(path.relative_to(root)))
         add(hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else 'MISSING')

@@ -59,6 +59,20 @@ class PublicationTests(unittest.TestCase):
         (self.root / 'astro/page.astro').write_text('<p>Changed</p>')
         self.assertNotEqual(with_budget, fingerprint(self.db_path, self.root))
 
+    def test_curated_budget_changes_trigger_publication_but_attempt_history_does_not(self):
+        initial = fingerprint(self.db_path, self.root)
+        conn = sqlite3.connect(self.db_path)
+        with conn:
+            conn.execute("""INSERT INTO summary_attempts
+                (entity_type,entity_id,input_hash,prompt_key,prompt_version,model,status,input_chars)
+                VALUES ('section','q','input','question','prompt','model','failed',100)""")
+        conn.close()
+        self.assertEqual(initial, fingerprint(self.db_path, self.root))
+        directory = self.root / 'data/curated/budgets'
+        directory.mkdir(parents=True)
+        (directory / 'release.json').write_text('{"year":2026}')
+        self.assertNotEqual(initial, fingerprint(self.db_path, self.root))
+
     def executable(self, name, body):
         path = self.root / 'bin' / name
         path.write_text(f'#!{sys.executable}\n' + body)

@@ -1,289 +1,131 @@
+"""Generate explicitly selected summaries, or review their provenance without API calls."""
+import argparse
 import asyncio
+from collections import Counter
+from datetime import datetime
+import json
 import logging
-import os
+from pathlib import Path
 import re
-import sys
+import sqlite3
 
-from google import genai
-from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from google import genai
 
 import db_sqlite as db
-from prompts import PQ_PROMPT, SECTION_PROMPT, BILL_PROMPT, MEMBER_PROMPT
+from summary_jobs import (DEFAULT_INPUT_LIMIT, DEFAULT_MODEL, sitting_jobs, member_jobs,
+                          review_job, save_attempt)
 
-load_dotenv()
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
-)
 logger = logging.getLogger(__name__)
 
-client = genai.Client()
 
-AI_SEMAPHORE = asyncio.Semaphore(20)  # Can do more parallel with Gemini but keeping safe limit
-AI_COOLDOWN = 0.5                    # Adjust to Gemini rate limitations (15 RPM free, higher paid)
+async def run_jobs(conn, jobs, *, model=DEFAULT_MODEL, input_limit=DEFAULT_INPUT_LIMIT,
+                   regenerate=False, client=None, cooldown=0.5):
+    """No automatic regeneration on source, prompt or model changes."""
+    counts = Counter()
+    owned_client = None
+    semaphore = asyncio.Semaphore(20)
+    selected = []
+    for job in jobs:
+        if job.summary and not regenerate:
+            counts['existing'] += 1
+        elif job.input_chars > input_limit:
+            save_attempt(conn, job, model, 'blocked', error='over_input_limit')
+            counts['blocked'] += 1
+            logger.warning('%s %s exceeds input limit (%s > %s); no request made',
+                           job.kind, job.entity_id, job.input_chars, input_limit)
+        else:
+            selected.append(job)
+    if selected and client is None:
+        load_dotenv()
+        owned_client = client = genai.Client()
 
-async def generate_summary(prompt_template: str, model='gemini-3.7-flash') -> str:
-    async with AI_SEMAPHORE:
+    async def generate(job):
+        async with semaphore:
+            try:
+                response = await client.aio.models.generate_content(model=model, contents=job.prompt)
+                summary = re.sub(r'[ \t\xa0]+', ' ', (response.text or '').strip())
+                if not summary:
+                    raise ValueError('empty_response')
+            except Exception as exc:
+                # Store a safe error class, not provider response bodies or credentials.
+                save_attempt(conn, job, model, 'failed', error=type(exc).__name__)
+                logger.error('Summary failed for %s %s: %s', job.kind, job.entity_id, type(exc).__name__)
+                counts['failed'] += 1
+            else:
+                metadata = getattr(response, 'usage_metadata', None)
+                usage = {name: getattr(metadata, name, None) for name in (
+                    'prompt_token_count', 'cached_content_token_count', 'candidates_token_count',
+                    'thoughts_token_count', 'total_token_count')}
+                save_attempt(conn, job, model, 'success', summary=summary, usage=usage)
+                counts['success'] += 1
+            finally:
+                await asyncio.sleep(cooldown)
+
+    try:
+        for offset in range(0, len(selected), 20):
+            await asyncio.gather(*(generate(job) for job in selected[offset:offset + 20]))
+    finally:
+        if owned_client is not None:
+            await owned_client.aio.aclose()
+            owned_client.close()
+    logger.info('Summary results: %s', json.dumps(dict(counts), sort_keys=True))
+    return counts
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    scope = parser.add_mutually_exclusive_group(required=True)
+    scope.add_argument('--sittings', nargs='+', metavar='DD-MM-YYYY')
+    scope.add_argument('--members', action='store_true')
+    parser.add_argument('--review', action='store_true', help='Read-only JSONL review; no LLM requests')
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--only-blank', action='store_true', help='Default: only generate missing summaries')
+    mode.add_argument('--regenerate', action='store_true', help='Explicitly replace summaries in the selected scope')
+    parser.add_argument('--id', action='append', help='Restrict scope to exact entity IDs; repeatable')
+    parser.add_argument('--model', default=DEFAULT_MODEL)
+    parser.add_argument('--max-input-chars', type=int, default=DEFAULT_INPUT_LIMIT,
+                        help='Skip larger prompts instead of truncating them; raise explicitly if needed')
+    args = parser.parse_args()
+    if args.max_input_chars < 1:
+        parser.error('--max-input-chars must be positive')
+    if args.sittings:
+        if len(args.sittings) not in (1, 2):
+            parser.error('--sittings accepts a start date and optional end date')
         try:
-            response = await client.aio.models.generate_content(
-                model=model,
-                contents=prompt_template,
-            )
-            
-            await asyncio.sleep(AI_COOLDOWN)
-            
-            if response.text:
-                content = response.text.strip()
-                # Normalize whitespace: replace multiple spaces/tabs/non-breaking spaces 
-                # with single space but preserve newlines
-                content = re.sub(r'[ \t\xa0]+', ' ', content)
-                return content
-            return None
-        except Exception as e:
-            logger.error(f"Error generating summary: {e}")
-            await asyncio.sleep(AI_COOLDOWN)
-            return None
-
-async def generate_section_summaries_for_sitting(sitting_id, only_blanks):
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    query = '''
-        SELECT id, section_title, content_plain, category, section_type 
-        FROM sections    
-        WHERE sitting_id = ? 
-          AND length(content_plain) > 1500
-          AND category != 'bill' 
-          AND section_type NOT IN ('BI', 'BP')
-    '''
-    if only_blanks:
-        query += ' AND summary IS NULL'
-        
-    cursor.execute(query, (sitting_id,))
-    sections = [dict(row) for row in cursor.fetchall()]
-    
-    if not sections:
-        return
-        
-    logger.info(f"Generating summaries for {len(sections)} sections in sitting {sitting_id}")
-    
-    tasks = []
-    for s in sections:
-        tasks.append(generate_section_summary(s))
-        
-        if len(tasks) >= 20:
-            await asyncio.gather(*tasks)
-            tasks = []
-            
-    if tasks:
-        await asyncio.gather(*tasks)
-
-async def generate_section_summary(section):
-    prompt = PQ_PROMPT if section['category'] == 'question' else SECTION_PROMPT
-    prompt = prompt.format(title=section['section_title'], text=section['content_plain'][:20000])
-    
-    summary = await generate_summary(prompt)
-    
-    if summary:
-        conn = db.get_connection()
-        cursor = conn.cursor()
-        cursor.execute('UPDATE sections SET summary = ? WHERE id = ?', (summary, section['id']))
-        conn.commit()
-
-async def generate_bill_summaries_for_sitting(sitting_id, only_blanks):
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    query = '''
-        SELECT DISTINCT b.id, b.title 
-        FROM bills b
-        JOIN sections s ON b.id = s.bill_id
-        WHERE s.sitting_id = ?
-        AND s.section_type = 'BP'
-    '''
-    if only_blanks:
-        query += ' AND b.summary IS NULL'
-        
-    cursor.execute(query, (sitting_id,))
-    bills = [dict(row) for row in cursor.fetchall()]
-    
-    if not bills:
-        return
-        
-    logger.info(f"Generating summaries for {len(bills)} bills in sitting {sitting_id}")
-    
-    for bill in bills:
-        cursor.execute(
-            '''SELECT content_plain FROM sections 
-               WHERE bill_id = ? 
-               ORDER BY section_order''',
-            (bill['id'],)
-        )
-        sections = [row['content_plain'] for row in cursor.fetchall()]
-        
-        if not sections:
-            continue
-            
-        full_text = "\n\n".join(sections)
-        
-        if len(full_text) < 1500:
-            continue
-        
-        prompt = BILL_PROMPT.format(title=bill['title'], text=full_text[:20000])
-        
-        summary = await generate_summary(prompt)
-        
-        if summary:
-            cursor.execute('UPDATE bills SET summary = ? WHERE id = ?', (summary, bill['id']))
-            conn.commit()
-            logger.info(f"Generated summary for bill {bill['title']}")
-
-async def generate_sitting_summaries(start_date_str, end_date_str, only_blanks=False):
-    start_date = datetime.strptime(start_date_str, '%d-%m-%Y')
-    end_date = datetime.strptime(end_date_str, '%d-%m-%Y')
-    
-    dates = []
-    curr = start_date
-    while curr <= end_date:
-        dates.append(curr.strftime('%Y-%m-%d'))
-        curr += timedelta(days=1)
-        
-    logger.info(f"Summarizing date range: {start_date_str} to {end_date_str} ({len(dates)} days)")
-    
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    
-    iso_start = start_date.strftime('%Y-%m-%d')
-    iso_end = end_date.strftime('%Y-%m-%d')
-    
-    cursor.execute(
-        'SELECT id FROM sittings WHERE date >= ? AND date <= ?',
-        (iso_start, iso_end)
-    )
-    sitting_ids_to_process = [row['id'] for row in cursor.fetchall()]
-            
-    logger.info(f"Generating summaries for {len(sitting_ids_to_process)} sittings...")
-    
-    for sid in sitting_ids_to_process:
-        await generate_section_summaries_for_sitting(sid, only_blanks)
-        await generate_bill_summaries_for_sitting(sid, only_blanks)
-
-    logger.info("Batch processing complete!")
-    db.close_connection()
-
-async def generate_member_summaries(only_blanks):
-    logger.info("Generating member summaries...")
-    
-    conn = db.get_connection()
-    cursor = conn.cursor()
-    # Only summarise members from the current (latest) parliament
-    current_parl_filter = '''
-        AND m.id IN (
-            SELECT DISTINCT sa.member_id FROM sitting_attendance sa
-            JOIN sittings s ON sa.sitting_id = s.id
-            WHERE s.parliament = (SELECT MAX(parliament) FROM sittings)
-        )
-    '''
-    if only_blanks:
-        cursor.execute(f'''
-            SELECT DISTINCT m.id, m.name 
-            FROM members m
-            JOIN member_summaries ms ON m.id = ms.member_id
-            WHERE ms.summary IS NULL
-            {current_parl_filter}
-        ''')
+            start = datetime.strptime(args.sittings[0], '%d-%m-%Y').strftime('%Y-%m-%d')
+            end = datetime.strptime(args.sittings[-1], '%d-%m-%Y').strftime('%Y-%m-%d')
+        except ValueError:
+            parser.error('Dates must use DD-MM-YYYY')
+        if start > end:
+            parser.error('Start date must be on or before end date')
+    if args.review:
+        conn = sqlite3.connect(Path(db.DB_PATH).resolve().as_uri() + '?mode=ro', uri=True)
+        conn.row_factory = sqlite3.Row
     else:
-        cursor.execute(f'''
-            SELECT id, name FROM members m
-            WHERE 1=1 {current_parl_filter}
-        ''')
-    members = [dict(row) for row in cursor.fetchall()]
-    
-    tasks = []
-    
-    async def process_member(member):
+        db.init_db()
         conn = db.get_connection()
-        cursor = conn.cursor()
-        cursor.execute(
-            '''SELECT s.section_title, s.section_type, min.acronym as ministry,
-                      ss.designation, sess.date
-               FROM section_speakers ss
-               JOIN sections s ON ss.section_id = s.id
-               JOIN sittings sess ON s.sitting_id = sess.id
-               LEFT JOIN ministries min ON s.ministry_id = min.id
-               WHERE ss.member_id = ?
-               ORDER BY sess.date DESC
-               LIMIT 20''',
-            (member['id'],)
-        )
-        activity = [dict(row) for row in cursor.fetchall()]
-            
-        if not activity:
-            return
-            
-        activity_lines = []
-        recent_designation = activity[0]['designation'] or "MP"
-        
-        for a in activity:
-            ministry = f"[{a['ministry']}] " if a['ministry'] else ""
-            activity_lines.append(f"- {a['date']}: {ministry}{a['section_title']}")
-        
-        context = "\n".join(activity_lines)
-        prompt = MEMBER_PROMPT.format(name=member['name'], recent_designation=recent_designation, text=context)
+    try:
+        jobs = list(member_jobs(conn) if args.members else sitting_jobs(conn, start, end))
+        if args.id:
+            missing = set(args.id) - {job.entity_id for job in jobs}
+            if missing:
+                parser.error('IDs not found in eligible scope: ' + ', '.join(sorted(missing)))
+            jobs = [job for job in jobs if job.entity_id in args.id]
+        if args.review:
+            for job in jobs:
+                print(json.dumps(review_job(conn, job, args.model, args.max_input_chars)))
+            return 0
+        counts = asyncio.run(run_jobs(conn, jobs, model=args.model, input_limit=args.max_input_chars,
+                                      regenerate=args.regenerate))
+        return 1 if counts['failed'] else 0
+    finally:
+        if args.review:
+            conn.close()
+        else:
+            db.close_connection()
 
-        summary = await generate_summary(prompt)
-        
-        if summary:
-            cursor.execute(
-                '''INSERT INTO member_summaries (member_id, summary, last_updated)
-                   VALUES (?, ?, CURRENT_TIMESTAMP)
-                   ON CONFLICT(member_id) DO UPDATE SET 
-                   summary = excluded.summary, 
-                   last_updated = CURRENT_TIMESTAMP''',
-                (member['id'], summary)
-            )
-            conn.commit()
-    
-    for m in members:
-        tasks.append(process_member(m))
-        
-        if len(tasks) >= 20:
-            await asyncio.gather(*tasks)
-            tasks = []
-            
-    if tasks:
-        await asyncio.gather(*tasks)
-    
-    logger.info("Member summaries complete")
-    db.close_connection()
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: uv run generate_summaries_sqlite.py [--sittings] [START_DATE [END_DATE]] [--members] [--only-blank]")
-        print("Example: uv run generate_summaries_sqlite.py --sittings 01-10-2024")
-        sys.exit(1)
-        
-    args = sys.argv[1:]
-    flags = [arg for arg in args if arg.startswith('--')]
-    
-    summarize_sittings = '--sittings' in flags
-    summarize_members = '--members' in flags
-    only_blank = '--only-blank' in flags
-    
-    if ((not summarize_sittings) or summarize_members) and (summarize_sittings or (not summarize_members)):
-        print("Error: Exactly one of --sittings and --members can be specified")
-        sys.exit(1)
-    
-    if summarize_members:
-        asyncio.run(generate_member_summaries(only_blank))
-    else:
-        dates = [arg for arg in args if not arg.startswith('--')]
-        if len(dates) < 1:
-            print("Error: Start date required")
-            sys.exit(1)
-    
-        start = dates[0]
-        end = dates[1] if len(dates) > 1 else start
-
-        asyncio.run(generate_sitting_summaries(start, end, only_blank))
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    raise SystemExit(main())

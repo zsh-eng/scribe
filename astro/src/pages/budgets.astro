@@ -2,118 +2,14 @@
 import Layout from "../layouts/Layout.astro";
 import BudgetTreemapGraph from "../components/budgets/BudgetTreemapGraph.astro";
 import SectorTrendChart from "../components/budgets/SectorTrendChart.astro";
-import fs from "node:fs";
-import path from "node:path";
 import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
+import { loadBudgets, groupBudgetYears, sectorOrder } from "../lib/budgets";
 
-const csvPath = path.join(
-  process.cwd(),
-  "..",
-  "data",
-  "GovernmentTotalExpenditure.csv",
-);
-const csvText = fs.readFileSync(csvPath, "utf-8");
-
-function parseCSV(text: string) {
-  const lines = text.trim().split("\n");
-  return lines
-    .slice(1)
-    .map((line) => {
-      const values: string[] = [];
-      let current = "";
-      let inQuotes = false;
-      for (const char of line) {
-        if (char === '"') {
-          inQuotes = !inQuotes;
-          continue;
-        }
-        if (char === "," && !inQuotes) {
-          values.push(current.trim());
-          current = "";
-          continue;
-        }
-        current += char;
-      }
-      values.push(current.trim());
-      return {
-        year: parseInt(values[0]),
-        estimateType: values[1],
-        sector: values[2],
-        ministry: values[3],
-        expType: values[4],
-        amount: parseFloat(values[5]) || 0,
-      };
-    })
-    .filter((r) => !isNaN(r.year));
-}
-
-const rows = parseCSV(csvText);
-
-const estimateTypePriority: Record<string, number> = {
-  Estimated: 1,
-  Revised: 2,
-  Actual: 3,
-};
-
-const preferredEstimateTypeByYear = new Map<number, string>();
-for (const row of rows) {
-  const existing = preferredEstimateTypeByYear.get(row.year);
-  if (!existing) {
-    preferredEstimateTypeByYear.set(row.year, row.estimateType);
-    continue;
-  }
-  const existingPriority = estimateTypePriority[existing] || 0;
-  const rowPriority = estimateTypePriority[row.estimateType] || 0;
-  if (rowPriority > existingPriority) {
-    preferredEstimateTypeByYear.set(row.year, row.estimateType);
-  }
-}
-
-const filteredRows = rows.filter(
-  (row) => preferredEstimateTypeByYear.get(row.year) === row.estimateType,
-);
-
-const yearMap = new Map<
-  number,
-  Map<
-    string,
-    {
-      sector: string;
-      ministry: string;
-      operating: number;
-      development: number;
-      estimateType: string;
-    }
-  >
->();
-
-for (const row of filteredRows) {
-  if (!yearMap.has(row.year)) yearMap.set(row.year, new Map());
-  const entries = yearMap.get(row.year)!;
-  const key = `${row.sector}|||${row.ministry}`;
-  if (!entries.has(key)) {
-    entries.set(key, {
-      sector: row.sector,
-      ministry: row.ministry,
-      operating: 0,
-      development: 0,
-      estimateType: row.estimateType,
-    });
-  }
-  const entry = entries.get(key)!;
-  if (row.expType === "Operating") entry.operating += row.amount;
-  else if (row.expType === "Development") entry.development += row.amount;
-}
+const { rows, releases } = loadBudgets();
+const yearMap = groupBudgetYears(rows);
 
 const W = 1000;
 const H = 600;
-
-const sectorOrder = [
-  "Social Development",
-  "Security and External Relations",
-  "Economic Development",
-  "Government Administration",
-];
 
 interface MinistryCell {
   name: string;
@@ -390,127 +286,7 @@ const topMinistryAccent = topMinistryChange
   ? sectorAccentColors[topMinistryChange.sector] || "#8d7c68"
   : "#8d7c68";
 
-const policySpotlights = [
-  {
-    pillar: "Businesses",
-    tone: "Tax and innovation",
-    items: [
-      "40% corporate income tax rebate for YA2026.",
-      "S$37B for frontier technologies under RIE2030.",
-      "Startup SG Equity enhancements, including S$1B investment.",
-      "250% tax deduction for eligible donations extended to end-2029.",
-    ],
-    links: [
-      {
-        label:
-          "Official: Advancing Our Economic Strategy (Budget 2026 factsheet)",
-        href: "https://isomer-user-content.by.gov.sg/34/51b2ffad-8dff-4469-af71-00c2a008a5b2/Advancing%20our%20Economic%20Strategy.pdf",
-      },
-      {
-        label: "CNA: S$1 billion boost for Startup SG Equity",
-        href: "https://www.channelnewsasia.com/singapore/budget-2026-tech-startups-1-billion-boost-growth-stage-companies-5925796",
-      },
-      {
-        label: "CNA: RIE2030 S$37 billion investment",
-        href: "https://www.channelnewsasia.com/singapore/national-research-foundation-research-innovation-enterprise-rie-2030-37-billion-5537496",
-      },
-    ],
-  },
-  {
-    pillar: "Workers and talent",
-    tone: "Skills and labour policy",
-    items: [
-      "National AI Missions and a new National AI Council.",
-      "Redesigned SkillsFuture with six months of free premium AI tools.",
-      "Higher qualifying salaries for EP and S Pass holders.",
-      "Higher work permit levies for selected sectors.",
-    ],
-    links: [
-      {
-        label:
-          "Official: Harnessing AI as a Strategic Advantage (Budget 2026 factsheet)",
-        href: "https://isomer-user-content.by.gov.sg/34/16e9696a-7c39-4846-8c9a-2fd0e1ea2cbb/Harnessing%20AI.pdf",
-      },
-      {
-        label: "CNA: National AI Council and AI Missions",
-        href: "https://www.channelnewsasia.com/singapore/budget-2026-national-artificial-intelligence-council-ai-lawrence-wong-5925886",
-      },
-      {
-        label: "CNA: Free premium AI tools via selected courses",
-        href: "https://www.channelnewsasia.com/singapore/budget-2026-free-ai-subscription-training-courses-skillsfuture-5925621",
-      },
-      {
-        label: "CNA: EP and S Pass qualifying salary increases",
-        href: "https://www.channelnewsasia.com/singapore/budget-2026-foreign-workers-employment-pass-qualifying-salary-lower-wage-workers-5925671",
-      },
-    ],
-  },
-  {
-    pillar: "Households",
-    tone: "Support and transfers",
-    items: [
-      "S$500 extra Child LifeSG credits per Singaporean child aged 12 and below.",
-      "Additional ComLink+ payouts for eligible low-income families.",
-      "S$200-S$400 cash payouts, up to S$570 U-Save, and S$500 CDC vouchers.",
-      "Up to S$1,500 CPF top-up for eligible Singaporeans aged 50 and above.",
-    ],
-    links: [
-      {
-        label: "Official: Support for Singaporeans (Budget 2026 factsheet)",
-        href: "https://isomer-user-content.by.gov.sg/34/2dcfc177-c79f-47d9-a1ae-b2b5441bcd5c/Support%20for%20Singaporeans.pdf",
-      },
-      {
-        label:
-          "Official: Supporting Families with Children (Budget 2026 factsheet)",
-        href: "https://isomer-user-content.by.gov.sg/34/6fed8368-47ef-4de6-8313-5941a2a9a8a9/Supporting%20Singaporeans%20%26%20Families%20with%20Children.pdf",
-      },
-      {
-        label: "CNA: Cost-of-living cash, U-Save and CDC vouchers",
-        href: "https://www.channelnewsasia.com/singapore/budget-2026-cost-living-payout-cdc-vouchers-5925606",
-      },
-      {
-        label: "CNA: Additional S$500 Child LifeSG credits",
-        href: "https://www.channelnewsasia.com/singapore/child-lifesg-credits-budget-2026-age-5925746",
-      },
-      {
-        label: "CNA: New CPF life-cycle investment scheme",
-        href: "https://www.channelnewsasia.com/singapore/budget-2026-cpf-life-cycle-investment-retirement-5925641",
-      },
-    ],
-  },
-  {
-    pillar: "Other notable shifts",
-    tone: "Fiscal signals",
-    items: [
-      "Defence spending remains around 3% of GDP, with room to rise if needed.",
-      "Lower vehicle PARF rebates.",
-      "Higher tobacco excise duty.",
-      "New CPF investment scheme announced.",
-    ],
-    links: [
-      {
-        label: "Official: Budget 2026 overview page",
-        href: "https://www.gov.sg/budget2026/",
-      },
-      {
-        label: "CNA: Defence spending around 3% of GDP",
-        href: "https://www.channelnewsasia.com/singapore/defence-security-spending-cybersecurity-budget-2026-5925711",
-      },
-      {
-        label: "CNA: Tobacco excise duty increase",
-        href: "https://www.channelnewsasia.com/singapore/budget-2026-tobacco-cigarettes-duty-tax-smoking-5925896",
-      },
-      {
-        label: "CNA: Donations tax deduction extension to end-2029",
-        href: "https://www.channelnewsasia.com/singapore/sg-partnerships-fund-charities-donations-budget-2026-5925911",
-      },
-      {
-        label: "CNA: 7 key measures (includes PARF rebate changes)",
-        href: "https://www.channelnewsasia.com/singapore/budget-2026-seven-things-you-need-know-5925866",
-      },
-    ],
-  },
-];
+
 ---
 
 <Layout
@@ -540,6 +316,10 @@ const policySpotlights = [
       <h2 class="font-masthead text-2xl text-ink tracking-tight leading-none">
         Largest Ministry Shifts
       </h2>
+      <p class="font-sans text-xs text-ink-muted mt-2">
+        Comparing {latestData.estimateType} FY{latestYear} with {previousData?.estimateType} FY{previousYear}.
+        Figures show allocations within each sector; a ministry can appear in more than one sector.
+      </p>
     </div>
     <div
       class="budget-ministry-shifts-table border border-border overflow-x-auto"
@@ -603,10 +383,19 @@ const policySpotlights = [
     </div>
   </section>
 
-  <p class="font-sans text-xs text-ink-muted mt-4">
-    Source: Singapore Government Total Expenditure, data.gov.sg. Amounts in S$
-    millions.
-  </p>
+  <div class="font-sans text-xs text-ink-muted mt-4 space-y-2">
+    <p>Operating and development expenditure in S$ millions. Other fund outlays and special transfers are excluded.
+      Rounded components may not add to published totals; source dashes contribute nothing to chart totals.</p>
+    {releases.map(release => (
+      <p>
+        {release.sourceUrl ? <a href={release.sourceUrl} class="underline">{release.title}</a> : release.title}.
+        {release.publishedAt ? ` Published ${release.publishedAt}.` : " Original publication and retrieval dates unavailable."}
+        {release.reviewedAt ? ` Checked ${release.reviewedAt}.` : " Historical figures retained without a fresh source review."}
+      </p>
+    ))}
+    <p>Ministry functions and sector classifications can change over time. FY2024 is actual expenditure,
+      FY2025 is revised, and FY2026 is estimated; budget passage does not make estimates actual spending.</p>
+  </div>
 </Layout>
 
 <style is:global>

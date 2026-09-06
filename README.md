@@ -31,6 +31,16 @@ Data is fetched from the Hansard API, processed, and then inserted into the data
 
 Note that the script only works for Hansard data for sittings from ~2012 onwards, as earlier sittings have their data stored in a different format. Additionally, after ingesting the data, we performed several [manual modifications](python/README.md#manual-changes) to our database to correct some errors in the Hansard API.
 
+## Data provenance
+
+Budget charts use reviewed, version-controlled releases rather than the loose working CSVs.
+FY2024 actual, FY2025 revised and FY2026 estimated expenditure were checked against MOF's
+Budget 2026 tables. Historical data retains its original values and is labelled as not freshly
+reviewed. See [budget sources and reconciliation](docs/data-sources.md).
+
+New summaries record model, prompt version, input hash and attempt status. Existing summaries
+are preserved by default; regeneration is explicit. See [summary review commands](python/README.md#summary-provenance-and-review).
+
 ## Setup
 If you wish to replicate Second Reading independently, you can follow the steps below.
 1.  **Clone the repository**

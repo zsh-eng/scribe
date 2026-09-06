@@ -1,0 +1,171 @@
+{
+  "id": "mof-budget-2026",
+  "title": "MOF Analysis of Revenue and Expenditure FY2026",
+  "sourceUrl": "https://isomer-user-content.by.gov.sg/153/b25a4bb9-db1b-428d-ab48-4528e0ee0d37/fy2026_analysis_of_revenue_and_expenditure_2026.pdf",
+  "publishedAt": "2026-02-12",
+  "reviewedAt": "2026-09-06",
+  "sourceSha256": "9e26d6b489add446e206b8df0e882039eac14fb3775ca5ff7d8987418c556561",
+  "tables": {
+    "operating": "Table 3.4, page 29",
+    "development": "Table 3.5, page 30"
+  },
+  "notes": [
+    "Operating and development expenditure only; excludes other fund outlays and special transfers.",
+    "Null preserves a dash in the source; excluded from sums. Figures are rounded to S$ millions.",
+    "Manpower and MDDI allocations span sectors; Organs of State is kept as the published aggregate."
+  ],
+  "controls": [
+    {
+      "year": 2024,
+      "sector": "Total",
+      "operating": 88896,
+      "development": 23385
+    },
+    {
+      "year": 2025,
+      "sector": "Total",
+      "operating": 97468,
+      "development": 26991
+    },
+    {
+      "year": 2026,
+      "sector": "Total",
+      "operating": 103269,
+      "development": 34054
+    },
+    {
+      "year": 2024,
+      "sector": "Social Development",
+      "operating": 51425,
+      "development": 4285
+    },
+    {
+      "year": 2025,
+      "sector": "Social Development",
+      "operating": 55143,
+      "development": 5877
+    },
+    {
+      "year": 2026,
+      "sector": "Social Development",
+      "operating": 58904,
+      "development": 6906
+    },
+    {
+      "year": 2024,
+      "sector": "Security and External Relations",
+      "operating": 27939,
+      "development": 1859
+    },
+    {
+      "year": 2025,
+      "sector": "Security and External Relations",
+      "operating": 31117,
+      "development": 2573
+    },
+    {
+      "year": 2026,
+      "sector": "Security and External Relations",
+      "operating": 33145,
+      "development": 4128
+    },
+    {
+      "year": 2024,
+      "sector": "Economic Development",
+      "operating": 6175,
+      "development": 16618
+    },
+    {
+      "year": 2025,
+      "sector": "Economic Development",
+      "operating": 6932,
+      "development": 18167
+    },
+    {
+      "year": 2026,
+      "sector": "Economic Development",
+      "operating": 7242,
+      "development": 22507
+    },
+    {
+      "year": 2024,
+      "sector": "Government Administration",
+      "operating": 3356,
+      "development": 623
+    },
+    {
+      "year": 2025,
+      "sector": "Government Administration",
+      "operating": 4276,
+      "development": 374
+    },
+    {
+      "year": 2026,
+      "sector": "Government Administration",
+      "operating": 3977,
+      "development": 514
+    }
+  ],
+  "rows": [
+    {"year": 2024, "estimateType": "Actual", "sector": "Social Development", "ministry": "Health", "operating": 16860, "development": 1365},
+    {"year": 2025, "estimateType": "Revised", "sector": "Social Development", "ministry": "Health", "operating": 18490, "development": 1886},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Social Development", "ministry": "Health", "operating": 20035, "development": 2468},
+    {"year": 2024, "estimateType": "Actual", "sector": "Social Development", "ministry": "Education", "operating": 13987, "development": 443},
+    {"year": 2025, "estimateType": "Revised", "sector": "Social Development", "ministry": "Education", "operating": 14402, "development": 723},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Social Development", "ministry": "Education", "operating": 15265, "development": 1185},
+    {"year": 2024, "estimateType": "Actual", "sector": "Social Development", "ministry": "National Development", "operating": 8585, "development": 1280},
+    {"year": 2025, "estimateType": "Revised", "sector": "Social Development", "ministry": "National Development", "operating": 8275, "development": 1034},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Social Development", "ministry": "National Development", "operating": 8640, "development": 1447},
+    {"year": 2024, "estimateType": "Actual", "sector": "Social Development", "ministry": "Social and Family Development", "operating": 4421, "development": 113},
+    {"year": 2025, "estimateType": "Revised", "sector": "Social Development", "ministry": "Social and Family Development", "operating": 5231, "development": 240},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Social Development", "ministry": "Social and Family Development", "operating": 5812, "development": 260},
+    {"year": 2024, "estimateType": "Actual", "sector": "Social Development", "ministry": "Sustainability and the Environment", "operating": 2727, "development": 576},
+    {"year": 2025, "estimateType": "Revised", "sector": "Social Development", "ministry": "Sustainability and the Environment", "operating": 2723, "development": 1484},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Social Development", "ministry": "Sustainability and the Environment", "operating": 2891, "development": 802},
+    {"year": 2024, "estimateType": "Actual", "sector": "Social Development", "ministry": "Culture, Community and Youth", "operating": 2072, "development": 485},
+    {"year": 2025, "estimateType": "Revised", "sector": "Social Development", "ministry": "Culture, Community and Youth", "operating": 2245, "development": 466},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Social Development", "ministry": "Culture, Community and Youth", "operating": 2408, "development": 678},
+    {"year": 2024, "estimateType": "Actual", "sector": "Social Development", "ministry": "Manpower", "operating": 1864, "development": null},
+    {"year": 2025, "estimateType": "Revised", "sector": "Social Development", "ministry": "Manpower", "operating": 2732, "development": 0},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Social Development", "ministry": "Manpower", "operating": 2653, "development": null},
+    {"year": 2024, "estimateType": "Actual", "sector": "Social Development", "ministry": "Digital Development and Information", "operating": 909, "development": 24},
+    {"year": 2025, "estimateType": "Revised", "sector": "Social Development", "ministry": "Digital Development and Information", "operating": 1046, "development": 43},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Social Development", "ministry": "Digital Development and Information", "operating": 1201, "development": 66},
+    {"year": 2024, "estimateType": "Actual", "sector": "Security and External Relations", "ministry": "Defence", "operating": 19845, "development": 965},
+    {"year": 2025, "estimateType": "Revised", "sector": "Security and External Relations", "ministry": "Defence", "operating": 22077, "development": 1363},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Security and External Relations", "ministry": "Defence", "operating": 23315, "development": 1619},
+    {"year": 2024, "estimateType": "Actual", "sector": "Security and External Relations", "ministry": "Home Affairs", "operating": 7577, "development": 877},
+    {"year": 2025, "estimateType": "Revised", "sector": "Security and External Relations", "ministry": "Home Affairs", "operating": 8490, "development": 1173},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Security and External Relations", "ministry": "Home Affairs", "operating": 9232, "development": 2462},
+    {"year": 2024, "estimateType": "Actual", "sector": "Security and External Relations", "ministry": "Foreign Affairs", "operating": 518, "development": 16},
+    {"year": 2025, "estimateType": "Revised", "sector": "Security and External Relations", "ministry": "Foreign Affairs", "operating": 550, "development": 36},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Security and External Relations", "ministry": "Foreign Affairs", "operating": 598, "development": 47},
+    {"year": 2024, "estimateType": "Actual", "sector": "Economic Development", "ministry": "Transport", "operating": 2503, "development": 12125},
+    {"year": 2025, "estimateType": "Revised", "sector": "Economic Development", "ministry": "Transport", "operating": 2929, "development": 13004},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Economic Development", "ministry": "Transport", "operating": 3109, "development": 13040},
+    {"year": 2024, "estimateType": "Actual", "sector": "Economic Development", "ministry": "Trade and Industry", "operating": 1579, "development": 4246},
+    {"year": 2025, "estimateType": "Revised", "sector": "Economic Development", "ministry": "Trade and Industry", "operating": 1664, "development": 4924},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Economic Development", "ministry": "Trade and Industry", "operating": 1862, "development": 9242},
+    {"year": 2024, "estimateType": "Actual", "sector": "Economic Development", "ministry": "Manpower", "operating": 1103, "development": 118},
+    {"year": 2025, "estimateType": "Revised", "sector": "Economic Development", "ministry": "Manpower", "operating": 1200, "development": 141},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Economic Development", "ministry": "Manpower", "operating": 1268, "development": 179},
+    {"year": 2024, "estimateType": "Actual", "sector": "Economic Development", "ministry": "Digital Development and Information", "operating": 989, "development": 128},
+    {"year": 2025, "estimateType": "Revised", "sector": "Economic Development", "ministry": "Digital Development and Information", "operating": 1139, "development": 99},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Economic Development", "ministry": "Digital Development and Information", "operating": 1003, "development": 46},
+    {"year": 2024, "estimateType": "Actual", "sector": "Government Administration", "ministry": "Finance", "operating": 1222, "development": 55},
+    {"year": 2025, "estimateType": "Revised", "sector": "Government Administration", "ministry": "Finance", "operating": 1374, "development": 107},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Government Administration", "ministry": "Finance", "operating": 1252, "development": 69},
+    {"year": 2024, "estimateType": "Actual", "sector": "Government Administration", "ministry": "Organs of State", "operating": 726, "development": 57},
+    {"year": 2025, "estimateType": "Revised", "sector": "Government Administration", "ministry": "Organs of State", "operating": 795, "development": 31},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Government Administration", "ministry": "Organs of State", "operating": 855, "development": 28},
+    {"year": 2024, "estimateType": "Actual", "sector": "Government Administration", "ministry": "Prime Minister's Office", "operating": 545, "development": 47},
+    {"year": 2025, "estimateType": "Revised", "sector": "Government Administration", "ministry": "Prime Minister's Office", "operating": 1084, "development": 95},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Government Administration", "ministry": "Prime Minister's Office", "operating": 717, "development": 124},
+    {"year": 2024, "estimateType": "Actual", "sector": "Government Administration", "ministry": "Digital Development and Information", "operating": 591, "development": 96},
+    {"year": 2025, "estimateType": "Revised", "sector": "Government Administration", "ministry": "Digital Development and Information", "operating": 708, "development": 5},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Government Administration", "ministry": "Digital Development and Information", "operating": 781, "development": 7},
+    {"year": 2024, "estimateType": "Actual", "sector": "Government Administration", "ministry": "Law", "operating": 273, "development": 367},
+    {"year": 2025, "estimateType": "Revised", "sector": "Government Administration", "ministry": "Law", "operating": 315, "development": 136},
+    {"year": 2026, "estimateType": "Estimated", "sector": "Government Administration", "ministry": "Law", "operating": 372, "development": 287}
+  ]
+}
