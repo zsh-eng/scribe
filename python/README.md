@@ -69,6 +69,49 @@ uv run generate_summaries_sqlite.py --members
 uv run generate_summaries_sqlite.py --sittings 12-01-2026 --only-blank
 ```
 
+## Reruns and offline replay
+
+Each sitting is imported in one SQLite transaction. Replaying a sitting preserves its IDs,
+bill links and summaries. Merged transcript sections retain all Hansard source IDs in
+`section_sources`; existing databases gain this table on the next `init_db()` call.
+
+Existing titles, categories, types and ministry assignments are treated as curated metadata
+and preserved. Transcript bodies, order, speakers and attendance refresh from the source.
+Changed transcripts retain their old summaries pending explicit review; this phase does not
+add automatic regeneration or model/prompt versioning.
+
+Ambiguous matches, removed sections or splits of an existing merged section abort and roll
+back the sitting. Resolve those cases explicitly; `cleanup_duplicates_sqlite.py` remains a
+manual repair tool, not a daily pipeline step. No historical duplicates are silently removed.
+
+Fetched JSON is stored by date and SHA-256 under `data/raw/hansard/`, with source URL and
+retrieval time in a companion `.meta.json`. HTTP failures raise after bounded retries;
+invalid payloads raise instead of being treated as a day without a sitting. The date loop
+stops on failure, so later dates cannot advance the watermark past that failure.
+
+Replay a saved response without network access (use the response file, not `.meta.json`):
+
+```bash
+uv run batch_process_sqlite.py 05-08-2026 --source-file /absolute/path/to/response.json
+```
+
+Set `PARLIAMENT_DB_PATH` to an absolute path to use a scratch database. Raw snapshots default
+to `raw/hansard/` beside that database; `HANSARD_RAW_DIR` can override their location.
+Database write helpers do not commit: callers must use `with db.get_connection():`.
+
+## Regression tests
+
+From the repository root:
+
+```bash
+cd python
+uv run python -m unittest discover -s tests -v
+```
+
+Tests use synthetic Hansard fixtures, temporary databases, and mocked build/deploy commands.
+They exercise replay, legacy adoption, rollback, bill matching and publication recovery;
+they do not call Hansard, Gemini or Cloudflare.
+
 ## Supporting Modules
 
 | File | Description |
@@ -78,6 +121,7 @@ uv run generate_summaries_sqlite.py --sittings 12-01-2026 --only-blank
 | `parliament_sitting.py` | Parsing and structuring of sitting data |
 | `prompts.py` | Prompt templates for AI summary generation |
 | `util.py` | Shared utility functions |
+| `publication.py` | Fingerprint frontend inputs and record successful publication |
 
 ## Manual changes
 Below are the manual changes that were made post-ingestion.

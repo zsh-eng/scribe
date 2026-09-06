@@ -1,6 +1,7 @@
 """
 SQLite database module for Parliament Summarizer.
 Synchronous operations using Python's built-in sqlite3.
+Write helpers never commit; callers own the transaction.
 """
 import os
 import sqlite3
@@ -88,7 +89,6 @@ def find_or_create_member(name: str) -> str:
         'INSERT INTO members (id, name) VALUES (?, ?)',
         (member_id, name)
     )
-    conn.commit()
     return member_id
 
 
@@ -113,17 +113,24 @@ def create_bill(title: str, ministry_id: str = None,
     cursor = conn.cursor()
 
     title = title.strip()
+    existing = conn.execute(
+        'SELECT id FROM bills WHERE title = ? AND first_reading_sitting_id = ?',
+        (title, first_reading_sitting_id),
+    ).fetchall()
+    if len(existing) > 1:
+        raise ValueError(f"Ambiguous first reading: {title}; reconcile existing bills first")
+    if existing:
+        return existing[0]['id']
     bill_id = generate_id()
     cursor.execute(
         '''INSERT INTO bills (id, title, ministry_id, first_reading_date, first_reading_sitting_id)
            VALUES (?, ?, ?, ?, ?)''',
         (bill_id, title, ministry_id, parse_date(first_reading_date), first_reading_sitting_id)
     )
-    conn.commit()
     return bill_id
 
 
-def find_bill_for_second_reading(title: str, ministry_id: str = None) -> str:
+def find_bill_for_second_reading(title: str, ministry_id: str = None, reading_date: str = None) -> str:
     """Find the most recent bill with this title for a BP (second reading) section.
     Returns the bill with the latest first_reading_date, or creates one if none exists."""
     conn = get_connection()
@@ -131,11 +138,15 @@ def find_bill_for_second_reading(title: str, ministry_id: str = None) -> str:
 
     title = title.strip()
     cursor.execute(
-        '''SELECT id FROM bills WHERE title = ?
-           ORDER BY first_reading_date DESC LIMIT 1''',
-        (title,)
+        '''SELECT id, first_reading_date FROM bills WHERE title = ?
+           AND (first_reading_date IS NULL OR first_reading_date <= ?)
+           ORDER BY first_reading_date DESC, id LIMIT 2''',
+        (title, parse_date(reading_date) or '9999-12-31')
     )
-    row = cursor.fetchone()
+    rows = cursor.fetchall()
+    if len(rows) > 1 and rows[0]['first_reading_date'] == rows[1]['first_reading_date']:
+        raise ValueError(f"Ambiguous bill reading: {title}; reconcile existing bills first")
+    row = rows[0] if rows else None
 
     if row:
         bill_id = row['id']
@@ -145,7 +156,6 @@ def find_bill_for_second_reading(title: str, ministry_id: str = None) -> str:
                 'UPDATE bills SET ministry_id = ? WHERE id = ? AND ministry_id IS NULL',
                 (ministry_id, bill_id)
             )
-            conn.commit()
         return bill_id
 
     # No bill found — create one (BP without a preceding BI)
@@ -155,7 +165,6 @@ def find_bill_for_second_reading(title: str, ministry_id: str = None) -> str:
            VALUES (?, ?, ?)''',
         (bill_id, title, ministry_id)
     )
-    conn.commit()
     return bill_id
 
 
@@ -190,7 +199,6 @@ def create_or_update_sitting(date_str: str, sitting_no: int = None,
             (sitting_id, iso_date, sitting_no, parliament, session_no, volume_no, format_type, url)
         )
 
-    conn.commit()
     return sitting_id
 
 
@@ -209,27 +217,76 @@ def add_sitting_attendance(sitting_id: str, member_id: str, present: bool = True
            designation = excluded.designation''',
         (sitting_id, member_id, 1 if present else 0, constituency, designation)
     )
-    conn.commit()
+
+
+def find_existing_section(sitting_id, section):
+    """Match source IDs first; adopt legacy rows without changing public IDs.
+
+    Multiple matches are a data reconciliation problem, never a dedupe decision.
+    """
+    conn = get_connection()
+    candidates = set()
+    for source_id in section.get('source_ids', []):
+        rows = conn.execute(
+            'SELECT section_id FROM section_sources WHERE sitting_id = ? AND source_id = ?',
+            (sitting_id, source_id),
+        ).fetchall()
+        candidates.update(row[0] for row in rows)
+        # Older rows only stored the first source URL of a merged section.
+        rows = conn.execute(
+            'SELECT id FROM sections WHERE sitting_id = ? AND source_url = ?',
+            (sitting_id, f'https://sprs.parl.gov.sg/search/sprs3topic?reportid={source_id}'),
+        ).fetchall()
+        candidates.update(row[0] for row in rows)
+    if not candidates:
+        rows = conn.execute(
+            """SELECT id FROM sections WHERE sitting_id = ?
+               AND section_title = ? AND section_type = ?
+               AND NOT EXISTS (SELECT 1 FROM section_sources WHERE section_id = sections.id)""",
+            (sitting_id, section['title'], section['section_type']),
+        ).fetchall()
+        candidates.update(row[0] for row in rows)
+    if len(candidates) > 1:
+        raise ValueError(f"Ambiguous existing section: {section['title']}; reconcile before reimporting")
+    if candidates:
+        return conn.execute('SELECT * FROM sections WHERE id = ?', (candidates.pop(),)).fetchone()
+    return None
 
 
 def create_section(sitting_id: str, category: str, section_type: str,
                    title: str, content_html: str, content_plain: str,
                    section_order: int, source_url: str = None,
-                   ministry_id: str = None, bill_id: str = None) -> str:
-    """Create a new section. Returns section ID."""
-    conn = get_connection()
-    cursor = conn.cursor()
+                   ministry_id: str = None, bill_id: str = None,
+                   existing=None, source_ids=()) -> str:
+    """Upsert transcript data within the caller's sitting transaction.
 
-    section_id = generate_id()
-    cursor.execute(
-        '''INSERT INTO sections
-           (id, sitting_id, ministry_id, bill_id, category, section_type,
-            section_title, content_html, content_plain, section_order, source_url)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
-        (section_id, sitting_id, ministry_id, bill_id, category, section_type,
-         title, content_html, content_plain, section_order, source_url)
-    )
-    conn.commit()
+    Preserve curated titles, classifications, bill links and summaries on replay.
+    Source corrections to those fields require explicit review.
+    """
+    conn = get_connection()
+    section_id = existing['id'] if existing is not None else generate_id()
+    if existing is not None:
+        conn.execute(
+            """UPDATE sections SET content_html = ?, content_plain = ?,
+               section_order = ?, source_url = ? WHERE id = ?""",
+            (content_html, content_plain, section_order, source_url, section_id),
+        )
+        conn.execute('DELETE FROM section_speakers WHERE section_id = ?', (section_id,))
+        conn.execute('DELETE FROM section_sources WHERE section_id = ?', (section_id,))
+    else:
+        conn.execute(
+            """INSERT INTO sections
+               (id, sitting_id, ministry_id, bill_id, category, section_type,
+                section_title, content_html, content_plain, section_order, source_url)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (section_id, sitting_id, ministry_id, bill_id, category, section_type,
+             title, content_html, content_plain, section_order, source_url),
+        )
+    for source_id in set(source_ids):
+        conn.execute(
+            'INSERT INTO section_sources (sitting_id, source_id, section_id) VALUES (?, ?, ?)',
+            (sitting_id, source_id, section_id),
+        )
     return section_id
 
 
@@ -245,7 +302,6 @@ def add_section_speaker(section_id: str, member_id: str,
            ON CONFLICT (section_id, member_id) DO NOTHING''',
         (section_id, member_id, constituency, designation)
     )
-    conn.commit()
 
 
 def get_sitting_count() -> int:

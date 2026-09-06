@@ -84,14 +84,15 @@ If you wish to replicate Second Reading independently, you can follow the steps 
 ## Daily Automation (macOS launchd + caffeinate)
 
 The repository includes:
-- `scripts/daily_pipeline.sh` (daily ingest + dedupe + summaries + change-gated build/deploy)
+- `scripts/daily_pipeline.sh` (daily ingest + summaries + publication recovery)
 - `launchd/com.secondreading.daily.plist` (LaunchAgent template scheduled for 13:00 Asia/Singapore)
 
 ### Script defaults
 - Date window: latest ingested sitting date in DB + 1 day, through `today` (`DD-MM-YYYY`, Asia/Singapore)
   - If no sittings exist in DB yet, fallback window is `today-2` to `today`
-- Pipeline order: ingest -> dedupe (`--keep-newest`) -> sitting summaries (`--only-blank`)
-- Deploy policy: only when semantic data digest changes, and only on clean `main` git state
+- Pipeline order: atomic sitting imports -> sitting summaries (`--only-blank`) -> publication check
+- Deploy policy: compare all published inputs with the last successful publication; deploy only on clean `main`
+- HTTP or parsing failures stop ingestion before later dates can advance the latest-sitting date. The next run retries the same window; no separate retry queue is maintained.
 
 ### Script options
 ```bash
@@ -102,14 +103,34 @@ scripts/daily_pipeline.sh \
   [--skip-summaries] \
   [--skip-deploy] \
   [--force-deploy] \
+  [--publish-only] \
   [--dry-run]
 ```
 `--lookback-days` overrides the incremental default and uses a recent window of `today-N` to `today`.
 
-### Current limitation
-- `batch_process_sqlite.py` is not fully idempotent for overlapping date re-ingestion. Re-running a date can create duplicate `sections` and `bills` rows.
-- `scripts/daily_pipeline.sh` now defaults to incremental non-overlapping ingestion (`max(sittings.date)+1` to `today`) to reduce this risk.
-- The dedupe step in the pipeline currently cleans duplicate sections only.
+### Reruns and recovery
+
+Imports preserve existing public IDs, curated classifications and summaries. Each sitting
+commits as one transaction. Ambiguous legacy duplicates or removed/split sections stop the
+import for review; the daily job no longer deletes duplicates automatically.
+
+Successful Hansard responses are retained under `data/raw/hansard/`. See
+[offline replay and import rules](python/README.md#reruns-and-offline-replay).
+
+Publication fingerprints cover all frontend database tables, Astro files and budget CSVs.
+The marker at `data/parliament.published.json` is written only after a successful build and
+deploy. Missing markers trigger one publication. Failed or skipped deployments remain pending,
+including when the latest sitting is already today. Keep the marker with its database backup.
+
+To retry publication without re-fetching or making LLM calls:
+
+```bash
+scripts/daily_pipeline.sh --publish-only
+```
+
+`PARLIAMENT_DB_PATH` selects the database for both Python and Astro; the publication marker
+is stored beside that database. Model changes do not trigger summary regeneration.
+Raw responses and publication state are local, ignored data; back them up with the database.
 
 ### Setup
 1. Sync dependencies and ensure deploy auth
@@ -145,11 +166,11 @@ scripts/daily_pipeline.sh \
 # Functional run without deployment
 /Users/admin/scribe/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --skip-deploy
 
-# Idempotency / change-gate check
+# Replay check (unchanged input preserves IDs and summaries)
 /Users/admin/scribe/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --skip-deploy
 
-# Force deployment path
-/Users/admin/scribe/scripts/daily_pipeline.sh --start-date 08-03-2026 --end-date 10-03-2026 --force-deploy
+# Retry publication independently
+/Users/admin/scribe/scripts/daily_pipeline.sh --publish-only
 
 # launchd checks
 plutil -lint /Users/admin/scribe/launchd/com.secondreading.daily.plist

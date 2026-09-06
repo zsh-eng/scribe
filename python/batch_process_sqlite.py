@@ -8,6 +8,8 @@ import sys
 from datetime import datetime, timedelta
 
 from db_sqlite import (
+    get_connection,
+    find_existing_section,
     add_section_speaker,
     add_sitting_attendance,
     close_connection,
@@ -161,8 +163,10 @@ def process_speaker(section_id, speaker):
     )
 
 
-def process_section(sitting_id, idx, section, date_str):
+def process_section(sitting_id, idx, section, date_str, existing=None):
     """Process a single section and its speakers."""
+    if existing is not None and existing['summary'] and existing['content_plain'] != section['content_plain']:
+        logger.warning("Transcript changed for %s; retaining existing summary for explicit review", existing['id'])
     # Adjournment motions are raised by individual MPs on any topic;
     # the answering minister is incidental, so skip ministry tagging.
     if section.get("category") == "adjournment_motion":
@@ -181,21 +185,22 @@ def process_section(sitting_id, idx, section, date_str):
             find_ministry_by_acronym(ministry_acronym) if ministry_acronym else None
         )
 
-    bill_id = None
+    bill_id = existing['bill_id'] if existing is not None else None
     section_type = section["section_type"]
 
     # Handle bill sections
-    if section_type == "BI":
+    if existing is None and section_type == "BI":
         bill_id = create_bill(
             title=section["title"],
             ministry_id=ministry_id,
             first_reading_date=date_str,
             first_reading_sitting_id=sitting_id,
         )
-    elif section_type == "BP":
+    elif existing is None and section_type == "BP":
         bill_id = find_bill_for_second_reading(
             title=section["title"],
             ministry_id=ministry_id,
+            reading_date=date_str,
         )
 
     # Create section
@@ -210,6 +215,8 @@ def process_section(sitting_id, idx, section, date_str):
         content_plain=section["content_plain"],
         section_order=section["order"],
         source_url=section.get("source_url"),
+        existing=existing,
+        source_ids=section.get("source_ids", []),
     )
 
     # Process speakers
@@ -231,7 +238,7 @@ def process_attendance(sitting_id, mp, present):
     )
 
 
-def ingest_sitting(date_str: str) -> str:
+def ingest_sitting(date_str: str, source_file=None) -> str | None:
     """
     Fetch and ingest a single sitting into SQLite.
     Returns sitting ID if successful, None otherwise.
@@ -240,7 +247,10 @@ def ingest_sitting(date_str: str) -> str:
 
     # Fetch from Hansard API
     api = HansardAPI()
-    parliament_sitting = api.fetch_by_date(date_str)
+    try:
+        parliament_sitting = api.read_source(date_str, source_file) if source_file else api.fetch_by_date(date_str)
+    finally:
+        api.session.close()
 
     if not parliament_sitting:
         logger.info(f"No data found for {date_str}")
@@ -256,67 +266,80 @@ def ingest_sitting(date_str: str) -> str:
     # Create sitting URL
     sitting_url = f"https://sprs.parl.gov.sg/search/#/fullreport?sittingdate={date_str}"
 
-    # Create/Update Sitting
-    sitting_id = create_or_update_sitting(
-        date_str=metadata.get("date"),
-        sitting_no=metadata.get("sitting_no"),
-        parliament=metadata.get("parliament"),
-        session_no=metadata.get("session_no"),
-        volume_no=metadata.get("volume_no"),
-        format_type=metadata.get("format"),
-        url=sitting_url,
-    )
-    logger.info(f"   Sitting ID: {sitting_id}")
+    conn = get_connection()
+    with conn:
+        # Create/Update Sitting
+        sitting_id = create_or_update_sitting(
+            date_str=metadata.get("date"),
+            sitting_no=metadata.get("sitting_no"),
+            parliament=metadata.get("parliament"),
+            session_no=metadata.get("session_no"),
+            volume_no=metadata.get("volume_no"),
+            format_type=metadata.get("format"),
+            url=sitting_url,
+        )
+        logger.info(f"   Sitting ID: {sitting_id}")
 
-    # Process attendance
-    attendance_count = 0
-    for mp in parliament_sitting.present_members:
-        process_attendance(sitting_id, mp, True)
-        attendance_count += 1
+        prior_ids = {row[0] for row in conn.execute('SELECT id FROM sections WHERE sitting_id = ?', (sitting_id,))}
+        conn.execute('DELETE FROM sitting_attendance WHERE sitting_id = ?', (sitting_id,))
 
-    for mp in parliament_sitting.absent_members:
-        process_attendance(sitting_id, mp, False)
-        attendance_count += 1
+        # Process attendance
+        attendance_count = 0
+        for mp in parliament_sitting.present_members:
+            process_attendance(sitting_id, mp, True)
+            attendance_count += 1
 
-    logger.info(f"   Saved attendance for {attendance_count} members")
+        for mp in parliament_sitting.absent_members:
+            process_attendance(sitting_id, mp, False)
+            attendance_count += 1
 
-    # Process sections — ensure BI (first readings) are processed before BP (second readings)
-    # so that bills exist before second reading sections try to find them (same-day case)
-    def section_sort_key(item):
-        idx, section = item
-        st = section.get("section_type", "")
-        if st == "BI":
-            return (0, idx)  # BI first
-        elif st == "BP":
-            return (2, idx)  # BP last
-        return (1, idx)      # everything else in between
+        logger.info(f"   Saved attendance for {attendance_count} members")
 
-    sorted_sections = sorted(enumerate(sections), key=section_sort_key)
+        # Process sections — ensure BI (first readings) are processed before BP (second readings)
+        # so that bills exist before second reading sections try to find them (same-day case)
+        def section_sort_key(item):
+            idx, section = item
+            st = section.get("section_type", "")
+            if st == "BI":
+                return (0, idx)  # BI first
+            elif st == "BP":
+                return (2, idx)  # BP last
+            return (1, idx)      # everything else in between
 
-    logger.info(f"   Processing {len(sections)} sections...")
-    section_ids = []
+        sorted_sections = sorted(enumerate(sections), key=section_sort_key)
+        # Resolve against the old mapping before any source IDs are replaced.
+        existing_sections = {idx: find_existing_section(sitting_id, section)
+                             for idx, section in sorted_sections}
 
-    for idx, section in sorted_sections:
-        section_id = process_section(sitting_id, idx, section, metadata.get("date"))
-        section_ids.append(section_id)
+        logger.info(f"   Processing {len(sections)} sections...")
+        section_ids = []
 
-        # Log progress every 10 sections
-        if (idx + 1) % 10 == 0:
-            logger.info(f"     Processed {idx + 1}/{len(sections)} sections")
+        for idx, section in sorted_sections:
+            section_id = process_section(sitting_id, idx, section, metadata.get("date"), existing_sections[idx])
+            if section_id in section_ids:
+                raise ValueError("Source sections now split an existing group; review before reimporting")
+            section_ids.append(section_id)
 
-    logger.info(f"   Processed {len(section_ids)} sections for {date_str}")
-    return sitting_id
+            # Log progress every 10 sections
+            if (idx + 1) % 10 == 0:
+                logger.info(f"     Processed {idx + 1}/{len(sections)} sections")
+
+        if prior_ids - set(section_ids):
+            raise ValueError("Existing sections are absent from the import; review source changes before reimporting")
+
+        logger.info(f"   Processed {len(section_ids)} sections for {date_str}")
+        return sitting_id
 
 
 def batch_process(start_date_str: str, end_date_str: str):
     """
     Process all sittings in a date range.
     """
-    # Initialize database
-    init_db()
-
     start_date = datetime.strptime(start_date_str, "%d-%m-%Y")
     end_date = datetime.strptime(end_date_str, "%d-%m-%Y")
+    if start_date > end_date:
+        raise ValueError("Start date must be on or before end date")
+    init_db()
 
     # Generate all dates in range
     dates = []
@@ -331,10 +354,14 @@ def batch_process(start_date_str: str, end_date_str: str):
 
     ingested_sittings = []
 
-    for date_str in dates:
-        sitting_id = ingest_sitting(date_str)
-        if sitting_id:
-            ingested_sittings.append(sitting_id)
+    try:
+        for date_str in dates:
+            sitting_id = ingest_sitting(date_str)
+            if sitting_id:
+                ingested_sittings.append(sitting_id)
+    except Exception:
+        close_connection()
+        raise
 
     # Print summary
     logger.info("\n" + "=" * 50)
@@ -361,27 +388,25 @@ def show_stats():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage: python batch_process_sqlite.py START_DATE [END_DATE]")
-        print("       python batch_process_sqlite.py --stats")
-        print("\nExamples:")
-        print("  python batch_process_sqlite.py 01-10-2024")
-        print("  python batch_process_sqlite.py 01-10-2024 31-10-2024")
-        print("  python batch_process_sqlite.py --stats")
-        sys.exit(1)
+    import argparse
 
-    if sys.argv[1] == "--stats":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('start_date', nargs='?')
+    parser.add_argument('end_date', nargs='?')
+    parser.add_argument('--stats', action='store_true')
+    parser.add_argument('--source-file', help='Replay a saved Hansard JSON response for one date')
+    args = parser.parse_args()
+    if args.stats:
         show_stats()
-        sys.exit(0)
-
-    args = sys.argv[1:]
-    dates = [arg for arg in args if not arg.startswith("--")]
-
-    if not dates:
-        print("Error: Start date required")
-        sys.exit(1)
-
-    start = dates[0]
-    end = dates[1] if len(dates) > 1 else start
-
-    batch_process(start, end)
+    elif not args.start_date:
+        parser.error('start_date is required')
+    elif args.source_file:
+        if args.end_date:
+            parser.error('--source-file accepts one date only')
+        init_db()
+        try:
+            ingest_sitting(args.start_date, args.source_file)
+        finally:
+            close_connection()
+    else:
+        batch_process(args.start_date, args.end_date or args.start_date)

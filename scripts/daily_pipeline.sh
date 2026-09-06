@@ -20,6 +20,8 @@ SKIP_SUMMARIES=0
 SKIP_DEPLOY=0
 FORCE_DEPLOY=0
 DRY_RUN=0
+PUBLISH_ONLY=0
+EMPTY_WINDOW=0
 DATE_WINDOW_MODE="manual"
 LATEST_SITTING_ISO=""
 
@@ -28,6 +30,8 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 PYTHON_DIR="${REPO_ROOT}/python"
 ASTRO_DIR="${REPO_ROOT}/astro"
 DB_PATH="${PARLIAMENT_DB_PATH:-${REPO_ROOT}/data/parliament.db}"
+[[ "${DB_PATH}" == /* ]] || DB_PATH="${REPO_ROOT}/${DB_PATH}"
+export PARLIAMENT_DB_PATH="${DB_PATH}"
 
 LOCK_BASE_DIR="${REPO_ROOT}/.locks"
 LOCK_DIR="${LOCK_BASE_DIR}/daily_pipeline.lock"
@@ -50,6 +54,7 @@ Options:
   --skip-summaries         Skip sitting summaries
   --skip-deploy            Skip Astro build/deploy even when data changed
   --force-deploy           Force Astro build/deploy regardless of data digest
+  --publish-only           Retry publication without ingestion or LLM calls
   --dry-run                Print commands without executing them
   -h, --help               Show this help text
 EOF
@@ -131,84 +136,18 @@ get_latest_sitting_iso() {
   printf '%s' "${latest}"
 }
 
-compute_digest() {
-  local db_path="$1"
-  local iso_start="$2"
-  local iso_end="$3"
-  local digest=""
-  local max_attempts=3
-  local attempt
+publication() {
+  (cd "${PYTHON_DIR}" && uv run publication.py "$@" --db "${DB_PATH}")
+}
 
-  if [[ ! -f "${db_path}" ]]; then
-    printf 'MISSING'
-    return 0
-  fi
-
-  for ((attempt = 1; attempt <= max_attempts; attempt++)); do
-    if digest="$(
-      sqlite3 "${db_path}" <<SQL | shasum -a 256 | awk '{print $1}'
-PRAGMA query_only = ON;
-.mode list
-.separator |
-SELECT 'sittings', s.id, s.date,
-       COALESCE(s.sitting_no, ''), COALESCE(s.parliament, ''), COALESCE(s.session_no, ''),
-       COALESCE(s.volume_no, ''), COALESCE(s.format, ''), COALESCE(s.url, '')
-FROM sittings s
-WHERE s.date >= '${iso_start}' AND s.date <= '${iso_end}'
-ORDER BY s.date, s.id;
-
-SELECT 'sections', sec.id, sec.sitting_id,
-       COALESCE(sec.ministry_id, ''), COALESCE(sec.bill_id, ''), COALESCE(sec.category, ''),
-       COALESCE(sec.section_type, ''), COALESCE(sec.section_title, ''), COALESCE(sec.content_html, ''),
-       COALESCE(sec.content_plain, ''), COALESCE(sec.section_order, ''), COALESCE(sec.source_url, ''),
-       COALESCE(sec.summary, '')
-FROM sections sec
-JOIN sittings s ON s.id = sec.sitting_id
-WHERE s.date >= '${iso_start}' AND s.date <= '${iso_end}'
-ORDER BY s.date, sec.section_order, sec.id;
-
-SELECT 'section_speakers', ss.section_id, ss.member_id,
-       COALESCE(ss.constituency, ''), COALESCE(ss.designation, '')
-FROM section_speakers ss
-WHERE ss.section_id IN (
-  SELECT sec.id
-  FROM sections sec
-  JOIN sittings s ON s.id = sec.sitting_id
-  WHERE s.date >= '${iso_start}' AND s.date <= '${iso_end}'
-)
-ORDER BY ss.section_id, ss.member_id;
-
-SELECT 'sitting_attendance', sa.sitting_id, sa.member_id, sa.present,
-       COALESCE(sa.constituency, ''), COALESCE(sa.designation, '')
-FROM sitting_attendance sa
-JOIN sittings s ON s.id = sa.sitting_id
-WHERE s.date >= '${iso_start}' AND s.date <= '${iso_end}'
-ORDER BY s.date, sa.member_id;
-
-SELECT 'bills', b.id, b.title,
-       COALESCE(b.ministry_id, ''), COALESCE(b.first_reading_date, ''),
-       COALESCE(b.first_reading_sitting_id, ''), COALESCE(b.summary, '')
-FROM bills b
-WHERE b.id IN (
-  SELECT DISTINCT sec.bill_id
-  FROM sections sec
-  JOIN sittings s ON s.id = sec.sitting_id
-  WHERE s.date >= '${iso_start}' AND s.date <= '${iso_end}' AND sec.bill_id IS NOT NULL
-)
-ORDER BY b.id;
-SQL
-    )"; then
-      printf '%s' "${digest}"
-      return 0
-    fi
-
-    if [[ "${attempt}" -lt "${max_attempts}" ]]; then
-      log "Digest query failed (attempt ${attempt}/${max_attempts}); retrying in 1s."
-      sleep 1
-    fi
-  done
-
-  return 1
+publish() {
+  git_is_deploy_safe || fail "Publication pending but git safety check failed."
+  run_in_dir "${ASTRO_DIR}" bun run build
+  local after_build
+  after_build="$(publication fingerprint)"
+  [[ "${after_build}" == "${CURRENT_DIGEST}" ]] || fail "Inputs changed during build; retry publication."
+  run_in_dir "${ASTRO_DIR}" bun run deploy
+  publication record --fingerprint "${CURRENT_DIGEST}"
 }
 
 git_is_deploy_safe() {
@@ -270,6 +209,10 @@ while [[ $# -gt 0 ]]; do
       FORCE_DEPLOY=1
       shift
       ;;
+    --publish-only)
+      PUBLISH_ONLY=1
+      shift
+      ;;
     --dry-run)
       DRY_RUN=1
       shift
@@ -325,9 +268,10 @@ ISO_END="$(to_iso_date "${END_DATE}" || true)"
 if [[ "${ISO_START}" > "${ISO_END}" ]]; then
   if [[ "${DATE_WINDOW_MODE}" == "incremental" && "${LATEST_SITTING_ISO}" == "${ISO_END}" ]]; then
     log "No new sittings to ingest. Latest ingested date is ${LATEST_SITTING_ISO}."
-    exit 0
+    EMPTY_WINDOW=1
+  else
+    fail "Start date must be <= end date (${START_DATE} > ${END_DATE})"
   fi
-  fail "Start date must be <= end date (${START_DATE} > ${END_DATE})"
 fi
 
 mkdir -p "${LOCK_BASE_DIR}"
@@ -343,7 +287,6 @@ require_cmd bun
 require_cmd node
 require_cmd git
 require_cmd sqlite3
-require_cmd shasum
 
 log "Starting daily pipeline."
 log "Repo root: ${REPO_ROOT}"
@@ -355,55 +298,31 @@ fi
 log "DB path: ${DB_PATH}"
 log "Flags: skip_summaries=${SKIP_SUMMARIES}, skip_deploy=${SKIP_DEPLOY}, force_deploy=${FORCE_DEPLOY}, dry_run=${DRY_RUN}"
 
-if [[ "${DRY_RUN}" -eq 1 ]]; then
-  PRE_DIGEST="dry-run"
+if [[ "${PUBLISH_ONLY}" -eq 0 && "${EMPTY_WINDOW}" -eq 0 ]]; then
+  run_in_dir "${PYTHON_DIR}" uv run batch_process_sqlite.py "${START_DATE}" "${END_DATE}"
+  if [[ "${SKIP_SUMMARIES}" -eq 0 ]]; then
+    run_in_dir "${PYTHON_DIR}" env -u GOOGLE_API_KEY -u GEMINI_API_KEY uv run generate_summaries_sqlite.py --sittings "${START_DATE}" "${END_DATE}" --only-blank
+  else
+    log "Skipping sitting summaries (--skip-summaries)."
+  fi
 else
-  PRE_DIGEST="$(compute_digest "${DB_PATH}" "${ISO_START}" "${ISO_END}")"
+  log "Skipping ingestion and summaries; checking pending publication."
 fi
-log "Pre-run digest: ${PRE_DIGEST}"
-
-run_in_dir "${PYTHON_DIR}" uv run batch_process_sqlite.py "${START_DATE}" "${END_DATE}"
-run_in_dir "${PYTHON_DIR}" uv run cleanup_duplicates_sqlite.py "${START_DATE}" "${END_DATE}" --keep-newest
-
-if [[ "${SKIP_SUMMARIES}" -eq 0 ]]; then
-  run_in_dir "${PYTHON_DIR}" env -u GOOGLE_API_KEY -u GEMINI_API_KEY uv run generate_summaries_sqlite.py --sittings "${START_DATE}" "${END_DATE}" --only-blank
-else
-  log "Skipping sitting summaries (--skip-summaries)."
-fi
-
-POST_DIGEST="${PRE_DIGEST}"
-if [[ "${DRY_RUN}" -eq 0 ]]; then
-  POST_DIGEST="$(compute_digest "${DB_PATH}" "${ISO_START}" "${ISO_END}")"
-fi
-log "Post-run digest: ${POST_DIGEST}"
-
-DATA_CHANGED=0
-if [[ "${PRE_DIGEST}" != "${POST_DIGEST}" ]]; then
-  DATA_CHANGED=1
-fi
-log "Data changed: ${DATA_CHANGED}"
 
 if [[ "${SKIP_DEPLOY}" -eq 1 ]]; then
-  DEPLOY_DECISION="skipped (--skip-deploy)"
-  log "Skipping deploy by flag."
+  DEPLOY_DECISION="skipped (--skip-deploy; publication state unchanged)"
 elif [[ "${DRY_RUN}" -eq 1 ]]; then
   DEPLOY_DECISION="dry-run (not executed)"
-  log "Dry run enabled: build/deploy not executed."
-elif [[ "${FORCE_DEPLOY}" -eq 1 ]]; then
-  if ! git_is_deploy_safe; then
-    fail "Force deploy requested but git safety check failed."
-  fi
-  run_in_dir "${ASTRO_DIR}" bun run build
-  run_in_dir "${ASTRO_DIR}" bun run deploy
-  DEPLOY_DECISION="forced deploy"
-elif [[ "${DATA_CHANGED}" -eq 1 ]]; then
-  if ! git_is_deploy_safe; then
-    fail "Data changed but git safety check failed."
-  fi
-  run_in_dir "${ASTRO_DIR}" bun run build
-  run_in_dir "${ASTRO_DIR}" bun run deploy
-  DEPLOY_DECISION="deployed (data changed)"
 else
-  DEPLOY_DECISION="skipped (no data changes)"
-  log "No semantic data change detected; skipping build/deploy."
+  CURRENT_DIGEST="$(publication fingerprint)"
+  PUBLISHED_DIGEST="$(publication last)"
+  log "Current input fingerprint: ${CURRENT_DIGEST}"
+  log "Last published fingerprint: ${PUBLISHED_DIGEST}"
+  if [[ "${FORCE_DEPLOY}" -eq 1 || "${CURRENT_DIGEST}" != "${PUBLISHED_DIGEST}" ]]; then
+    DEPLOY_DECISION="pending"
+    publish
+    DEPLOY_DECISION="deployed (publication state saved)"
+  else
+    DEPLOY_DECISION="skipped (inputs already published)"
+  fi
 fi

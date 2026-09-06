@@ -59,6 +59,7 @@ class ParliamentSitting:
         self._mp_name_index: Dict[str, MP] = {}  # Cache for name lookups
 
     def set_metadata(self, metadata: Dict):
+        self.metadata["format"] = metadata["format"]
         self.metadata["sitting_no"] = metadata["sitting_no"]
         self.metadata["parliament"] = metadata["parliament"]
         self.metadata["session_no"] = metadata["session_no"]
@@ -262,7 +263,7 @@ class ParliamentSitting:
             raw_speakers = self._extract_speakers_from_html(content_html)
             matched_speakers = []
             
-            for speaker_text in raw_speakers:
+            for speaker_text in sorted(raw_speakers):
                 mp = self.match_speaker(speaker_text)
                 if mp:
                     # Avoid duplicates and Speaker (who is not involved in PQs)
@@ -289,6 +290,8 @@ class ParliamentSitting:
             if existing_index is not None:
                 # Merge into existing section
                 existing_section = self.sections[existing_index]
+                if section_id is not None:
+                    existing_section['source_ids'].append(str(section_id))
                 existing_section['content_html'] += "<br><hr><br>" + content_display
                 existing_section['content_plain'] += "\n\n" + content_plain
                 
@@ -311,7 +314,8 @@ class ParliamentSitting:
                     "content_html": content_display,
                     "content_plain": content_plain,
                     "order": idx,
-                    "source_url": source_url
+                    "source_url": source_url,
+                    "source_ids": [str(section_id)] if section_id is not None else []
                 })
 
 

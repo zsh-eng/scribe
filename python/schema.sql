@@ -76,6 +76,15 @@ CREATE INDEX IF NOT EXISTS idx_sections_ministry ON sections(ministry_id);
 CREATE INDEX IF NOT EXISTS idx_sections_category ON sections(category);
 CREATE INDEX IF NOT EXISTS idx_sections_type ON sections(section_type);
 
+-- Source identity is separate from public IDs, including merged Hansard sections.
+CREATE TABLE IF NOT EXISTS section_sources (
+    sitting_id TEXT NOT NULL REFERENCES sittings(id) ON DELETE CASCADE,
+    source_id TEXT NOT NULL,
+    section_id TEXT NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
+    PRIMARY KEY (sitting_id, source_id)
+);
+CREATE INDEX IF NOT EXISTS idx_section_sources_section ON section_sources(section_id);
+
 -- Section speakers (junction: sections <-> members with time snapshot)
 CREATE TABLE IF NOT EXISTS section_speakers (
     section_id TEXT NOT NULL REFERENCES sections(id) ON DELETE CASCADE,

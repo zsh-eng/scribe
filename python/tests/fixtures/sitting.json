@@ -1,0 +1,13 @@
+{
+  "metadata": {"sittingDate": "05-08-2026", "sittingNO": 12, "parlimentNO": 15, "sessionNO": 1, "volumeNO": 96},
+  "attendanceList": [
+    {"attendance": true, "mpName": "Ms Jane Tan (Example), Minister for Finance"},
+    {"attendance": false, "mpName": "Mr John Lim (Example)"}
+  ],
+  "takesSectionVOList": [
+    {"sectionId": "debate-1", "sectionType": "BP", "title": "Example Bill", "content": "<p><strong>Ms Jane Tan:</strong> I move that the Bill be read a second time.</p>"},
+    {"sectionId": "question-1", "sectionType": "OA", "title": "Example Question", "content": "<p><strong>Ms Jane Tan:</strong> First part of the answer.</p>"},
+    {"sectionId": "intro-1", "sectionType": "BI", "title": "Example Bill", "content": "<p>The Example Bill was introduced.</p>"},
+    {"sectionId": "question-2", "sectionType": "OA", "title": "Example Question", "content": "<p><strong>Ms Jane Tan:</strong> Continuation of the answer.</p>"}
+  ]
+}
