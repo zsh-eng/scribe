@@ -177,8 +177,9 @@ class FetchTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'HANSARD_RAW_DIR': directory}):
             response = Mock()
             response.json.return_value = data
-            with patch.object(self.api.session, 'post', return_value=response):
+            with patch.object(self.api.session, 'post', return_value=response) as post:
                 fetched = self.api.fetch_by_date('05-08-2026')
+            post.assert_called_once_with(self.api.BASE_URL, json={'sittingDate': '05-08-2026'}, timeout=(10, 30))
             files = list(Path(directory).rglob('*.json'))
             self.assertEqual(2, len(files))
             source = next(f for f in files if not f.name.endswith('.meta.json'))

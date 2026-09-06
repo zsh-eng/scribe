@@ -26,7 +26,7 @@ class HansardAPI:
 
     def fetch_by_date(self, date_str: str) -> Optional[ParliamentSitting]:
         datetime.strptime(date_str, '%d-%m-%Y')
-        response = self.session.post(self.BASE_URL, params={'sittingDate': date_str}, timeout=(10, 30))
+        response = self.session.post(self.BASE_URL, json={'sittingDate': date_str}, timeout=(10, 30))
         response.raise_for_status()
         data = response.json()
         self.save_source(date_str, data)
