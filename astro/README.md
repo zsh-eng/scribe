@@ -21,10 +21,11 @@ Open [http://localhost:4321](http://localhost:4321) to view the app.
 
 Pagefind requires a production build to create the search index before it can be used in dev mode. Run `bun run build` at least once before `bun run dev`.
 
-## Deploy
+## Queries and deployment
 
-```sh
-wrangler login
-bun run build
-bun run deploy
-```
+Build-time SQL lives in `src/lib/queries/`, re-exported through `src/lib/db.ts`.
+Query result types are separate from the UI helpers in `src/lib/types.ts`.
+
+Use the [publication workflow](../docs/operations.md#reruns-and-recovery) from the repository
+root so successful deployments update the publication marker. `bun run deploy` is the
+low-level Wrangler command and does not update that marker.

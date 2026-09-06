@@ -1,16 +1,12 @@
 [project]
-name = "python"
+name = "second-reading-pipeline"
 version = "0.1.0"
-description = "Add your description here"
+description = "Hansard ingestion and summary generation for Second Reading"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "asyncpg>=0.31.0",
     "beautifulsoup4>=4.14.3",
     "google-genai>=1.64.0",
-    "groq>=1.0.0",
-    "openai>=1.0.0",
-    "psycopg2-binary>=2.9.11",
     "python-dotenv>=1.2.1",
     "requests>=2.32.5",
 ]

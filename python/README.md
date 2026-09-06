@@ -12,7 +12,7 @@ uv sync
 When a new sitting is added to the Hansard, we need to
 1. Ingest that sitting's transcript in our desired format using the Hansard API
 1. Generate summaries for the questions, bills, and motions in that sitting
-1. Update the summaries for the MPs' contributions based on any new involvements from this sitting
+1. Review MP summaries for changed inputs and explicitly select any replacements
 
 For example, if the sitting on 27 February 2026 has just been added, we would run
 ```bash
@@ -21,7 +21,8 @@ uv run generate_summaries_sqlite.py --sittings 27-02-2026
 uv run generate_summaries_sqlite.py --members
 ```
 
-These scripts are described in more detail below.
+These scripts are described below. See [architecture](../docs/architecture.md) for module
+boundaries and [operations](../docs/operations.md) for daily automation and verification.
 
 
 ## Main Scripts
