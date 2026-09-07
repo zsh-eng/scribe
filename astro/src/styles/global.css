@@ -619,6 +619,33 @@
     }
 }
 
+/* Keep focused links visible in a static, scrollable row. */
+.ticker-container:focus-within {
+    overflow-x: auto;
+}
+
+.ticker-container:focus-within .ticker {
+    animation: none;
+}
+
+.ticker-container:focus-within .ticker-content[aria-hidden="true"] {
+    display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ticker-container {
+        overflow-x: auto;
+    }
+
+    .ticker {
+        animation: none;
+    }
+
+    .ticker-content[aria-hidden="true"] {
+        display: none;
+    }
+}
+
 /* Newspaper footer */
 .newspaper-footer {
     display: flex;

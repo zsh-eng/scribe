@@ -76,6 +76,8 @@ const isActive = (href: string) =>
             id="mobile-menu-button"
             class="rounded-md p-2 text-ink-muted hover:bg-warm hover:text-ink md:hidden"
             aria-label="Toggle menu"
+            aria-controls="mobile-menu"
+            aria-expanded="false"
         >
             <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -140,7 +142,8 @@ const isActive = (href: string) =>
     const closeIcon = document.getElementById("close-icon");
 
     menuButton?.addEventListener("click", () => {
-        mobileMenu?.classList.toggle("hidden");
+        const isOpen = mobileMenu?.classList.toggle("hidden") === false;
+        menuButton.setAttribute("aria-expanded", String(isOpen));
         menuIcon?.classList.toggle("hidden");
         closeIcon?.classList.toggle("hidden");
     });

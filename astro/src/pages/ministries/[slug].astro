@@ -323,9 +323,18 @@ const mobileParliamentRows = [overallParliamentRow, ...parliamentRows];
     </div>
     <p
       id="ministry-search-status"
+      role="status"
+      aria-live="polite"
       class="mt-2 font-sans text-sm text-ink-muted hidden"
     >
     </p>
+    <button
+      type="button"
+      id="ministry-search-retry"
+      class="mt-2 font-sans text-sm text-accent underline hidden"
+    >
+      Retry search
+    </button>
   </div>
 
   <!-- Bills -->
@@ -644,6 +653,32 @@ const mobileParliamentRows = [overallParliamentRow, ...parliamentRows];
             if (!targetId) return;
             setActivePanel(targetId);
           });
+          button.addEventListener("keydown", (event) => {
+            const index = buttons.indexOf(button);
+            let nextIndex: number;
+            switch (event.key) {
+              case "ArrowRight":
+                nextIndex = (index + 1) % buttons.length;
+                break;
+              case "ArrowLeft":
+                nextIndex = (index - 1 + buttons.length) % buttons.length;
+                break;
+              case "Home":
+                nextIndex = 0;
+                break;
+              case "End":
+                nextIndex = buttons.length - 1;
+                break;
+              default:
+                return;
+            }
+            event.preventDefault();
+            const nextButton = buttons[nextIndex];
+            const targetId = nextButton.dataset.parliamentTarget;
+            if (!targetId) return;
+            setActivePanel(targetId);
+            nextButton.focus();
+          });
         }
 
         const initialTarget =
@@ -671,7 +706,10 @@ const mobileParliamentRows = [overallParliamentRow, ...parliamentRows];
       const status = document.getElementById(
         "ministry-search-status",
       ) as HTMLElement;
-      if (!input) return;
+      const retryBtn = document.getElementById(
+        "ministry-search-retry",
+      ) as HTMLButtonElement;
+      if (!input || !clearBtn || !status || !retryBtn) return;
       if (input.hasAttribute("data-search-initialized")) return;
       input.setAttribute("data-search-initialized", "true");
 
@@ -752,7 +790,9 @@ const mobileParliamentRows = [overallParliamentRow, ...parliamentRows];
       }
 
       async function performSearch(query: string) {
+        clearTimeout(debounceTimer);
         const seq = ++searchSeq;
+        retryBtn.classList.add("hidden");
         const lowerQuery = query.toLowerCase().trim();
 
         if (!lowerQuery) {
@@ -776,40 +816,57 @@ const mobileParliamentRows = [overallParliamentRow, ...parliamentRows];
 
         clearBtn.classList.remove("hidden");
 
-        const pf = await loadPagefind();
-        if (seq !== searchSeq) return;
-
-        if (pf) {
-          const results = await pf.search(query, {
-            filters: { ministry: ministryName },
-          });
+        status.textContent = "Searching… Previous results are still shown.";
+        status.classList.remove("hidden");
+        try {
+          const pf = await loadPagefind();
           if (seq !== searchSeq) return;
 
-          // Fetch all fragments in parallel
-          const allFragments = await Promise.all(
-            results.results.map((r) => r.data()),
-          );
-          if (seq !== searchSeq) return;
+          if (pf) {
+            const results = await pf.search(query, {
+              filters: { ministry: ministryName },
+            });
+            if (seq !== searchSeq) return;
 
-          const orderedIds: string[] = [];
-          for (const data of allFragments) {
-            if (data.meta?.id) {
-              orderedIds.push(data.meta.id);
+            // Fetch all fragments in parallel
+            const allFragments = await Promise.all(
+              results.results.map((r) => r.data()),
+            );
+            if (seq !== searchSeq) return;
+
+            const orderedIds: string[] = [];
+            for (const data of allFragments) {
+              if (data.meta?.id) {
+                orderedIds.push(data.meta.id);
+              }
             }
+            const matchingIds = new Set<string>(orderedIds);
+
+            updateSections(matchingIds, lowerQuery);
+            return;
           }
-          const matchingIds = new Set<string>(orderedIds);
 
-          updateSections(matchingIds, lowerQuery);
-          return;
+          // Fallback: text matching
+          updateSections(null, lowerQuery);
+        } catch {
+          if (seq !== searchSeq) return;
+          status.textContent = "Search failed. Previous results are still shown. Try again.";
+          status.classList.remove("hidden");
+          retryBtn.classList.remove("hidden");
         }
-
-        // Fallback: text matching
-        updateSections(null, lowerQuery);
       }
 
       input.addEventListener("input", () => {
+        // Invalidate pending work as soon as the query changes.
+        searchSeq++;
+        retryBtn.classList.add("hidden");
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => performSearch(input.value), 100);
+      });
+
+      retryBtn.addEventListener("click", () => {
+        input.focus();
+        void performSearch(input.value);
       });
 
       clearBtn.addEventListener("click", () => {
