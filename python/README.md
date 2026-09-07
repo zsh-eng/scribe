@@ -25,6 +25,11 @@ These scripts are described below. See [architecture](../docs/architecture.md) f
 boundaries and [operations](../docs/operations.md) for daily automation and verification.
 
 
+## Historical reports
+
+See [supported layouts, read-only inspection and verification](../historical/README.md).
+Historical processing runs separately and does not write the site database.
+
 ## Main Scripts
 
 ### `batch_process_sqlite.py`

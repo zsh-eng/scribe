@@ -1,0 +1,62 @@
+[
+  {
+    "date": "09-01-2012",
+    "file": "09-01-2012.json.gz",
+    "sha256": "6d7c7213d8fa97c6da406b437abb0268b774f13144fd7ba18d995a14c39a6ad7",
+    "source": "https://sprs.parl.gov.sg/search/getHansardReport",
+    "request": {
+      "sittingDate": "09-01-2012"
+    },
+    "retrieved": "2026-09-06"
+  },
+  {
+    "date": "17-10-2011",
+    "file": "17-10-2011.json.gz",
+    "sha256": "3ce9c2bfa169803c0169ef5fdc42440ae8293483ce2a5ae5e61368d60df14778",
+    "source": "https://sprs.parl.gov.sg/search/getHansardReport",
+    "request": {
+      "sittingDate": "17-10-2011"
+    },
+    "retrieved": "2026-09-06"
+  },
+  {
+    "date": "22-02-2000",
+    "file": "22-02-2000.json.gz",
+    "sha256": "646e6da37f8f9b26a34d0d46b0052d42d697c01674bbf97136674333d8a03597",
+    "source": "https://sprs.parl.gov.sg/search/getHansardReport",
+    "request": {
+      "sittingDate": "22-02-2000"
+    },
+    "retrieved": "2026-09-06"
+  },
+  {
+    "date": "31-10-1994",
+    "file": "31-10-1994.json.gz",
+    "sha256": "66369efd29da9a9ca70f8c9ae04636708c8b8d6f2ce697b1d4732584a30377a6",
+    "source": "https://sprs.parl.gov.sg/search/getHansardReport",
+    "request": {
+      "sittingDate": "31-10-1994"
+    },
+    "retrieved": "2026-09-06"
+  },
+  {
+    "date": "14-02-2011",
+    "file": "14-02-2011.json.gz",
+    "sha256": "065f3682a5c8221810265b5a111cdbf82ff430e6ffcab30d8844998b99b38802",
+    "source": "https://sprs.parl.gov.sg/search/getHansardReport",
+    "request": {
+      "sittingDate": "14-02-2011"
+    },
+    "retrieved": "2026-09-06"
+  },
+  {
+    "date": "22-04-1955",
+    "file": "22-04-1955.json.gz",
+    "sha256": "18599ee5b31830cc37fd10e14645d6a955fa6fe8f7310c6e26f9d32a4bd49037",
+    "source": "https://sprs.parl.gov.sg/search/getHansardReport",
+    "request": {
+      "sittingDate": "22-04-1955"
+    },
+    "retrieved": "2026-09-06"
+  }
+]

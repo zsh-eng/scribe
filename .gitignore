@@ -12,3 +12,6 @@ next-env.d.ts
 !/data/curated/
 logs/
 .locks/
+
+# Offline historical archive; excluded from site publication.
+/historical/data/
