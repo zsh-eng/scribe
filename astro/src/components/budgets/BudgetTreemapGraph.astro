@@ -344,7 +344,7 @@ const { data, width, height, years, defaultYear } = Astro.props;
     const validSector = (data[initialYear]?.sectors || []).some((s) => s.name === sectorParam);
     return {
       year: initialYear,
-      sector: validSector ? sectorParam : null,
+      focusedSector: validSector ? sectorParam : null,
     };
   }
 

@@ -294,21 +294,16 @@ const totalCount = getMemberCount();
             grid.appendChild(fragment);
           });
 
-          // Also sort search results if visible
-          if (!searchResults.classList.contains("hidden")) {
-            const visibleItems = searchItems.filter(
-              (i) => i.style.display !== "none",
-            );
-            sortItems(visibleItems, key, dir);
-            const fragment = document.createDocumentFragment();
-            visibleItems.forEach((i) => fragment.appendChild(i));
-            // Append hidden ones after
-            searchItems
-              .filter((i) => i.style.display === "none")
-              .forEach((i) => fragment.appendChild(i));
-            searchGrid.appendChild(fragment);
-          }
+          sortSearchResults();
         });
+      }
+
+      function sortSearchResults() {
+        const [key, dir] = (select?.value || "name-asc").split("-");
+        sortItems(searchItems, key, dir);
+        const fragment = document.createDocumentFragment();
+        searchItems.forEach((item) => fragment.appendChild(item));
+        searchGrid.appendChild(fragment);
       }
 
       function sortItems(items: HTMLElement[], key: string, dir: string) {
@@ -361,6 +356,7 @@ const totalCount = getMemberCount();
           }
         });
 
+        sortSearchResults();
         status.textContent = `Found ${matchCount} result${matchCount !== 1 ? "s" : ""}`;
         status.classList.remove("hidden");
       }

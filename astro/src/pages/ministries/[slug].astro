@@ -644,6 +644,32 @@ const mobileParliamentRows = [overallParliamentRow, ...parliamentRows];
             if (!targetId) return;
             setActivePanel(targetId);
           });
+          button.addEventListener("keydown", (event) => {
+            const index = buttons.indexOf(button);
+            let nextIndex: number;
+            switch (event.key) {
+              case "ArrowRight":
+                nextIndex = (index + 1) % buttons.length;
+                break;
+              case "ArrowLeft":
+                nextIndex = (index - 1 + buttons.length) % buttons.length;
+                break;
+              case "Home":
+                nextIndex = 0;
+                break;
+              case "End":
+                nextIndex = buttons.length - 1;
+                break;
+              default:
+                return;
+            }
+            event.preventDefault();
+            const nextButton = buttons[nextIndex];
+            const targetId = nextButton.dataset.parliamentTarget;
+            if (!targetId) return;
+            setActivePanel(targetId);
+            nextButton.focus();
+          });
         }
 
         const initialTarget =
