@@ -261,3 +261,15 @@ export function getAllSections(): { id: string; sectionTitle: string }[] {
   const sql = `SELECT id, section_title as sectionTitle FROM sections`;
   return db.prepare(sql).all() as { id: string; sectionTitle: string }[];
 }
+
+// Preserve sitting-card destinations for statements outside the dedicated lists.
+// This query adds detail routes only; it does not change question totals or data.
+export function getStatementDetailPaths(): { id: string; sectionTitle: string }[] {
+  return db.prepare(`
+    SELECT sec.id, sec.section_title as sectionTitle
+    FROM sections sec
+    JOIN sittings s ON sec.sitting_id = s.id
+    WHERE sec.section_type IN ('OS', 'WS')
+      AND COALESCE(sec.category, '') NOT IN ('motion', 'adjournment_motion', 'clarification')
+  `).all() as { id: string; sectionTitle: string }[];
+}

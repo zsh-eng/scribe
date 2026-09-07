@@ -1,6 +1,7 @@
 ---
 interface Props {
   contentHtml?: string | null;
+  contentPlain?: string | null;
   instanceId: string;
   fallbackText?: string;
   italicizeLeadingStandalone?: boolean;
@@ -8,6 +9,7 @@ interface Props {
 
 const {
   contentHtml = null,
+  contentPlain = null,
   instanceId,
   fallbackText = "Transcript not available.",
   italicizeLeadingStandalone = false,
@@ -23,6 +25,8 @@ const {
     >
       <div class="transcript-content" data-transcript-source set:html={contentHtml}></div>
     </div>
+  ) : contentPlain ? (
+    <div class="font-body text-base text-ink-soft leading-relaxed whitespace-pre-wrap">{contentPlain}</div>
   ) : (
     <p class="font-body text-ink-muted italic py-8">{fallbackText}</p>
   )
@@ -296,7 +300,15 @@ const {
         return;
       }
 
-      const blocks = Array.from(source.children);
+      const blocks = Array.from(source.childNodes).flatMap((node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          if (!(node.textContent || "").trim()) return [];
+          const paragraph = document.createElement("p");
+          paragraph.textContent = node.textContent;
+          return [paragraph];
+        }
+        return node instanceof HTMLElement ? [node] : [];
+      });
       if (blocks.length === 0) {
         return;
       }
