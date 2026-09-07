@@ -324,7 +324,7 @@ const navLinks = [
                 <span class="ticker-label">
                   {getReadingLabel(bill.sectionType)}
                 </span>
-                <a href={`/bills/${slugify(bill.billTitle, bill.billId)}`}>
+                <a tabindex="-1" href={`/bills/${slugify(bill.billTitle, bill.billId)}`}>
                   {bill.billTitle}
                 </a>
               </div>
@@ -337,7 +337,7 @@ const navLinks = [
             <>
               <div class="ticker-item">
                 <span class="ticker-label">Question</span>
-                <a
+                <a tabindex="-1"
                   href={`/questions/${slugify(latestQuestion.sectionTitle, latestQuestion.id)}`}
                 >
                   {latestQuestion.sectionTitle.slice(0, 60)}
@@ -353,7 +353,7 @@ const navLinks = [
             <>
               <div class="ticker-item">
                 <span class="ticker-label">Motion</span>
-                <a
+                <a tabindex="-1"
                   href={`/motions/${slugify(recentMotions[0].sectionTitle, recentMotions[0].id)}`}
                 >
                   {recentMotions[0].sectionTitle.slice(0, 50)}
@@ -368,7 +368,7 @@ const navLinks = [
           latestSitting && (
             <div class="ticker-item">
               <span class="ticker-label">Sitting</span>
-              <a
+              <a tabindex="-1"
                 href={`/sittings/${slugify(latestSitting.date, latestSitting.id)}`}
               >
                 Latest sitting: {formatSittingDate(latestSitting.date)}

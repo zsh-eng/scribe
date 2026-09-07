@@ -6,12 +6,12 @@ import SpeakerPills from "../../components/SpeakerPills.astro";
 import TypeBadge from "../../components/TypeBadge.astro";
 import Tag from "../../components/Tag.astro";
 import TranscriptDialogue from "../../components/TranscriptDialogue.astro";
-import { getQuestions, getSection } from "../../lib/db";
+import { getQuestions, getSection, getStatementDetailPaths } from "../../lib/db";
 import { slugify } from "../../lib/slugify";
 
 export async function getStaticPaths() {
-  // Only generate paths for actual questions (not motions or clarifications)
-  const questions = getQuestions();
+  // Keep statement fallback paths separate from the Questions list.
+  const questions = [...getQuestions(), ...getStatementDetailPaths()];
   return questions.map((section) => ({
     params: { slug: slugify(section.sectionTitle, section.id) },
     props: { id: section.id },
@@ -37,8 +37,9 @@ const categoryLabels: Record<string, string> = {
   statement: "Statement",
 };
 
+const isStatement = section.sectionType === "OS" || section.sectionType === "WS";
 const typeLabel =
-  section.category && categoryLabels[section.category]
+  !isStatement && section.category && categoryLabels[section.category]
     ? categoryLabels[section.category]
     : typeLabels[section.sectionType] || section.sectionType;
 
@@ -89,14 +90,14 @@ const sittingInfo = section.sittingDate
 
   <article
     data-pagefind-body
-    data-pagefind-filter="type:question"
+    data-pagefind-filter={isStatement ? "type:statement" : "type:question"}
     data-pagefind-meta={`id:${section.id}`}
   >
     <!-- Header -->
     <header class="mb-8">
       <div class="flex flex-wrap items-center gap-2 mb-3" data-pagefind-ignore>
         {
-          section.category && categoryLabels[section.category] ? (
+          !isStatement && section.category && categoryLabels[section.category] ? (
             <Tag color="indigo">{categoryLabels[section.category]}</Tag>
           ) : (
             <TypeBadge type={section.sectionType} />
