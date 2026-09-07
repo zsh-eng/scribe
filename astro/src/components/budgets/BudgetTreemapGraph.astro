@@ -376,7 +376,7 @@ const { data, width, height, years, defaultYear } = Astro.props;
     tooltip.style.top = y + "px";
   }
 
-  function renderTreemap(year, focusedSector = null) {
+  function renderTreemap(year, focusedSector: string | null = null) {
     const yd = data[year];
     if (!yd) return;
 
