@@ -9,8 +9,10 @@ The raw API JSON is the source of record. Keep it with the output and its checks
 - Flat HTML: centred headings and BR-separated attendance entries.
 - Word-export HTML: explicit `SECTION_NAME` and `TITLE_NAME` comments. Split the
   original HTML at these markers before BeautifulSoup repairs invalid nesting.
+  Also accept the observed malformed `<!SECTION_NAME:ATTENDANCE>` declaration.
   Each section keeps the text up to the next marker. Keep the preamble and
-  attendance as sections for this format. Empty marker titles use an explicit
+  attendance as sections. Attendance sections use category `attendance` and a null
+  section type in all supported HTML formats. Empty marker titles use an explicit
   unknown title. Explicit END_COL_TITLE column markers distinguish repeated titles when available.
   Remaining repeated titles use an occurrence suffix and an audit warning.
 - Unknown layouts: retain one unsegmented report when flat layout detection fails.
@@ -46,7 +48,8 @@ is normalized for plain text. Keep raw HTML for exact spacing, comments, page
 markers, and original attributes.
 
 `text_coverage` compares token counts in the full normalized source with section
-text. Tokens outside sections can be masthead text, attendance, or group labels.
+text. Tokens outside sections can be masthead text or group labels. Attendance and
+procedural text attached to it remain in attendance sections.
 This check is a token multiset check. It does not prove correct order, speaker
 links, or section boundaries. The full normalized source and raw report remain
 available even when sections are incomplete. Unresolved speaker labels are listed.

@@ -18,6 +18,8 @@ def review(root):
     cases = []
     pending = []
     warnings = Counter()
+    totals = Counter()
+    residual_cases = []
     empty_attendance = []
     unknown_titles = []
     institution_conflicts = []
@@ -44,10 +46,26 @@ def review(root):
         evidence_name = normalized.get('metadata', {}).get('institution', {}).get('name')
         if evidence_name in ('Legislative Assembly', 'Legislative Council') and date >= '1965-08-09':
             institution_conflicts.append({'date': date, 'inferred_name': evidence_name})
+        sections = normalized.get('sections', [])
+        totals['sections'] += len(sections)
+        for section in sections:
+            if section.get('section_type') is None:
+                totals['null_type_sections'] += 1
+                totals['null_type_' + section.get('category', 'unknown')] += 1
+            if section.get('title') == 'Untitled source section':
+                totals['untitled_sections'] += 1
+        unresolved = audit.get('unresolved_speakers', [])
+        if unresolved:
+            totals['reports_with_unresolved_speakers'] += 1
+            totals['unresolved_speaker_report_labels'] += len(unresolved)
         coverage = audit.get('text_coverage', {})
         source_tokens = coverage.get('source_tokens', 0)
         residual = coverage.get('tokens_outside_sections', 0)
         ratio = residual / source_tokens if source_tokens else None
+        if residual:
+            totals['reports_with_residual_tokens'] += 1
+            totals['residual_tokens'] += residual
+            residual_cases.append({'date': date, 'ratio': ratio, 'outside_tokens': residual, 'source_tokens': source_tokens})
         for warning in audit.get('warnings', []):
             warnings[warning.split(':', 1)[0]] += 1
         if normalized.get('status') != 'parsed' or (ratio is not None and ratio > .1) or len(normalized.get('sections', [])) < 2:
@@ -56,7 +74,8 @@ def review(root):
                           'source_tokens': source_tokens, 'outside_tokens': residual,
                           'outside_ratio': round(ratio, 4) if ratio is not None else None,
                           'error': normalized.get('error'), 'warnings': audit.get('warnings', [])[:5]})
-    return {'raw_signatures': dict(signatures), 'normalized_statuses': dict(statuses),
+    return {'totals': dict(totals), 'largest_residual_ratios': sorted(residual_cases, key=lambda row: row['ratio'], reverse=True)[:10],
+            'raw_signatures': dict(signatures), 'normalized_statuses': dict(statuses),
             'normalized_formats': dict(formats), 'pending_dates': pending,
             'warning_counts': dict(warnings), 'review_cases': cases,
             'empty_present_attendance_dates': empty_attendance,
