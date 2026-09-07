@@ -299,6 +299,7 @@ const totalCount = getMemberCount();
       }
 
       function sortSearchResults() {
+        if (!searchGrid) return;
         const [key, dir] = (select?.value || "name-asc").split("-");
         sortItems(searchItems, key, dir);
         const fragment = document.createDocumentFragment();
