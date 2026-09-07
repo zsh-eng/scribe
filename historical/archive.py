@@ -7,6 +7,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from datetime import datetime, timezone
 import gzip
+from functools import lru_cache
 import hashlib
 import json
 import logging
@@ -79,6 +80,13 @@ def institution(date):
     return 'legislative_assembly' if date < '1965-08-09' else 'parliament'
 
 
+@lru_cache(maxsize=8)
+def indexed_eras(path):
+    if not path.exists():
+        return {}
+    return {row['date']: row['era'].replace('-', '_') for row in read_json(path)['sittings']}
+
+
 def transform(date):
     raw, output, state_path = paths(date)
     if not raw.exists():
@@ -101,6 +109,9 @@ def transform(date):
         if isinstance(identified, dict):
             era = {'Legislative Assembly': 'legislative_assembly', 'Legislative Council': 'legislative_council',
                    'Parliament of Singapore': 'parliament'}.get(identified.get('name'), 'unknown')
+        # The official index separates Assembly and Parliament even where the 1965
+        # masthead uses transitional wording. Keep that wording separately in metadata.
+        era = indexed_eras(DATA / 'inventory/inventory.json').get(date, era)
         record = {'schema_version': 1, 'date': date, 'institution': era,
                   'metadata': sitting.metadata, 'status': status,
                   'source': {'url': URL, 'request': {'sittingDate': request_date},
