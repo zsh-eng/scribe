@@ -11,8 +11,11 @@ The raw API JSON is the source of record. Keep it with the output and its checks
   original HTML at these markers before BeautifulSoup repairs invalid nesting.
   Each section keeps the text up to the next marker. Keep the preamble and
   attendance as sections for this format. Empty marker titles use an explicit
-  unknown title. Repeated titles use an occurrence suffix and an audit warning.
+  unknown title. Explicit END_COL_TITLE column markers distinguish repeated titles when available.
+  Remaining repeated titles use an occurrence suffix and an audit warning.
 - Unknown layouts: retain one unsegmented report when flat layout detection fails.
+  The audit format and segmentation_status both say unsegmented; retained text
+  is not a claim that topic segmentation succeeded.
 
 Word exports can contain repeated HTML and BODY tags inside an open paragraph.
 A walk of only the first BODY's children can omit debate text. Raw marker offsets
