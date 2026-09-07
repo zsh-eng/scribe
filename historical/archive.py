@@ -4,7 +4,7 @@ Each date has independent raw, normalized, and state files. Re-running fetch res
 missing reports. Re-running transform uses saved bytes and makes no network requests.
 """
 import argparse
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor, as_completed
 from datetime import datetime, timezone
 import gzip
 import hashlib
@@ -167,7 +167,8 @@ def main():
     dates = args.date or inventory_dates(args.inventory)
     if args.action != 'summary':
         worker = fetch if args.action == 'fetch' else transform
-        with ThreadPoolExecutor(max_workers=args.workers) as executor:
+        executor_type = ProcessPoolExecutor if args.action == 'transform' else ThreadPoolExecutor
+        with executor_type(max_workers=args.workers) as executor:
             futures = {executor.submit(worker, date): date for date in dates}
             for number, future in enumerate(as_completed(futures), 1):
                 date, status = future.result()

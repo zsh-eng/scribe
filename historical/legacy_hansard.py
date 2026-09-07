@@ -69,6 +69,18 @@ def metadata(soup, date, warnings=None):
                 warnings.append(f'Conflicting metadata {key}: {values[key]!r} / {value!r}')
                 continue
             values[key] = value
+    if values.get('date'):
+        raw_date = values['date']
+        parsed_date = None
+        for pattern in ('%d-%m-%Y', '%Y-%m-%d', '%Y%m%d'):
+            try:
+                parsed_date = datetime.strptime(raw_date, pattern).strftime('%d-%m-%Y')
+                break
+            except ValueError:
+                pass
+        if parsed_date is None:
+            warnings.append(f'Unrecognised source date: {raw_date!r}; requested date retained')
+        values['date'] = parsed_date or date
     if values.get('date') and values['date'] != date:
         raise ValueError(f"Requested {date}, received {values['date']}")
     values['date'] = date
@@ -243,14 +255,14 @@ def resolve_speakers(body, members):
 
 def word_blocks(html):
     """Split original bytes at explicit markers before HTML error recovery changes nesting."""
-    markers = list(re.finditer(r'<!--\s*(SECTION_NAME|TITLE_NAME):([\s\S]*?)-->', html, re.I))
+    markers = list(re.finditer(r'<![ \t]*(?P<comment>--\s*)?(?P<kind>SECTION_NAME|TITLE_NAME):(?P<title>[\s\S]*?)(?(comment)-->|>)', html, re.I))
     blocks = []
     group = ''
     if markers and text(clean_fragment(html[:markers[0].start()])):
         blocks.append({'title': 'Report preamble', 'html': html[:markers[0].start()], 'anchor': None})
     for index, marker in enumerate(markers):
-        title = text(BeautifulSoup(marker.group(2), 'html.parser'))
-        if marker.group(1).upper() == 'SECTION_NAME':
+        title = text(BeautifulSoup(marker.group('title'), 'html.parser'))
+        if marker.group('kind').upper() == 'SECTION_NAME':
             group = title
         end = markers[index + 1].start() if index + 1 < len(markers) else len(html)
         fragment = html[marker.end():end]
@@ -279,7 +291,7 @@ def parse_legacy(date, html):
     warnings = []
     info = metadata(soup, date, warnings)
     semantic = bool(soup.select('.hansardContent'))
-    word = bool(re.search(r'<!--\s*SECTION_NAME:', html, re.I))
+    word = bool(re.search(r'<![ \t]*(?:--\s*)?SECTION_NAME:', html, re.I))
     layout = 'word-export' if word else 'semantic' if semantic else 'flat'
     try:
         blocks = word_blocks(html) if word else semantic_blocks(soup) if semantic else flat_blocks(soup)
@@ -316,8 +328,6 @@ def parse_legacy(date, html):
     group = ''
     for block in blocks:
         title = block['title']
-        if not word and title.lower() in ('attendance', 'present:', 'absent:'):
-            continue
         body = clean_fragment(block['html'])
         # Standalone group labels carry no transcript and apply to following topics.
         if not word and not semantic and re.match(r'^(?:oral answers?|written answers?|bills introduced)\b', title, re.I):
@@ -327,6 +337,8 @@ def parse_legacy(date, html):
                 continue
             warnings.append(f'Content retained under group heading: {title}')
         kind, category = section_kind(title, body, block.get('group', group))
+        if title.lower() in ('attendance', 'present:', 'absent:'):
+            kind, category = None, 'attendance'
         speakers, unresolved = resolve_speakers(body, sitting.present_members + sitting.absent_members)
         anchor = block['anchor']
         # Text corrections preserve IDs. Column markers distinguish repeated flat titles without using mutable transcript text.

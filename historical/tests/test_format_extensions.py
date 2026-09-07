@@ -25,6 +25,7 @@ class FormatExtensionsTests(unittest.TestCase):
         self.assertEqual('WANA', by_title['PATERNITY LEAVE AS PART OF EMPLOYEE BENEFITS']['section_type'])
         self.assertIn('Report preamble', by_title)
         self.assertIn('ATTENDANCE', by_title)
+        self.assertEqual('attendance', by_title['ATTENDANCE']['category'])
         self.assertIn('safety time-out', by_title['RECENT DEATHS OF NSMEN']['content_plain'])
 
     def test_institution_is_separate_from_source_parliament_number(self):
@@ -64,6 +65,44 @@ class FormatExtensionsTests(unittest.TestCase):
         self.assertEqual(4, sitting.parse_audit['text_coverage']['tokens_outside_sections'])
         self.assertEqual({'UNMAPPED': 2, 'PREFIX': 1, 'TAIL': 1},
                          sitting.parse_audit['text_coverage']['outside_sections_token_counts'])
+
+    def test_malformed_attendance_declaration(self):
+        html = '<body><!SECTION_NAME:ATTENDANCE><b>PRESENT:</b><br>Mr Example (Place).<br><!--SECTION_NAME:BUSINESS--><p>Speech</p></body>'
+        sitting = parse_legacy('03-03-2005', html)
+        self.assertEqual('word-export', sitting.parse_audit['format'])
+        self.assertEqual(1, len(sitting.present_members))
+        self.assertEqual('attendance', sitting.sections[0]['category'])
+        self.assertEqual('Speech', sitting.sections[1]['content_plain'])
+
+    def test_semantic_attendance_keeps_procedural_text(self):
+        html = '<body><div class="hansardContent"><h1 class="topictitle1">Attendance</h1><h2>Present:</h2><ul><li>Mr Example (Place).</li></ul><p>The House met.</p></div></body>'
+        sitting = parse_legacy('01-01-2012', html)
+        self.assertEqual('attendance', sitting.sections[0]['category'])
+        self.assertIn('The House met.', sitting.sections[0]['content_plain'])
+        self.assertEqual(0, sitting.parse_audit['text_coverage']['tokens_outside_sections'])
+
+    def test_source_date_alternatives_and_corruption(self):
+        for value in ('2006-11-09', '09-11-2006', '20/f-28-0502ont>'):
+            html = '<body><table><tr><td>Sitting Date:</td><td>' + value + '</td></tr></table><p>Retained text</p></body>'
+            sitting = parse_legacy('09-11-2006', html)
+            self.assertEqual('09-11-2006', sitting.metadata['date'])
+            if value.startswith('20/f'):
+                self.assertTrue(any('Unrecognised source date' in warning for warning in sitting.parse_audit['warnings']))
+        with self.assertRaisesRegex(ValueError, 'Requested'):
+            parse_legacy('09-11-2006', '<table><tr><td>Sitting Date:</td><td>2006-11-10</td></tr></table>')
+
+    def test_flat_attendance_keeps_procedure_before_next_heading(self):
+        # Procedural lines from the 1977-02-07 and 1986-02-20 source reports.
+        procedure = 'At 2.30 p.m. the Serjeant at Arms laid the Mace below the Table.'
+        introduction = 'On the Clerk announcing "The President", the President delivered his Opening Speech.'
+        html = '<body><div align="center"><b>PRESENT:</b></div>Mr Example (Place).<br>' + procedure + '<br>' + introduction + '<div align="center"><b>PRESIDENT ADDRESS</b></div><p>Speech</p></body>'
+        sitting = parse_legacy('20-02-1986', html)
+        attendance = sitting.sections[0]
+        self.assertEqual('attendance', attendance['category'])
+        self.assertIsNone(attendance['section_type'])
+        self.assertIn(procedure, attendance['content_plain'])
+        self.assertIn(introduction, attendance['content_plain'])
+        self.assertEqual(0, sitting.parse_audit['text_coverage']['tokens_outside_sections'])
 
     def test_word_repeated_titles_use_explicit_columns(self):
         html = '<body><!--SECTION_NAME:BUSINESS--><!--TITLE_NAME:SAME--><!--END_COL_TITLE:SAME:::10--><p>First</p><!--TITLE_NAME:SAME--><!--END_COL_TITLE:SAME:::20--><p>Second</p>'

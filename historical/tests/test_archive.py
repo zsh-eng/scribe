@@ -33,7 +33,7 @@ class ArchiveTests(unittest.TestCase):
         archive.transform('2012-01-09')
         self.assertEqual(first, output.read_bytes())
         record = archive.read_json(output)
-        self.assertEqual(57, len(record['sections']))
+        self.assertEqual(58, len(record['sections']))
         self.assertTrue(record['audit']['retained_source_text'])
         self.assertEqual('ok', archive.read_json(state)['fetch_status'])
 
