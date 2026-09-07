@@ -179,6 +179,7 @@ const fmtDate = (d: string) =>
           />
           <TranscriptDialogue
             contentHtml={firstReadings[0].contentHtml}
+            contentPlain={firstReadings[0].contentPlain}
             instanceId={`bill-${firstReadings[0].id}`}
           />
         </section>
@@ -214,6 +215,7 @@ const fmtDate = (d: string) =>
               />
               <TranscriptDialogue
                 contentHtml={section.contentHtml}
+                contentPlain={section.contentPlain}
                 instanceId={`bill-${section.id}`}
               />
               {idx < secondReadings.length - 1 && (

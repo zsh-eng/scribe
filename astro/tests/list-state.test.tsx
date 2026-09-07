@@ -86,17 +86,30 @@ test("visible page waits for an existing prefetch", async () => {
   expect((await next).items.map((i) => i.id)).toEqual(["2", "3"]);
 });
 let root: HTMLElement | undefined;
-const originalFetch = globalThis.fetch;
+const replacedGlobals = ["window", "document", "HTMLElement", "fetch"] as const;
+let originalGlobals: Map<string, PropertyDescriptor | undefined> | undefined;
 afterEach(() => {
   if (root) act(() => render(null, root!));
   root = undefined;
-  globalThis.fetch = originalFetch;
+  if (originalGlobals) {
+    for (const [key, descriptor] of originalGlobals) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+    originalGlobals = undefined;
+  }
 });
 async function mount(
   search = "",
   fetcher: typeof fetch = (async () =>
     new Response(JSON.stringify({ items }))) as unknown as typeof fetch,
 ) {
+  originalGlobals = new Map(
+    replacedGlobals.map((key) => [
+      key,
+      Object.getOwnPropertyDescriptor(globalThis, key),
+    ]),
+  );
   const window = new Window({ url: `https://example.com/questions${search}` });
   Object.assign(globalThis, {
     window,
