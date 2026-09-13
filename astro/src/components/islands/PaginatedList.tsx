@@ -24,13 +24,12 @@ export default function PaginatedList({
   showSearch = true,
   initialItems,
 }: Props) {
-  const STAGGER_LIMIT = 12;
   const [view, setView] = useState({
     items: initialItems,
     total: totalCount,
     page: 1,
   });
-  const [requestedPage, setRequestedPage] = useState(1);
+  const [pendingPage, setPendingPage] = useState<number | null>(null);
   const [query, setQuery] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -70,12 +69,15 @@ export default function PaginatedList({
     sequence.current += 1;
   }, []);
   const run = useCallback(
-    async (next: ListRequest) => {
+    async (next: ListRequest, showLoading = true) => {
       cancelPending();
       const seq = sequence.current;
       request.current = next;
-      setRequestedPage(next.page);
-      setIsLoading(true);
+      setPendingPage(next.page);
+      // The unfiltered first page is already in the generated HTML.
+      const usesInitialItems =
+        next.page === 1 && !next.from && !next.to && next.query.trim().length < 3;
+      setIsLoading(showLoading && !usesInitialItems);
       setError(false);
       try {
         const result = await loader.current!(next);
@@ -97,7 +99,10 @@ export default function PaginatedList({
       } catch {
         if (seq === sequence.current) setError(true);
       } finally {
-        if (seq === sequence.current) setIsLoading(false);
+        if (seq === sequence.current) {
+          setIsLoading(false);
+          setPendingPage(null);
+        }
       }
     },
     [cancelPending],
@@ -140,8 +145,14 @@ export default function PaginatedList({
   const handleClearDates = () =>
     change({ ...request.current, from: "", to: "", page: 1 });
   const handlePageChange = (page: number) => {
-    // Keep page requests in the same sequence as searches and date changes.
-    void run({ ...request.current, page });
+    // Keep the current rows and page label until the requested page is ready.
+    void run({ ...request.current, page }, false);
+  };
+  const prefetchPage = (page: number) => {
+    if (page < 1 || page > Math.ceil(view.total / pageSize)) return;
+    // Share the loader's JSON and fragment promises with the eventual click.
+    // A failed prefetch is silent; a click can retry and report any failure.
+    void loader.current!({ ...request.current, page }).catch(() => {});
   };
   useEffect(() => {
     const restore = () => {
@@ -160,9 +171,8 @@ export default function PaginatedList({
       window.removeEventListener("popstate", restore);
     };
   }, []);
-  const page = isLoading
-    ? clampPage(requestedPage, view.total, pageSize)
-    : view.page;
+  const page = view.page;
+  const navigationPage = clampPage(pendingPage ?? page, view.total, pageSize);
   const currentItems = view.items;
   const currentTotalPages = Math.ceil(view.total / pageSize);
   const hasDateFilter = Boolean(dateFrom || dateTo);
@@ -333,26 +343,9 @@ export default function PaginatedList({
                 : "No items found"}
             </p>
           ) : (
-            currentItems.map((item, i) => {
-              const isStaggered =
-                !isSearchMode &&
-                !hasDateFilter &&
-                page === 1 &&
-                i < STAGGER_LIMIT;
-              return (
-                <div
-                  key={item.id}
-                  class={isStaggered ? "animate-fade-up" : undefined}
-                  style={
-                    isStaggered
-                      ? `animation-delay: ${0.1 + i * 0.05}s`
-                      : undefined
-                  }
-                >
-                  {renderCard(item)}
-                </div>
-              );
-            })
+            currentItems.map((item) => (
+              <div key={item.id}>{renderCard(item)}</div>
+            ))
           )}
         </div>
       )}
@@ -365,8 +358,10 @@ export default function PaginatedList({
         >
           <button
             class="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
-            disabled={page === 1}
-            onClick={() => handlePageChange(page - 1)}
+            disabled={navigationPage === 1}
+            onPointerEnter={() => prefetchPage(navigationPage - 1)}
+            onFocus={() => prefetchPage(navigationPage - 1)}
+            onClick={() => handlePageChange(navigationPage - 1)}
           >
             <svg
               class="h-4 w-4"
@@ -389,8 +384,10 @@ export default function PaginatedList({
           </span>
           <button
             class="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 font-ui text-sm text-ink/70 transition-all hover:border-accent/30 hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border disabled:hover:text-ink/70"
-            disabled={page >= currentTotalPages}
-            onClick={() => handlePageChange(page + 1)}
+            disabled={navigationPage >= currentTotalPages}
+            onPointerEnter={() => prefetchPage(navigationPage + 1)}
+            onFocus={() => prefetchPage(navigationPage + 1)}
+            onClick={() => handlePageChange(navigationPage + 1)}
           >
             Next
             <svg

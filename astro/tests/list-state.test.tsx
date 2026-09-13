@@ -137,6 +137,89 @@ const settle = () =>
   act(async () => {
     await new Promise((r) => setTimeout(r, 10));
   });
+const pageButton = (el: HTMLElement, label: string) =>
+  Array.from(el.querySelectorAll("button")).find((button) =>
+    button.textContent?.includes(label),
+  )!;
+test("hover and focus prefetch share a request while pagination keeps current rows visible", async () => {
+  const pending = deferred<Response>();
+  let calls = 0;
+  const el = await mount("", (() => {
+    calls++;
+    return pending.promise;
+  }) as unknown as typeof fetch);
+  expect(calls).toBe(0);
+  const next = pageButton(el, "Next");
+  await act(async () => {
+    next.dispatchEvent(new window.Event("pointerenter"));
+    next.focus();
+  });
+  expect(calls).toBe(1);
+  expect(window.location.search).toBe("");
+  expect(el.textContent).toContain("Page 1 of 3");
+  await act(async () => next.click());
+  expect(calls).toBe(1);
+  expect(el.textContent).toContain("housing 0");
+  expect(el.textContent).toContain("Showing 1-2 of 6");
+  expect(el.textContent).not.toContain("Loading results");
+  expect(el.querySelector(".animate-spin")).toBeNull();
+  expect(window.location.search).toBe("");
+  pending.resolve(new Response(JSON.stringify({ items })));
+  await settle();
+  expect(el.textContent).toContain("housing 2");
+  expect(el.textContent).not.toContain("housing 0");
+  expect(el.textContent).toContain("Page 2 of 3");
+  expect(window.location.search).toBe("?page=2");
+  await act(async () => {
+    pageButton(el, "Previous").focus();
+    pageButton(el, "Previous").click();
+  });
+  await settle();
+  expect(el.textContent).toContain("housing 0");
+  expect(el.textContent).not.toContain("Loading results");
+  // Clicking after prefetch has completed also reuses the cached JSON.
+  await act(async () => pageButton(el, "Next").click());
+  await settle();
+  expect(el.textContent).toContain("housing 2");
+  expect(calls).toBe(1);
+});
+test("keyboard prefetch failures leave the page intact and a click retries", async () => {
+  let calls = 0;
+  const el = await mount("", (async () => {
+    calls++;
+    return calls === 1
+      ? new Response("", { status: 503 })
+      : new Response(JSON.stringify({ items }));
+  }) as unknown as typeof fetch);
+  await act(async () => pageButton(el, "Next").focus());
+  await settle();
+  expect(calls).toBe(1);
+  expect(el.textContent).toContain("housing 0");
+  expect(el.textContent).not.toContain("Could not load");
+  expect(el.textContent).not.toContain("Loading results");
+  expect(window.location.search).toBe("");
+  await act(async () => pageButton(el, "Next").click());
+  await settle();
+  expect(calls).toBe(2);
+  expect(el.textContent).toContain("housing 2");
+  expect(window.location.search).toBe("?page=2");
+});
+test("a page click still exposes request failures and Retry recovers the requested page", async () => {
+  let fail = true;
+  const el = await mount("", (async () =>
+    fail
+      ? new Response("", { status: 503 })
+      : new Response(JSON.stringify({ items }))) as unknown as typeof fetch);
+  await act(async () => pageButton(el, "Next").click());
+  await settle();
+  expect(el.textContent).toContain("Could not load results");
+  expect(el.textContent).not.toContain("Loading results");
+  fail = false;
+  await act(async () => pageButton(el, "Retry").click());
+  await settle();
+  expect(el.textContent).toContain("housing 2");
+  expect(window.location.search).toBe("?page=2");
+});
 test("mounted error retry preserves date page and exposes accessible status", async () => {
   let fail = true;
   const el = await mount("?from=2026-01-01&page=2", (async () =>
@@ -241,11 +324,14 @@ test("rapid page requests settle on the last page, and clear cancels pending tex
       b.textContent?.includes("Next"),
     )!;
   await act(async () => next().click());
-  expect(el.textContent).toContain("Page 2 of 3");
+  expect(el.textContent).toContain("Page 1 of 3");
+  expect(el.textContent).toContain("housing 0");
+  expect(el.textContent).not.toContain("Loading results");
   await act(async () => next().click());
-  expect(el.textContent).toContain("Page 3 of 3");
+  expect(el.textContent).toContain("Page 1 of 3");
   pending.resolve(new Response(JSON.stringify({ items })));
   await settle();
+  expect(el.textContent).toContain("Page 3 of 3");
   expect(el.textContent).toContain("housing 4");
   expect(el.textContent).not.toContain("housing 2");
   const input = el.querySelector("input[type=text]") as HTMLInputElement;

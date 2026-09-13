@@ -179,17 +179,6 @@ const {
         safeContainer.appendChild(fragment);
       }
 
-      function disableItemAnimations() {
-        items.forEach((item) => {
-          item.classList.remove(
-            "animate-fade-up",
-            "animate-fade-in",
-            "animate-slide-down",
-          );
-          item.style.animationDelay = "";
-        });
-      }
-
       let debounceTimer: ReturnType<typeof setTimeout>;
       let searchSeq = 0;
 
@@ -225,7 +214,6 @@ const {
         }
 
         clearBtn.classList.remove("hidden");
-        disableItemAnimations();
 
         if (!pf) {
           // Fallback: simple text matching when pagefind isn't available

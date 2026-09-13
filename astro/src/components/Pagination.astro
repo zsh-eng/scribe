@@ -70,19 +70,6 @@ const { containerId, itemSelector, itemsPerPage = 20 } = Astro.props;
         allItems = Array.from(container.querySelectorAll(selector!)) as HTMLElement[];
       }
 
-      // Remove animation classes after initial load to prevent re-animation on page change
-      // Wait for animations to complete (longest delay + animation duration)
-      setTimeout(() => {
-        allItems.forEach((item) => {
-          item.classList.remove(
-            "animate-fade-up",
-            "animate-fade-in",
-            "animate-slide-down",
-          );
-          item.style.animationDelay = "";
-        });
-      }, 1000); // Allow time for staggered animations to complete
-
       // Clone buttons to remove any existing event listeners from previous initializations
       let prevBtn = controls.querySelector(
         ".pagination-prev",

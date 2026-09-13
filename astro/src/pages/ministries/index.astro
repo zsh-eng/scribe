@@ -42,11 +42,8 @@ const ministries = getMinistries();
           No ministries found
         </p>
       ) : (
-        ministries.map((ministry, i) => (
-          <div
-            class="animate-fade-up"
-            style={`animation-delay: ${0.1 + i * 0.03}s`}
-          >
+        ministries.map((ministry) => (
+          <div>
             <MinistryCard ministry={ministry} />
           </div>
         ))

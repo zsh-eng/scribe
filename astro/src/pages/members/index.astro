@@ -28,7 +28,6 @@ const parliamentData = parliaments.map((p) => {
 // Use allMembers which has overall stats
 const searchMembers = allMembers;
 
-const STAGGER_LIMIT = 12;
 const totalCount = getMemberCount();
 ---
 
@@ -178,8 +177,7 @@ const totalCount = getMemberCount();
               class="grid gap-4 sm:grid-cols-2 mt-3 parliament-grid"
               data-parliament={parliament}
             >
-              {members.map((member, i) => {
-                const isStaggered = isCurrent && i < STAGGER_LIMIT;
+              {members.map((member) => {
                 const attendancePercent =
                   member.attendanceTotal && member.attendanceTotal > 0
                     ? Math.round(
@@ -189,12 +187,7 @@ const totalCount = getMemberCount();
                     : 0;
                 return (
                   <div
-                    class={`member-item h-full${isStaggered ? " animate-fade-up" : ""}`}
-                    style={
-                      isStaggered
-                        ? `animation-delay: ${0.1 + i * 0.03}s`
-                        : undefined
-                    }
+                    class="member-item h-full"
                     data-name={member.name}
                     data-involvements={member.sectionCount || 0}
                     data-attendance={attendancePercent}
