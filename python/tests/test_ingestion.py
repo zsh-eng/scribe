@@ -181,6 +181,28 @@ class IngestionTests(unittest.TestCase):
         with db.get_connection():
             self.assertEqual(result, db.find_bill_for_second_reading('Example Bill', reading_date='04-08-2026'))
 
+    def test_second_reading_uses_introduction_over_empty_duplicates_without_deleting_them(self):
+        self.ingest()
+        conn = db.get_connection()
+        original = conn.execute('SELECT id FROM bills').fetchone()[0]
+        with conn:
+            for duplicate in ['orphan-1', 'orphan-2']:
+                conn.execute('''INSERT INTO bills (id,title,first_reading_date,first_reading_sitting_id)
+                                SELECT ?,title,first_reading_date,first_reading_sitting_id FROM bills WHERE id=?''',
+                             (duplicate, original))
+            self.assertEqual(original, db.find_bill_for_second_reading('Example Bill', reading_date='06-08-2026'))
+        self.assertEqual(3, db.get_bill_count())
+        with conn:
+            conn.execute("UPDATE bills SET summary='Curated content' WHERE id='orphan-1'")
+            with self.assertRaisesRegex(ValueError, 'Ambiguous bill reading'):
+                db.find_bill_for_second_reading('Example Bill', reading_date='06-08-2026')
+            conn.execute("UPDATE bills SET summary=NULL WHERE id='orphan-1'")
+            conn.execute('''INSERT INTO sections (id,sitting_id,category,section_type,section_title,bill_id)
+                            SELECT 'duplicate-intro',sitting_id,category,section_type,section_title,'orphan-1'
+                            FROM sections WHERE section_type='BI' LIMIT 1''')
+            with self.assertRaisesRegex(ValueError, 'Ambiguous bill reading'):
+                db.find_bill_for_second_reading('Example Bill', reading_date='06-08-2026')
+
 
 class FetchTests(unittest.TestCase):
     def setUp(self):

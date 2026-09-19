@@ -138,15 +138,33 @@ def find_bill_for_second_reading(title: str, ministry_id: str = None, reading_da
 
     title = title.strip()
     cursor.execute(
-        '''SELECT id, first_reading_date FROM bills WHERE title = ?
+        '''SELECT b.id, b.first_reading_date, b.first_reading_sitting_id, b.summary,
+                  EXISTS(SELECT 1 FROM sections sec WHERE sec.bill_id=b.id) AS has_sections,
+                  EXISTS(SELECT 1 FROM sections sec WHERE sec.bill_id=b.id
+                         AND sec.section_type='BI' AND sec.sitting_id=b.first_reading_sitting_id) AS has_introduction
+           FROM bills b WHERE title = ?
            AND (first_reading_date IS NULL OR first_reading_date <= ?)
-           ORDER BY first_reading_date DESC, id LIMIT 2''',
+           ORDER BY first_reading_date DESC, id''',
         (title, parse_date(reading_date) or '9999-12-31')
     )
     rows = cursor.fetchall()
-    if len(rows) > 1 and rows[0]['first_reading_date'] == rows[1]['first_reading_date']:
-        raise ValueError(f"Ambiguous bill reading: {title}; reconcile existing bills first")
     row = rows[0] if rows else None
+    if row:
+        candidates = [item for item in rows if item['first_reading_date'] == row['first_reading_date']]
+        if len(candidates) > 1:
+            supported = [item for item in candidates if item['has_introduction']]
+            # Old imports can leave empty duplicate bill records. Prefer the
+            # actual introduction only when every alternative is an empty
+            # record of the same introduction. Do not delete or merge records.
+            if len(supported) == 1 and all(
+                item['id'] == supported[0]['id'] or (
+                    not item['has_sections'] and not item['summary']
+                    and item['first_reading_sitting_id'] == supported[0]['first_reading_sitting_id']
+                ) for item in candidates
+            ):
+                row = supported[0]
+            else:
+                raise ValueError(f"Ambiguous bill reading: {title}; reconcile existing bills first")
 
     if row:
         bill_id = row['id']
