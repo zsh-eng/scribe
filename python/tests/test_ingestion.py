@@ -104,10 +104,35 @@ class IngestionTests(unittest.TestCase):
         self.assertEqual(before, self.snapshot())
 
     def test_fetch_failure_stops_before_watermark_can_skip_failed_date(self):
-        with patch.object(batch, 'ingest_sitting', side_effect=requests.HTTPError('500')) as ingest:
+        with patch.object(HansardAPI, 'discover_dates', return_value=['05-08-2026', '07-08-2026']), \
+                patch.object(batch, 'ingest_sitting', side_effect=requests.HTTPError('500')) as ingest:
             with self.assertRaises(requests.HTTPError):
                 batch.batch_process('05-08-2026', '07-08-2026')
         ingest.assert_called_once_with('05-08-2026')
+
+    def test_empty_indexed_report_stops_before_later_date(self):
+        with patch.object(HansardAPI, 'discover_dates', return_value=['05-08-2026', '07-08-2026']), \
+                patch.object(batch, 'ingest_sitting', return_value=None) as ingest:
+            with self.assertRaisesRegex(ValueError, 'Indexed sitting 05-08-2026'):
+                batch.batch_process('05-08-2026', '07-08-2026')
+        ingest.assert_called_once_with('05-08-2026')
+
+    def test_batch_fetches_only_discovered_dates(self):
+        with patch.object(HansardAPI, 'discover_dates', return_value=['05-08-2026', '07-08-2026']), \
+                patch.object(batch, 'ingest_sitting', return_value='sitting') as ingest:
+            batch.batch_process('05-08-2026', '07-08-2026')
+        self.assertEqual(['05-08-2026', '07-08-2026'], [call.args[0] for call in ingest.call_args_list])
+
+    def test_discovery_failure_or_empty_window_never_fetches_reports(self):
+        for failure in (True, False):
+            with patch.object(HansardAPI, 'discover_dates', side_effect=requests.HTTPError('index') if failure else None,
+                              return_value=[]), patch.object(batch, 'ingest_sitting') as ingest:
+                if failure:
+                    with self.assertRaises(requests.HTTPError):
+                        batch.batch_process('05-08-2026', '07-08-2026')
+                else:
+                    batch.batch_process('05-08-2026', '07-08-2026')
+                ingest.assert_not_called()
 
     def test_ambiguous_legacy_rows_are_not_deleted_or_replaced(self):
         self.ingest()
@@ -161,6 +186,44 @@ class FetchTests(unittest.TestCase):
     def setUp(self):
         self.api = HansardAPI()
         self.addCleanup(self.api.session.close)
+
+    def test_discovery_deduplicates_pages_and_returns_oldest_first(self):
+        pages = [
+            [{'sittingDate': '10-9-2026', 'maxResult': '100'}] * 20,
+            [{'sittingDate': '9-9-2026', 'maxResult': '80'}] * 20,
+            [{'sittingDate': '5-8-2026', 'maxResult': '60'}] * 20,
+        ]
+        with patch.object(self.api.session, 'post', side_effect=[Mock(json=Mock(return_value=p)) for p in pages]) as post:
+            self.assertEqual(['09-09-2026', '10-09-2026'], self.api.discover_dates('06-08-2026', '19-09-2026'))
+        self.assertEqual(['19', '9', '8'], [call.kwargs['json']['today'] for call in post.call_args_list])
+        self.assertTrue(all(call.kwargs['json']['fromyear'] == '1955' for call in post.call_args_list))
+
+    def test_discovery_empty_window_and_exhausted_index(self):
+        for rows, expected in [([], []),
+                               ([{'sittingDate': '5-8-2026', 'maxResult': 1}], []),
+                               ([{'sittingDate': '10-9-2026', 'maxResult': 1}], ['10-09-2026'])]:
+            with patch.object(self.api.session, 'post', return_value=Mock(json=Mock(return_value=rows))) as post:
+                self.assertEqual(expected, self.api.discover_dates('06-08-2026', '19-09-2026'))
+                self.assertEqual(1, post.call_count)
+
+    def test_discovery_rejects_malformed_or_inconsistent_pages(self):
+        for rows in [{'errorCode': 500}, [{}], [None],
+                     [{'sittingDate': 'invalid', 'maxResult': 1}],
+                     [{'sittingDate': '20-9-2026', 'maxResult': 1}],
+                     [{'sittingDate': '10-9-2026', 'maxResult': 0}],
+                     [{'sittingDate': '9-9-2026', 'maxResult': 2}, {'sittingDate': '10-9-2026', 'maxResult': 2}]]:
+            with self.subTest(rows=rows), patch.object(self.api.session, 'post', return_value=Mock(json=Mock(return_value=rows))):
+                with self.assertRaises(ValueError):
+                    self.api.discover_dates('06-08-2026', '19-09-2026')
+
+    def test_discovery_rejects_non_decreasing_counts_and_http_failures(self):
+        pages = [[{'sittingDate': date, 'maxResult': 100}] for date in ['10-9-2026', '9-9-2026']]
+        with patch.object(self.api.session, 'post', side_effect=[Mock(json=Mock(return_value=p)) for p in pages]):
+            with self.assertRaisesRegex(ValueError, 'did not decrease'):
+                self.api.discover_dates('06-08-2026', '19-09-2026')
+        with patch.object(self.api.session, 'post', return_value=Mock(raise_for_status=Mock(side_effect=requests.HTTPError('500')))):
+            with self.assertRaises(requests.HTTPError):
+                self.api.discover_dates('06-08-2026', '19-09-2026')
 
     def test_empty_report_differs_from_http_failure_and_invalid_payload(self):
         self.assertIsNone(self.api.parse_response('05-08-2026', {'takesSectionVOList': []}))

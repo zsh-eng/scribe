@@ -2,7 +2,7 @@
 import hashlib
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -15,6 +15,7 @@ from parliament_sitting import ParliamentSitting
 
 class HansardAPI:
     BASE_URL = "https://sprs.parl.gov.sg/search/getHansardReport/"
+    SEARCH_URL = "https://sprs.parl.gov.sg/search/searchResult"
 
     def __init__(self):
         self.session = requests.Session()
@@ -23,6 +24,53 @@ class HansardAPI:
                       status_forcelist=(429, 500, 502, 503, 504),
                       respect_retry_after_header=False)
         self.session.mount('https://', HTTPAdapter(max_retries=retry))
+
+    def discover_dates(self, start_date_str, end_date_str):
+        """Read distinct sitting dates from the index, then return oldest first.
+
+        Use broad date windows because the service can return HTTP 500 for an
+        empty narrow window. Each page moves the upper bound before its oldest
+        date. Duplicate section hits for that date need no further pagination:
+        the report endpoint returns the whole sitting.
+        """
+        start = datetime.strptime(start_date_str, '%d-%m-%Y').date()
+        upper = datetime.strptime(end_date_str, '%d-%m-%Y').date()
+        if start > upper:
+            raise ValueError('Start date must be on or before end date')
+        found = set()
+        previous_total = None
+        while upper >= start:
+            payload = dict(keyword='', dateRange='custom', fromday='1', frommonth='1',
+                           fromyear='1955', today=str(upper.day), tomonth=str(upper.month),
+                           toyear=str(upper.year), reportContent='with all the words',
+                           parliamentNo='', selectedSort='date_dt desc', startIndex='0',
+                           endIndex='19', titleChecked='false', footNoteChecked='false')
+            response = self.session.post(self.SEARCH_URL, json=payload, timeout=(10, 30))
+            response.raise_for_status()
+            rows = response.json()
+            if not isinstance(rows, list):
+                raise ValueError('Expected a Hansard search result list')
+            if not rows:
+                break
+            try:
+                total = int(rows[0]['maxResult'])
+                dates = [datetime.strptime(row['sittingDate'], '%d-%m-%Y').date()
+                         for row in rows]
+                counts_match = all(int(row['maxResult']) == total for row in rows)
+            except (KeyError, TypeError, ValueError) as exc:
+                raise ValueError('Malformed Hansard search result') from exc
+            if not counts_match or total < len(rows):
+                raise ValueError('Inconsistent Hansard search count')
+            if dates != sorted(dates, reverse=True) or max(dates) > upper:
+                raise ValueError('Hansard search dates are not descending within the window')
+            if previous_total is not None and total >= previous_total:
+                raise ValueError('Hansard search count did not decrease')
+            found.update(day for day in dates if day >= start)
+            if min(dates) <= start or total == len(rows):
+                break
+            previous_total = total
+            upper = min(dates) - timedelta(days=1)
+        return [day.strftime('%d-%m-%Y') for day in sorted(found)]
 
     def fetch_by_date(self, date_str: str) -> Optional[ParliamentSitting]:
         datetime.strptime(date_str, '%d-%m-%Y')

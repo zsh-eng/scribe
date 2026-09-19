@@ -128,9 +128,8 @@ get_latest_sitting_iso() {
   local db_path="$1"
   local latest=""
 
-  if [[ -f "${db_path}" ]]; then
-    latest="$(sqlite3 -readonly "${db_path}" "SELECT MAX(date) FROM sittings;" 2>/dev/null || true)"
-  fi
+  # A missing/unreadable database is an error, not an empty sitting table.
+  latest="$(sqlite3 -readonly -cmd '.timeout 5000' "${db_path}" "SELECT MAX(date) FROM sittings;")" || return 1
 
   latest="${latest//$'\r'/}"
   printf '%s' "${latest}"
@@ -246,7 +245,7 @@ if [[ -z "${START_DATE}" ]]; then
     START_DATE="$(TZ="${TZ_REGION}" date -v-"${LOOKBACK_DAYS}"d '+%d-%m-%Y')"
   else
     DATE_WINDOW_MODE="incremental"
-    LATEST_SITTING_ISO="$(get_latest_sitting_iso "${DB_PATH}")"
+    LATEST_SITTING_ISO="$(get_latest_sitting_iso "${DB_PATH}")" || fail "Could not read latest sitting date from ${DB_PATH}; see database error above."
     END_DATE="$(TZ="${TZ_REGION}" date '+%d-%m-%Y')"
 
     if [[ -n "${LATEST_SITTING_ISO}" ]]; then

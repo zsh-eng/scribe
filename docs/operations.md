@@ -12,6 +12,8 @@ The repository includes:
 - Date window: latest ingested sitting date in DB + 1 day, through `today` (`DD-MM-YYYY`, Asia/Singapore)
   - If no sittings exist in DB yet, fallback window is `today-2` to `today`
 - Pipeline order: atomic sitting imports -> sitting summaries (`--only-blank`) -> publication check
+- Sitting dates are discovered from the official search index before import, deduplicated and processed oldest first. The index is paged by moving the upper date before the oldest returned date. Broad windows avoid the upstream HTTP 500 response for empty narrow searches; dates outside the requested range are excluded locally.
+- An empty sitting table permits the fallback window. A missing or unreadable database stops the job with its error; it never silently moves the date window forward.
 - Deploy policy: compare all published inputs with the last successful publication; deploy only on clean `main`
 - HTTP or parsing failures stop ingestion before later dates can advance the latest-sitting date. The next run retries the same window; no separate retry queue is maintained.
 

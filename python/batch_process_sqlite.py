@@ -5,7 +5,7 @@ Synchronous version - no async/await, no network DB latency.
 
 import logging
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from db_sqlite import (
     get_connection,
@@ -228,24 +228,21 @@ def batch_process(start_date_str: str, end_date_str: str):
         raise ValueError("Start date must be on or before end date")
     init_db()
 
-    # Generate all dates in range
-    dates = []
-    curr = start_date
-    while curr <= end_date:
-        dates.append(curr.strftime("%d-%m-%Y"))
-        curr += timedelta(days=1)
-
-    logger.info(
-        f"Checking date range: {start_date_str} to {end_date_str} ({len(dates)} days)"
-    )
-
     ingested_sittings = []
 
     try:
+        api = HansardAPI()
+        try:
+            dates = api.discover_dates(start_date_str, end_date_str)
+        finally:
+            api.session.close()
+        logger.info('Discovered %s sitting dates in %s to %s: %s',
+                    len(dates), start_date_str, end_date_str, ', '.join(dates))
         for date_str in dates:
             sitting_id = ingest_sitting(date_str)
-            if sitting_id:
-                ingested_sittings.append(sitting_id)
+            if not sitting_id:
+                raise ValueError(f'Indexed sitting {date_str} has no report sections')
+            ingested_sittings.append(sitting_id)
     except Exception:
         close_connection()
         raise

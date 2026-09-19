@@ -118,6 +118,28 @@ if sys.argv[1:] == ['run', 'deploy'] and (root / 'fail_deploy').exists():
         path = self.root / 'calls'
         return path.read_text().splitlines() if path.exists() else []
 
+    def test_database_read_failure_stops_without_fallback_or_publication(self):
+        self.setup_wrapper()
+        self.executable('sqlite3', "import sys\nprint('database is locked', file=sys.stderr)\nsys.exit(1)\n")
+        result = self.run_wrapper()
+        self.assertNotEqual(0, result.returncode)
+        log = next((self.root / 'logs/pipeline').glob('run-*.log')).read_text()
+        self.assertIn('database is locked', log)
+        self.assertIn('Could not read latest sitting', log)
+        self.assertNotIn('falling back', log)
+        self.assertEqual([], self.calls())
+
+    def test_empty_database_uses_fallback_but_missing_database_fails(self):
+        self.setup_wrapper()
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute('DELETE FROM sittings')
+        self.assertEqual(0, self.run_wrapper('--dry-run').returncode)
+        log = next((self.root / 'logs/pipeline').glob('run-*.log')).read_text()
+        self.assertIn('Date window mode: lookback-fallback', log)
+        self.db_path.unlink()
+        self.assertNotEqual(0, self.run_wrapper('--dry-run').returncode)
+        self.assertFalse(self.db_path.exists())
+
     def test_failed_deploy_retries_even_when_latest_sitting_is_today(self):
         self.setup_wrapper()
         self.assertEqual('UNPUBLISHED', last_published(self.db_path))
