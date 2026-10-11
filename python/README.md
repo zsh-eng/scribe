@@ -195,6 +195,16 @@ and reports already imported are skipped.
 uv run import_pangram_dashboard.py ~/Downloads/pangram-history-reports-*.jsonl
 ```
 
+### Portraits
+
+`fetch_mp_photos.py` takes only freely licensed Wikipedia lead images of MPs who spoke and records
+the file page, author and licence in `ai_detection/photos/credits.json`. Official portraits from
+parliament.gov.sg are not used: their terms forbid reproduction without written permission.
+
+```bash
+uv run fetch_mp_photos.py          # once; skips members already in credits.json
+```
+
 ## Reruns and offline replay
 
 Each sitting is imported in one SQLite transaction. Replaying a sitting preserves its IDs,
