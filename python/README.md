@@ -173,6 +173,17 @@ uv run run_pangram_bulk.py --export-dir ../data/ai_detection/prepared_speeches -
   --exclude-office-holders --write-csv ../data/ai_detection/prepared_speeches/dashboard_upload_2021.csv
 ```
 
+### Cost estimates
+
+`estimate_pangram_cost.py` prices a wider scan without sending anything. It counts speeches in
+motions, adjournment motions and bill debates, split and filtered as in the export, and prints words
+and bulk cost per year, with and without office holders, then by debate type.
+
+```bash
+uv run estimate_pangram_cost.py                       # 2020-2026, speeches of 500+ words
+uv run estimate_pangram_cost.py --years 2023 --min-words 150
+```
+
 ## Reruns and offline replay
 
 Each sitting is imported in one SQLite transaction. Replaying a sitting preserves its IDs,
