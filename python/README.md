@@ -118,6 +118,34 @@ run. It is excluded from publication fingerprints: metadata-only changes do not 
 Changes to the successful summary text do trigger publication. Usage fields are stored separately;
 cached tokens are a subset of prompt tokens, not an additional total.
 
+## AI detection
+
+An internal pipeline that tests prepared parliamentary speeches with Pangram's AI-text detector.
+Every output goes to `data/ai_detection/`, which is ignored by git because results link named MPs
+to scores.
+
+### Export
+
+`export_pangram_speeches.py` reads the database read-only and splits debates into one row per
+speaker turn. It drops presiding-officer turns, the President's own address, translated vernacular
+passages and turns under `--min-words`. The default scope is the President's Address debate.
+
+```bash
+uv run export_pangram_speeches.py                      # 2020, 2023 and 2025 Address debates
+uv run export_pangram_speeches.py --years 2020 2025 --min-words 200
+uv run export_pangram_speeches.py --scope prepared --years 2021 2026 --through 09-10 --min-words 500
+```
+
+`--scope prepared` widens the export to every motion, adjournment motion and bill second-reading
+debate, writes to `ai_detection/prepared_speeches/` and adds `debate_type` to each speech. Speech IDs
+start with the debate type (`pa` Address, `bp` bill, `bu` Budget and Committee of Supply, `mo` other
+motion, `am` adjournment), so an Address speech keeps the same ID in either scope. `--through MM-DD`
+keeps the same calendar window in every year, so a partial year can be compared like for like.
+
+Each export writes `speeches.jsonl` (text plus member, role and section mappings), `members.csv`,
+one `pangram_upload_<year>.csv` (`tag`,`text`) per year and `manifest.json` (parameters, word counts,
+exclusions, output hashes). The `tag` is the `speech_id`, so Pangram results join back to `speeches.jsonl`.
+
 ## Reruns and offline replay
 
 Each sitting is imported in one SQLite transaction. Replaying a sitting preserves its IDs,
