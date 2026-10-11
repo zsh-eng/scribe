@@ -184,6 +184,17 @@ uv run estimate_pangram_cost.py                       # 2020-2026, speeches of 5
 uv run estimate_pangram_cost.py --years 2023 --min-words 150
 ```
 
+### Dashboard reports
+
+`import_pangram_dashboard.py` reads report files saved from the dashboard history, keeps a report
+only if the text Pangram scanned equals the exported text, renames window fields to the bulk API's
+and appends to the same `results.jsonl`. The downloaded files are kept in `pangram/raw/dashboard/`,
+and reports already imported are skipped.
+
+```bash
+uv run import_pangram_dashboard.py ~/Downloads/pangram-history-reports-*.jsonl
+```
+
 ## Reruns and offline replay
 
 Each sitting is imported in one SQLite transaction. Replaying a sitting preserves its IDs,
