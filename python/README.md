@@ -146,6 +146,33 @@ Each export writes `speeches.jsonl` (text plus member, role and section mappings
 one `pangram_upload_<year>.csv` (`tag`,`text`) per year and `manifest.json` (parameters, word counts,
 exclusions, output hashes). The `tag` is the `speech_id`, so Pangram results join back to `speeches.jsonl`.
 
+### Scanning
+
+`run_pangram_bulk.py` sends exported speeches to the Pangram Bulk API (`PANGRAM_API_KEY` in `.env`).
+It is a dry run unless `--submit` is given; the dry run prints words, billable units and the
+estimated cost at the bulk rate. Every run first collects results for jobs already submitted.
+
+```bash
+uv run run_pangram_bulk.py --years 2020                       # plan and cost only
+uv run run_pangram_bulk.py --years 2020 --submit              # spend credits
+uv run run_pangram_bulk.py --years 2020 2025 --exclude-office-holders --limit 2 --submit
+```
+
+State is kept in `<export>/pangram/`: `jobs.jsonl` (append-only submissions), `raw/<bulk_id>/`
+(unmodified responses) and `results.jsonl` (one line per speech with the full result, including
+windows). A speech already in `jobs.jsonl` is never resent, including after a submission with an
+unknown outcome. Pangram deletes bulk results 48 hours after completion, so an interrupted run
+should be resumed promptly. Pass `--export-dir ../data/ai_detection/prepared_speeches` for the
+wider export.
+
+For scans on the Pangram dashboard instead, `--write-csv` writes the same selection as a `tag`,`text`
+upload and sends nothing. Speeches with a saved result are never selected, wherever it came from.
+
+```bash
+uv run run_pangram_bulk.py --export-dir ../data/ai_detection/prepared_speeches --years 2021 \
+  --exclude-office-holders --write-csv ../data/ai_detection/prepared_speeches/dashboard_upload_2021.csv
+```
+
 ## Reruns and offline replay
 
 Each sitting is imported in one SQLite transaction. Replaying a sitting preserves its IDs,
