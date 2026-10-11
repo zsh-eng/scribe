@@ -205,6 +205,19 @@ parliament.gov.sg are not used: their terms forbid reproduction without written 
 uv run fetch_mp_photos.py          # once; skips members already in credits.json
 ```
 
+### Explorer
+
+`build_pangram_explorer.py` turns the scanned speeches and results into one self-contained page,
+`presidents_address/who-wrote-the-address.html`, from the `pangram_explorer.html` template. It embeds
+the Timeless fonts from `~/Downloads/Timeless-Type-Family-1.094` when present (`--fonts` to change);
+their licence forbids redistributing the font files, so they are not kept in the repository. It
+embeds each portrait at 176 pixels with its credit; MPs without one get a monogram. Chamber seating
+uses attendance on the debate days, with party taken from each MP's seat.
+
+```bash
+uv run build_pangram_explorer.py
+```
+
 ## Reruns and offline replay
 
 Each sitting is imported in one SQLite transaction. Replaying a sitting preserves its IDs,

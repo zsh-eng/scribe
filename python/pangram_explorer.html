@@ -1,0 +1,1155 @@
+<title>Who Wrote the Address?</title>
+<meta name="robots" content="noindex">
+<style>
+/*__FONTS__*/
+/* Layout: an editorial hero, then a scrolling story beside a pinned stage. Each MP is one node
+   (portrait, ring, party pip) that moves through the story: 2020 chamber, 2025 chamber, swarm,
+   role lanes, same-MP grid. Below: the passage reader, every speech as strips, method, credits. */
+:root {
+  --paper: #edf0f0;
+  --leaf: #fafbfa;
+  --ink: #12171c;
+  --ink-2: #46515a;
+  --muted: #6e7881;
+  --rule: #d5dcdf;
+  --graphite: #838d96;
+  --seat: #c3cacf;
+  --proof: #b4196e;
+  --proof-wash: rgba(180, 25, 110, 0.13);
+  --proof-faint: rgba(180, 25, 110, 0.32);
+  --hover: rgba(18, 23, 28, 0.06);
+  --bar: rgba(237, 240, 240, 0.88);
+  --shadow: rgba(18, 23, 28, 0.1);
+  --pap: #2a4f9e; --wp: #1d8fc7; --psp: #c62a36; --nmp: #838d96;
+  --display: "Timeless Serif", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --text: "Timeless Serif Text", "Iowan Old Style", Georgia, serif;
+  --ui: "Timeless Sans Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ease: cubic-bezier(.2, .7, .1, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e1216; --leaf: #151a20; --ink: #eef2f4; --ink-2: #b7c0c8; --muted: #8c969f;
+    --rule: #26303a; --graphite: #5e6973; --seat: #34404b; --proof: #ff5ca8;
+    --proof-wash: rgba(255, 92, 168, 0.16); --proof-faint: rgba(255, 92, 168, 0.34);
+    --hover: rgba(238, 242, 244, 0.08); --bar: rgba(14, 18, 22, 0.88); --shadow: rgba(0, 0, 0, 0.4);
+    --pap: #7a7ff0; --wp: #1aa0b4; --psp: #e8565f; --nmp: #5e6973; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0e1216; --leaf: #151a20; --ink: #eef2f4; --ink-2: #b7c0c8; --muted: #8c969f;
+  --rule: #26303a; --graphite: #5e6973; --seat: #34404b; --proof: #ff5ca8;
+  --proof-wash: rgba(255, 92, 168, 0.16); --proof-faint: rgba(255, 92, 168, 0.34);
+  --hover: rgba(238, 242, 244, 0.08); --bar: rgba(14, 18, 22, 0.88); --shadow: rgba(0, 0, 0, 0.4);
+  --pap: #7a7ff0; --wp: #1aa0b4; --psp: #e8565f; --nmp: #5e6973; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--ui); font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+h1, h2, h3 { margin: 0; font-weight: 300; text-wrap: balance; }
+p { margin: 0; }
+button, select { font: inherit; color: inherit; }
+a { color: inherit; text-underline-offset: 0.18em; text-decoration-thickness: 1px; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 3px; }
+.wrap { max-width: 74rem; margin-inline: auto; padding-inline: clamp(16px, 4vw, 44px); }
+.small { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+/* Top bar */
+.top { position: sticky; top: 0; padding-top: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bar); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--rule); }
+.top .wrap { display: flex; align-items: center; gap: 8px 16px; min-height: 52px; padding-block: 8px; max-width: 90rem; }
+.brand { font-weight: 500; letter-spacing: -0.01em; white-space: nowrap; }
+.brand span { color: var(--muted); font-weight: 400; }
+.top .spacer { flex: 1; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; padding: 2px; background: var(--leaf); flex: 0 0 auto; }
+.seg button { border: 0; background: transparent; padding: 4px 11px; border-radius: 999px; cursor: pointer; font-size: 0.82rem; color: var(--ink-2); white-space: nowrap; transition: background-color 0.2s, color 0.2s; }
+.seg button:hover { background: var(--hover); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--leaf); }
+
+/* Hero */
+.hero { padding-block: clamp(48px, 9vw, 128px) clamp(40px, 7vw, 96px); display: grid; gap: clamp(20px, 3vw, 32px); }
+h1 { font-family: var(--display); font-size: clamp(3.4rem, 11vw, 9rem); line-height: 0.88; letter-spacing: -0.04em; }
+h1 em { font-style: italic; }
+h1 .w { display: inline-block; }
+.deck { font-family: var(--text); font-size: clamp(1.1rem, 1.9vw, 1.35rem); line-height: 1.55; color: var(--ink-2); max-width: 33em; }
+.figures { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(22px, 4vw, 64px); margin-top: clamp(8px, 2vw, 24px); }
+.fig { display: grid; gap: 10px; align-content: start; border-top: 1px solid var(--ink); padding-top: 14px; min-width: 0; }
+.fig .yr { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.fig .yr b { font-weight: 500; font-size: 1.05rem; }
+.fig .n { font-weight: 500; font-size: clamp(3.6rem, 9.5vw, 7.4rem); line-height: 0.86; letter-spacing: -0.05em; font-variant-numeric: tabular-nums; }
+.fig .lbl { color: var(--ink-2); }
+.fig svg { display: block; width: 100%; height: 14px; overflow: visible; margin-top: 6px; }
+.hero .cap { font-size: 0.82rem; color: var(--muted); }
+.line-h { fill: var(--graphite); }
+.line-a { fill: var(--proof); transform-box: fill-box; transform-origin: 50% 50%; }
+
+/* Story */
+.story { max-width: 90rem; margin-inline: auto; padding-inline: clamp(16px, 4vw, 44px); display: grid; grid-template-columns: minmax(250px, 21rem) minmax(0, 1fr); gap: clamp(20px, 3vw, 48px); }
+.steps { padding-block: 16vh 48vh; position: relative; z-index: 2; pointer-events: none; }
+.step { min-height: 88vh; display: flex; align-items: center; }
+.step .card { display: grid; gap: 12px; max-width: 21rem; opacity: 0.25; transition: opacity 0.5s; pointer-events: auto; }
+.step.on .card { opacity: 1; }
+.step .when { font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.step h2 { font-family: var(--display); font-size: clamp(1.9rem, 3vw, 2.7rem); line-height: 1.02; letter-spacing: -0.025em; }
+.step p { font-family: var(--text); font-size: 1.06rem; line-height: 1.6; color: var(--ink-2); }
+.step p b { font-weight: 400; color: var(--ink); box-shadow: inset 0 -0.42em 0 var(--proof-wash); }
+.stage-col { position: relative; min-width: 0; }
+.stage { position: sticky; top: calc(52px + env(safe-area-inset-top, 0px)); height: calc(100vh - 52px); height: calc(100svh - 52px - env(safe-area-inset-top, 0px)); }
+.board { position: absolute; left: 0; top: 0; transform-origin: 0 0; --t: 13px; --ym: 72px; }
+.under { position: absolute; left: 0; top: 0; overflow: visible; }
+.under g.layer { opacity: 0; transition: opacity 0.6s; }
+.under g.layer.on { opacity: 1; }
+.under text { font-family: var(--ui); fill: var(--muted); font-size: var(--t); }
+.under .yearmark { font-family: var(--display); font-weight: 300; fill: var(--ink); font-size: var(--ym); letter-spacing: -0.035em; }
+.under .bench { letter-spacing: 0.1em; text-transform: uppercase; }
+.under .lane { fill: var(--ink); font-weight: 500; font-size: calc(var(--t) * 1.15); }
+.under .lane tspan { fill: var(--ink-2); font-weight: 400; }
+.under .nm { fill: var(--ink); }
+.under .vv { fill: var(--ink-2); font-variant-numeric: tabular-nums; }
+.under .vv tspan { fill: var(--proof); font-weight: 500; }
+.under line, .under .ax { stroke: var(--rule); stroke-width: 1; }
+.under .table { fill: none; stroke: var(--rule); stroke-width: 1; }
+.under .k-seat { fill: var(--seat); }
+.under .k-ring { fill: none; stroke: var(--proof); stroke-width: 2.4; }
+.pp { fill: var(--nmp); }
+.pp.PAP { fill: var(--pap); } .pp.WP { fill: var(--wp); } .pp.PSP { fill: var(--psp); }
+
+.node { position: absolute; left: 0; top: 0; width: 40px; height: 40px; transition: transform 1.1s var(--ease), opacity 0.6s; will-change: transform; }
+.node .dot { position: absolute; left: 15px; top: 15px; width: 10px; height: 10px; border-radius: 50%; background: var(--seat); transition: opacity 0.4s; }
+.node .face { position: absolute; inset: 0; cursor: pointer; transition: opacity 0.4s; }
+.node .pic { position: absolute; left: 5px; top: 5px; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; background: var(--leaf); box-shadow: inset 0 0 0 1px var(--rule); }
+.node .pic img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; filter: grayscale(1) contrast(1.05); display: block; }
+.node .mono { display: grid; place-items: center; width: 100%; height: 100%; font-size: 10.5px; font-weight: 500; color: var(--ink-2); letter-spacing: 0.02em; }
+.node .pip { position: absolute; right: 4px; bottom: 4px; width: 9px; height: 9px; border-radius: 50%; background: var(--nmp); box-shadow: 0 0 0 1.5px var(--paper); }
+.node[data-party="PAP"] .pip { background: var(--pap); }
+.node[data-party="WP"] .pip { background: var(--wp); }
+.node[data-party="PSP"] .pip { background: var(--psp); }
+.node svg.ring { position: absolute; inset: 0; width: 40px; height: 40px; transform: rotate(-90deg); overflow: visible; }
+.ring .track { fill: none; stroke: var(--rule); stroke-width: 2.6; }
+.ring .arc { fill: none; stroke: var(--proof); stroke-width: 2.6; stroke-linecap: round; stroke-dasharray: 100 100; stroke-dashoffset: 100; transition: stroke-dashoffset 1s var(--ease), opacity 0.2s; }
+.node.as-dot .face { opacity: 0; pointer-events: none; }
+.node.as-face .dot { opacity: 0; }
+.node.gone { opacity: 0; pointer-events: none; }
+.node.as-face:hover { z-index: 5; }
+.node.as-face:hover .pic { box-shadow: 0 0 0 2px var(--ink); }
+
+/* Sections after the story */
+section.block { padding-block: clamp(64px, 9vw, 120px) 0; }
+.sec-head { display: grid; gap: 10px; margin-bottom: clamp(18px, 3vw, 28px); max-width: 44rem; }
+.sec-head h2 { font-family: var(--display); font-size: clamp(2.3rem, 5vw, 3.8rem); line-height: 1; letter-spacing: -0.03em; }
+.sec-head p { font-family: var(--text); font-size: 1.04rem; color: var(--ink-2); line-height: 1.6; }
+
+/* Reader */
+.faces { display: flex; gap: 6px; overflow-x: auto; padding: 4px 2px 14px; scrollbar-width: thin; scroll-snap-type: x proximity; }
+.facebtn { flex: 0 0 auto; width: 76px; display: grid; justify-items: center; gap: 2px; border: 0; background: transparent; cursor: pointer; padding: 0; scroll-snap-align: start; }
+.facebtn .node { position: relative; transform: scale(1.6); margin: 12px; transition: none; will-change: auto; }
+.facebtn span.v { font-size: 0.76rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.facebtn:hover .pic { box-shadow: 0 0 0 2px var(--rule); }
+.facebtn[aria-pressed="true"] span.v { color: var(--ink); font-weight: 500; }
+.facebtn[aria-pressed="true"] .pic { box-shadow: 0 0 0 2px var(--ink); }
+.pickrow { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin-bottom: 18px; }
+.pickrow select { max-width: 100%; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--leaf); }
+.speech { background: var(--leaf); border: 1px solid var(--rule); border-radius: 10px; }
+.sp-head { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 18px 26px; align-items: center; padding: clamp(18px, 3vw, 32px); border-bottom: 1px solid var(--rule); }
+.big-node { width: 92px; height: 92px; position: relative; }
+.big-node .node { transform: scale(2.3); transform-origin: 0 0; transition: none; will-change: auto; }
+.big-node .pip { display: none; }
+.sp-who { font-family: var(--display); font-weight: 300; font-size: clamp(1.8rem, 3.2vw, 2.6rem); line-height: 1.02; letter-spacing: -0.025em; }
+.sp-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: var(--ink-2); font-size: 0.88rem; margin-top: 8px; }
+.badge { display: inline-flex; align-items: center; gap: 6px; font-size: 0.72rem; font-weight: 500; letter-spacing: 0.08em; border: 1px solid var(--rule); border-radius: 999px; padding: 1px 9px 1px 7px; color: var(--ink); }
+.badge i { width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: var(--nmp); }
+.badge.PAP i { background: var(--pap); } .badge.WP i { background: var(--wp); } .badge.PSP i { background: var(--psp); }
+.sp-share { text-align: right; }
+.sp-share .n { font-weight: 500; font-size: clamp(2.6rem, 5vw, 3.8rem); letter-spacing: -0.045em; line-height: 0.9; font-variant-numeric: tabular-nums; }
+.sp-share .l { color: var(--ink-2); font-size: 0.85rem; margin-top: 4px; }
+.minimap { grid-column: 1 / -1; position: relative; height: 10px; border-radius: 2px; background: var(--graphite); overflow: hidden; }
+.minimap button { position: absolute; top: 0; bottom: 0; border: 0; padding: 0; background: var(--proof); cursor: pointer; box-shadow: 0 0 0 1px var(--leaf); }
+.minimap button.off { background: var(--proof-faint); }
+.sp-body { padding: clamp(18px, 3vw, 40px) clamp(18px, 4vw, 52px) clamp(24px, 4vw, 48px); }
+.para { display: grid; grid-template-columns: minmax(0, 38em) minmax(0, 12rem); gap: 0 clamp(16px, 3vw, 44px); }
+.para p { font-family: var(--text); font-size: 1.07rem; line-height: 1.75; margin-bottom: 0.95em; }
+.note { font-size: 0.78rem; color: var(--ink-2); padding-top: 0.4em; line-height: 1.45; border-top: 1px solid transparent; }
+.note b { display: block; font-weight: 500; color: var(--proof); letter-spacing: 0.06em; text-transform: uppercase; font-size: 0.7rem; }
+.note.off b { color: var(--muted); }
+.para mark { color: inherit; background-color: transparent; background-image: linear-gradient(var(--proof-wash), var(--proof-wash)); background-repeat: no-repeat; background-size: 100% 100%; box-shadow: inset 0 -2px 0 var(--proof); transition: background-size 1.1s var(--ease); }
+.para mark.off { background-image: none; box-shadow: inset 0 -1px 0 var(--proof-faint); }
+.para mark.pending { background-size: 0% 100%; }
+.empty { color: var(--muted); padding-bottom: 1em; font-family: var(--text); }
+
+/* Ledger */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; margin-bottom: 14px; }
+.toolbar > div { display: flex; align-items: center; gap: 8px; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.sm { display: none; }
+.toolbar .lab { font-size: 0.76rem; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; }
+.ledger { display: grid; grid-template-columns: 1fr 1fr; background: var(--leaf); border: 1px solid var(--rule); border-radius: 10px; }
+.page { padding: clamp(14px, 2.2vw, 26px); min-width: 0; }
+.page + .page { border-left: 1px solid var(--rule); }
+.page-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.page-head .yr { font-family: var(--display); font-weight: 300; font-size: 2.4rem; line-height: 1; letter-spacing: -0.03em; }
+.page-head .st { color: var(--ink-2); font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+.page svg { display: block; width: 100%; overflow: visible; }
+.row { transition: transform 0.6s var(--ease), opacity 0.3s; cursor: pointer; }
+.row.dim { opacity: 0.14; }
+.row .hit { fill: transparent; }
+.row:hover .hit { fill: var(--hover); }
+.p-h { fill: var(--graphite); }
+.p-a { fill: var(--proof); }
+.p-a.off { fill: var(--proof-faint); }
+.daylab { font-size: 11px; fill: var(--ink-2); font-family: var(--ui); }
+.daylab tspan.d { fill: var(--muted); }
+
+/* Method and credits */
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: clamp(18px, 3vw, 32px); }
+.notes div { border-top: 1px solid var(--ink); padding-top: 12px; display: grid; gap: 6px; align-content: start; }
+.notes h3 { font-family: var(--ui); font-weight: 500; font-size: 0.95rem; }
+.notes p { font-family: var(--text); color: var(--ink-2); line-height: 1.6; }
+details.more { margin-top: 28px; border-top: 1px solid var(--rule); padding-top: 12px; }
+details.more summary { cursor: pointer; font-weight: 500; }
+.tscroll { overflow-x: auto; margin-top: 10px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.85rem; min-width: 640px; }
+th, td { text-align: left; padding: 6px 10px 6px 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th { font-weight: 500; color: var(--muted); font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; }
+td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--hover); }
+.credits { columns: 3 16rem; column-gap: 28px; font-size: 0.8rem; color: var(--ink-2); margin-top: 10px; }
+.credits p { break-inside: avoid; margin-bottom: 4px; }
+footer { padding-block: clamp(56px, 8vw, 96px) calc(40px + env(safe-area-inset-bottom, 0px)); color: var(--muted); font-size: 0.8rem; }
+footer .wrap { border-top: 1px solid var(--rule); padding-top: 14px; display: grid; gap: 4px; }
+
+/* Tooltip */
+.tip { position: fixed; left: 0; top: 0; z-index: 60; pointer-events: none; background: var(--ink); color: var(--leaf); border-radius: 10px; padding: 12px 14px; font-size: 0.84rem; line-height: 1.4; width: 252px; box-shadow: 0 12px 32px var(--shadow); opacity: 0; transform: translateY(4px); transition: opacity 0.12s, transform 0.12s; }
+.tip.on { opacity: 1; transform: none; }
+.tip .t-top { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+.tip img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; object-position: 50% 22%; filter: grayscale(1); flex: 0 0 auto; }
+.tip .t-who { font-weight: 500; font-size: 0.95rem; }
+.tip .t-sub { opacity: 0.72; }
+.tip .t-val { font-size: 1.45rem; font-weight: 500; letter-spacing: -0.02em; }
+
+/* Motion on load */
+@keyframes rise { from { transform: translateY(0.4em); opacity: 0; } to { transform: none; opacity: 1; } }
+.hero .w, .hero .deck, .hero .figures, .hero .cap, .hero .small { animation: rise 0.9s var(--ease) backwards; }
+
+@media (max-width: 860px) {
+  .story { grid-template-columns: minmax(0, 1fr); }
+  /* Phones: the stage is an opaque window at the top; each card sticks to the bottom of the
+     screen for the length of its step, then slides up underneath the stage. */
+  .stage-col, .steps { grid-area: 1 / 1; }
+  .stage-col { position: sticky; top: calc(52px + env(safe-area-inset-top, 0px)); align-self: start; height: min(62svh, calc(100svh - 312px)); z-index: 3; background: var(--paper); box-shadow: 0 1px 0 var(--rule); }
+  .stage { position: relative; top: 0; height: 100%; }
+  .steps { z-index: 1; padding-block: 30svh 6svh; }
+  .step { min-height: 96svh; align-items: flex-end; }
+  .step .card { position: sticky; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--leaf); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; opacity: 0; box-shadow: 0 10px 30px var(--shadow); max-width: none; width: 100%; gap: 8px; transition: opacity 0.35s; }
+  .step.on .card { opacity: 1; }
+  .step h2 { font-size: 1.5rem; }
+  .step p { font-size: 0.97rem; line-height: 1.5; }
+  .ledger { grid-template-columns: minmax(0, 1fr); }
+  .page + .page { border-left: 0; border-top: 1px solid var(--rule); }
+  .para { grid-template-columns: minmax(0, 1fr); }
+  .note { padding: 0 0 0.6em; }
+  .sp-head { grid-template-columns: auto minmax(0, 1fr); }
+  .sp-share { grid-column: 1 / -1; text-align: left; }
+  .top .wrap { overflow-x: auto; scrollbar-width: none; }
+  .top .spacer { flex: 0 0 4px; }
+}
+@media (max-width: 560px) {
+  .figures { grid-template-columns: minmax(0, 1fr); }
+  .brand { display: none; }
+  .top .spacer { display: none; }
+  .lg { display: none; }
+  .sm { display: inline; }
+  .big-node { width: 64px; height: 64px; }
+  .big-node .node { transform: scale(1.6); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">Second Reading <span>· AI-detection pilot · internal draft</span></div>
+    <div class="spacer"></div>
+    <div class="seg" data-key="strict" role="group" aria-label="What counts as flagged">
+      <button type="button" data-val="1" aria-pressed="true"><span class="lg">High confidence</span><span class="sm">High conf.</span></button>
+      <button type="button" data-val="0" aria-pressed="false"><span class="lg">All passages</span><span class="sm">All</span></button>
+    </div>
+    <div class="seg" data-key="anon" role="group" aria-label="Identities">
+      <button type="button" data-val="0" aria-pressed="true">Names</button>
+      <button type="button" data-val="1" aria-pressed="false"><span class="lg">Anonymous</span><span class="sm">Anon</span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <span class="small">Debate on the President's Address · 2020 and 2025</span>
+    <h1><span class="w">Who</span> <span class="w">wrote</span> <span class="w">the</span> <span class="w"><em>Address</em>?</span></h1>
+    <p class="deck">We ran every long speech from the debates that opened Singapore's last two Parliaments through Pangram, an AI-text detector.</p>
+    <div class="figures">
+      <div class="fig">
+        <div class="yr"><b>2020</b><span class="small" id="f-sub-2020"></span></div>
+        <div class="n" id="f-n-2020">0.0%</div>
+        <div class="lbl" id="f-l-2020"></div>
+        <svg id="f-line-2020" aria-hidden="true"></svg>
+      </div>
+      <div class="fig">
+        <div class="yr"><b>2025</b><span class="small" id="f-sub-2025"></span></div>
+        <div class="n" id="f-n-2025">0.0%</div>
+        <div class="lbl" id="f-l-2025"></div>
+        <svg id="f-line-2025" aria-hidden="true"></svg>
+      </div>
+    </div>
+    <p class="cap">Each line is a whole debate, speech after speech, in the order spoken.</p>
+  </div>
+
+  <div class="story" id="story">
+    <div class="steps" id="steps"></div>
+    <div class="stage-col">
+      <div class="stage" id="stage" role="img" aria-label="Members of Parliament as portraits, arranged as described in the accompanying text">
+        <div class="board" id="board"><svg class="under" id="under"></svg></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="block wrap" id="reader">
+    <div class="sec-head">
+      <h2>The flagged passages</h2>
+      <p>Ranked by share flagged. Each highlighted passage carries Pangram's confidence and score.</p>
+    </div>
+    <div class="faces" id="faces" role="group" aria-label="Flagged speeches"></div>
+    <div class="pickrow"><label class="small" for="picker">Any speech</label><select id="picker"></select></div>
+    <article class="speech">
+      <div class="sp-head" id="sp-head"></div>
+      <div class="sp-body" id="sp-body" aria-live="polite"></div>
+    </article>
+  </section>
+
+  <section class="block wrap" id="all">
+    <div class="sec-head">
+      <h2>Every speech</h2>
+      <p>One line per speech, first word to last.</p>
+    </div>
+    <div class="toolbar">
+      <div><span class="lab">Show</span><div class="seg" data-key="show">
+        <button type="button" data-val="all" aria-pressed="true">Everyone</button>
+        <button type="button" data-val="new" aria-pressed="false">New MPs</button>
+        <button type="button" data-val="ret" aria-pressed="false">Returning</button>
+        <button type="button" data-val="off" aria-pressed="false">Office holders</button>
+      </div></div>
+      <div><span class="lab">Order</span><div class="seg" data-key="sort">
+        <button type="button" data-val="spoken" aria-pressed="true">As spoken</button>
+        <button type="button" data-val="flag" aria-pressed="false">Most flagged</button>
+        <button type="button" data-val="long" aria-pressed="false">Longest</button>
+      </div></div>
+    </div>
+    <div class="ledger">
+      <div class="page"><div class="page-head"><span class="yr">2020</span><span class="st" id="st-2020"></span></div><svg id="svg-2020" aria-label="2020 speeches"></svg></div>
+      <div class="page"><div class="page-head"><span class="yr">2025</span><span class="st" id="st-2025"></span></div><svg id="svg-2025" aria-label="2025 speeches"></svg></div>
+    </div>
+  </section>
+
+  <section class="block wrap" id="method">
+    <div class="sec-head"><h2>Method</h2></div>
+    <div class="notes">
+      <div><h3>Speeches</h3><p>Every speech of 500 words or more in the two debates, from Hansard. Passages delivered in Mandarin, Malay or Tamil, which Hansard prints in translation, are removed, as are the Chair's interventions.</p></div>
+      <div><h3>Detection</h3><p id="m-detect"></p></div>
+      <div><h3>The control</h3><p id="m-control"></p></div>
+      <div><h3>Limits</h3><p id="m-limits"></p></div>
+      <div><h3>Roles and party</h3><p>Office holders are ministers, ministers of state and parliamentary secretaries. New MPs were in their first Parliament, judged from attendance records that begin in 2016. Party follows each MP's seat; neither debate included Nominated MPs.</p></div>
+    </div>
+    <details class="more"><summary id="t-sum">All speeches as a table</summary>
+      <div class="tscroll"><table><thead><tr><th>Year</th><th>Speaker</th><th>Party</th><th>Role</th><th class="r">Words</th><th>Verdict</th><th class="r">Flagged</th><th class="r">High confidence</th></tr></thead><tbody id="tbody"></tbody></table></div>
+    </details>
+    <details class="more"><summary>Portrait credits</summary><div class="credits" id="credits"></div></details>
+  </section>
+</main>
+<footer><div class="wrap"><span id="foot"></span><span>Pangram's classifications are estimates of how text was written, not proof of who wrote it. Internal working draft; not for circulation.</span></div></footer>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+(() => {
+  const S = DATA.speeches, M = DATA.members, CH = DATA.chamber;
+  const YEARS = ['2020', '2025'];
+  const PARLIAMENT = { 2020: '14th', 2025: '15th' };
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const state = { strict: true, anon: false, step: 0, show: 'all', sort: 'spoken', current: null };
+  const ROLE = { new: 'New MP', ret: 'Returning MP', off: 'Office holder' };
+  const PARTY = { PAP: "People's Action Party", WP: "Workers' Party", PSP: 'Progress Singapore Party', NMP: 'Nominated MP' };
+  const PARTY_ORDER = ['PAP', 'WP', 'PSP', 'Opposition', 'NMP'];
+  const $ = (id) => document.getElementById(id);
+  const NS = 'http://www.w3.org/2000/svg';
+  const svgEl = (tag, attrs, parent, text) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  const el = (tag, cls, text, parent) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  const pct1 = (v) => (v * 100).toFixed(1) + '%';
+  const pct0 = (v) => (v <= 0 ? '0%' : v < 0.005 ? '<1%' : Math.round(v * 100) + '%');
+  const words = (n) => ['None', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'][n] || String(n);
+  const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const longDate = (iso) => { const d = new Date(iso + 'T12:00:00'); return `${d.getDate()} ${MON[d.getMonth()]} ${d.getFullYear()}`; };
+  const shortDate = (iso) => { const d = new Date(iso + 'T12:00:00'); return `${d.getDate()} ${MON[d.getMonth()].slice(0, 3)}`; };
+  const median = (a) => { const b = [...a].sort((x, y) => x - y), k = b.length >> 1; return b.length % 2 ? b[k] : (b[k - 1] + b[k]) / 2; };
+
+  // ---------- Derived data ----------
+  const days = {};
+  YEARS.forEach((y) => { days[y] = DATA.meta.dates[y]; });
+  const STRICT = (g) => g[2] === 2 && g[4] >= 75;
+  S.forEach((s, i) => {
+    s.i = i;
+    s.day = days[s.y].indexOf(s.date) + 1;
+    s.fs = s.segs.filter(STRICT).reduce((a, g) => a + (g[1] - g[0]), 0) / s.chars;
+  });
+  const share = (s) => (state.strict ? s.fs : s.fa);
+  const counted = (g) => !state.strict || STRICT(g);
+  const wordShare = (list) => {
+    const w = list.reduce((a, s) => a + s.words, 0);
+    return w ? list.reduce((a, s) => a + share(s) * s.words, 0) / w : 0;
+  };
+  const byYear = (y) => S.filter((s) => s.y === y);
+  const MPY = new Map();
+  S.forEach((s) => {
+    if (s.m < 0) return;
+    const k = s.m + '|' + s.y;
+    if (!MPY.has(k)) MPY.set(k, { m: s.m, y: s.y, list: [], words: 0 });
+    const n = MPY.get(k);
+    n.list.push(s);
+    n.words += s.words;
+  });
+  MPY.forEach((n) => {
+    n.main = n.list.reduce((a, b) => (b.words > a.words ? b : a));
+    n.role = n.list.some((s) => s.role === 'off') ? 'off' : n.main.role;
+  });
+  const mpy = (m, y) => MPY.get(m + '|' + y);
+  const mpShare = (n) => wordShare(n.list);
+  const mpSegs = (n) => n.list.reduce((a, s) => a + s.segs.filter(counted).length, 0);
+  const speakersOf = (y) => [...MPY.values()].filter((n) => n.y === y);
+  const who = (m) => (state.anon ? M[m].code : M[m].name);
+  const partyOf = new Map();
+  YEARS.forEach((y) => CH[y].forEach((e) => partyOf.set(e.m, e.party)));
+  S.forEach((s) => { if (s.m >= 0 && !partyOf.has(s.m)) partyOf.set(s.m, s.party); });
+  const partiesIn = (y) => PARTY_ORDER.filter((p) => CH[y].some((e) => e.party === p));
+
+  // ---------- Portrait node (shared by stage, face strip and reader) ----------
+  function makeNode(m) {
+    const n = el('div', 'node as-face');
+    n.dataset.party = partyOf.get(m) || '';
+    el('span', 'dot', null, n);
+    const face = el('span', 'face', null, n);
+    const pic = el('span', 'pic', null, face);
+    if (M[m].photo) {
+      const img = el('img', null, null, pic);
+      img.src = M[m].photo; img.alt = ''; img.decoding = 'async';
+    }
+    const mono = el('span', 'mono', null, pic);
+    const ring = svgEl('svg', { class: 'ring', viewBox: '0 0 40 40', 'aria-hidden': 'true' }, face);
+    svgEl('circle', { class: 'track', cx: 20, cy: 20, r: 18, pathLength: 100 }, ring);
+    n.__arc = svgEl('circle', { class: 'arc', cx: 20, cy: 20, r: 18, pathLength: 100 }, ring);
+    el('span', 'pip', null, face);
+    n.__mono = mono;
+    n.__img = pic.querySelector('img');
+    paintFace(n, m);
+    return n;
+  }
+  function paintFace(n, m) {
+    const photo = M[m].photo && !state.anon;
+    if (n.__img) n.__img.hidden = !photo;
+    n.__mono.hidden = !!photo;
+    const parts = M[m].name.split(/\s+/);
+    n.__mono.textContent = state.anon ? '' : (parts[0][0] + (parts[1] ? parts[1][0] : '')).toUpperCase();
+  }
+  const setArc = (n, v, delay = 0) => {
+    n.__arc.style.transitionDelay = delay + 'ms';
+    n.__arc.style.strokeDashoffset = String(100 - (v > 0 ? Math.max(3, v * 100) : 0));
+    n.__arc.style.opacity = v > 0 ? 1 : 0; // a zero-length dash still draws its round cap
+  };
+
+  // ---------- Tooltip ----------
+  const tip = $('tip');
+  function showTip(ev, m, y) {
+    const n = mpy(m, y);
+    tip.replaceChildren();
+    const top = el('div', 't-top', null, tip);
+    if (M[m].photo && !state.anon) { const img = el('img', null, null, top); img.src = M[m].photo; img.alt = ''; }
+    const id = el('div', null, null, top);
+    el('div', 't-who', who(m), id);
+    const p = partyOf.get(m);
+    el('div', 't-sub', [p && PARTY[p], n && ROLE[n.role]].filter(Boolean).join(' · '), id);
+    if (n) {
+      el('div', 't-val', pct0(mpShare(n)) + ' flagged', tip);
+      el('div', 't-sub', `${n.words.toLocaleString()} words in ${y} · verdict ${n.main.v}`, tip);
+    } else {
+      el('div', 't-sub', `No speech of 500+ words in ${y}`, tip);
+    }
+    placeTip(ev);
+  }
+  function placeTip(ev) {
+    const r = tip.getBoundingClientRect(), pad = 16;
+    let x = ev.clientX + pad, y = ev.clientY + pad;
+    if (x + r.width > innerWidth - 8) x = ev.clientX - r.width - pad;
+    if (y + r.height > innerHeight - 8) y = ev.clientY - r.height - pad;
+    tip.style.left = Math.max(8, x) + 'px';
+    tip.style.top = Math.max(8, y) + 'px';
+    tip.classList.add('on');
+  }
+  const hideTip = () => tip.classList.remove('on');
+
+  // ---------- Hero ----------
+  function countTo(node, to, ms, delay = 0) {
+    const from = parseFloat(node.dataset.v || '0');
+    node.dataset.v = to;
+    if (reduce || !ms) { node.textContent = pct1(to); return; }
+    setTimeout(() => {
+      const t0 = performance.now();
+      const step = (t) => {
+        const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3);
+        node.textContent = pct1(from + (to - from) * e);
+        if (k < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }, delay);
+  }
+  function heroLine(y, animate) {
+    const svg = $('f-line-' + y);
+    svg.replaceChildren();
+    const W = svg.clientWidth || 400, list = byYear(y).sort((a, b) => a.ord - b.ord);
+    const total = list.reduce((a, s) => a + s.chars, 0), gap = 1.5, usable = W - gap * (list.length - 1);
+    svg.setAttribute('viewBox', `0 0 ${W} 14`);
+    let x = 0;
+    list.forEach((s) => {
+      const w = (s.chars / total) * usable;
+      svgEl('rect', { class: 'line-h', x: x.toFixed(2), y: 2, width: Math.max(0.5, w).toFixed(2), height: 10 }, svg);
+      s.segs.filter(counted).forEach((sg) => {
+        const a = svgEl('rect', { class: 'line-a', x: (x + (sg[0] / s.chars) * w).toFixed(2), y: 0, width: Math.max(0.8, ((sg[1] - sg[0]) / s.chars) * w).toFixed(2), height: 14 }, svg);
+        if (animate && !reduce) a.animate([{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 500, delay: 1300 + (x / W) * 1100, fill: 'backwards', easing: 'cubic-bezier(.2,.7,.1,1)' });
+      });
+      x += w + gap;
+    });
+    if (animate && !reduce) svg.animate([{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: 1500, delay: y === '2025' ? 750 : 600, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'backwards' });
+  }
+  function renderHero(first) {
+    YEARS.forEach((y, k) => {
+      const list = byYear(y);
+      $('f-sub-' + y).textContent = `${speakersOf(y).length} MPs · ${list.length} speeches`;
+      $('f-l-' + y).textContent = `of words ${flagWord()}`;
+      countTo($('f-n-' + y), wordShare(list), first ? 1600 : 700, first ? 700 + k * 150 : 0);
+      heroLine(y, first);
+    });
+  }
+  document.querySelectorAll('.hero .w').forEach((w, k) => (w.style.animationDelay = 80 + k * 90 + 'ms'));
+  [['.hero .deck', 420], ['.hero .figures', 540], ['.hero .cap', 900]].forEach(([q, d]) => (document.querySelector(q).style.animationDelay = d + 'ms'));
+
+  // ---------- Stage ----------
+  const stage = $('stage'), board = $('board'), under = $('under');
+  const nodes = new Map();
+  let BW = 1000, BH = 640, T = 13, wide = true;
+  const ensureNode = (m) => {
+    if (!nodes.has(m)) {
+      const n = makeNode(m);
+      n.dataset.m = m;
+      n.classList.add('gone');
+      board.appendChild(n);
+      nodes.set(m, n);
+    }
+  };
+  YEARS.forEach((y) => CH[y].forEach((e) => ensureNode(e.m)));
+  MPY.forEach((n) => ensureNode(n.m));
+
+  const officeRank = (d) => (/^Prime Minister/.test(d) ? 0 : /Senior Minister(?! of State)|Deputy Prime/.test(d) ? 1 : /Coordinating/.test(d) ? 2 : /^Acting Minister/.test(d) ? 4 : /Senior Minister of State/.test(d) ? 5 : /Minister of State/.test(d) ? 6 : /Parliamentary Secretary/.test(d) ? 7 : 3);
+  const centreOut = (count) => Array.from({ length: count }, (_, k) => (k === 0 ? 0 : (k % 2 ? 1 : -1) * Math.ceil(k / 2)));
+  // Two composed boards: desktop (1000 x 700) and phone (360 x 540, drawn close to 1:1 on screen).
+  function chamber(y) {
+    const ent = CH[y];
+    const chair = ent.find((e) => e.desig === 'Speaker');
+    const gov = ent.filter((e) => e !== chair && e.party === 'PAP');
+    const opp = ent.filter((e) => e !== chair && e.party !== 'PAP');
+    gov.sort((a, b) => (a.office ? officeRank(a.desig) : 50) - (b.office ? officeRank(b.desig) : 50) || (a.con || '').localeCompare(b.con || '') || a.m - b.m);
+    opp.sort((a, b) => (b.desig === 'Leader of the Opposition') - (a.desig === 'Leader of the Opposition') || PARTY_ORDER.indexOf(a.party) - PARTY_ORDER.indexOf(b.party) || (a.con || '').localeCompare(b.con || '') || a.m - b.m);
+    const { P, ROW, AISLE, x0, x1, s } = wide
+      ? { P: 46, ROW: 48, AISLE: 100, x0: 180, x1: BW - 26, s: 1.08 }
+      : { P: 32, ROW: 33, AISLE: 46, x0: 20, x1: BW - 20, s: 0.74 };
+    const perRow = Math.floor((x1 - x0) / P) + 1, cx = (x0 + x1) / 2;
+    const rowsO = Math.ceil(opp.length / perRow), rowsG = Math.ceil(gov.length / perRow);
+    const total = (rowsO + rowsG - 1) * ROW + AISLE;
+    const top = Math.max(wide ? 170 : 158, (BH - total) / 2 + 40);
+    const yAisle = top + (rowsO - 1) * ROW + AISLE / 2;
+    const out = [];
+    const place = (list, rowY) => {
+      for (let r = 0; r * perRow < list.length; r++) {
+        const row = list.slice(r * perRow, (r + 1) * perRow);
+        centreOut(row.length).forEach((off, k) => out.push({ e: row[k], x: cx + off * P, y: rowY(r) }));
+      }
+    };
+    place(opp, (r) => top + (rowsO - 1 - r) * ROW);
+    place(gov, (r) => yAisle + AISLE / 2 + r * ROW);
+    const chairAt = wide ? { x: 92, y: yAisle } : { x: cx, y: top - 52 };
+    if (chair) out.push({ e: chair, ...chairAt });
+    const layout = out.map(({ e, x, y: yy }) => {
+      const n = mpy(e.m, y);
+      return { m: e.m, x, y: yy, s, mode: n ? 'as-face' : 'as-dot', v: n ? mpShare(n) : 0 };
+    });
+    return { layout, lab: { kind: 'chamber', y, yAisle, x0, x1, cx, top, rowsO, rowsG, ROW, AISLE, chair: !!chair, chairAt } };
+  }
+  function grid(list, x0, y0, cols, pitch, s) {
+    return list.map((n, k) => ({ m: n.m, x: x0 + (k % cols) * pitch + pitch / 2, y: y0 + Math.floor(k / cols) * pitch + pitch / 2, s, mode: 'as-face', v: mpShare(n) }));
+  }
+  // Beeswarm: centred on yc, or stacked upward from yc when oneSided (a dot histogram).
+  function swarm(list, X, yc, r, oneSided) {
+    const placed = [];
+    return [...list].sort((a, b) => mpShare(a) - mpShare(b)).map((n) => {
+      const x = X(mpShare(n));
+      for (let k = 0; k < 120; k++) {
+        const y = oneSided ? yc - k * r * 0.5 : yc + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * r * 0.5;
+        if (placed.every((p) => (p.x - x) ** 2 + (p.y - y) ** 2 >= (2 * r + 1.5) ** 2)) { placed.push({ x, y }); return { x, y, n }; }
+      }
+      return { x, y: yc, n };
+    });
+  }
+  // MPs with nothing flagged go in a grid; the rest spread along a square-root axis. With o.below the
+  // swarm sits under the grid (phones); otherwise beside it, both centred on o.yc.
+  function spread(list, o) {
+    const zeros = list.filter((n) => mpShare(n) === 0).sort((a, b) => who(a.m).localeCompare(who(b.m)));
+    const flagged = list.filter((n) => mpShare(n) > 0);
+    const r = 20 * o.s, pitch = 40 * o.s + 2, rows = Math.ceil(zeros.length / o.cols);
+    const X = (v) => o.ax0 + Math.sqrt(v) * (o.ax1 - o.ax0);
+    let gy, sw;
+    if (o.below != null) {
+      gy = o.gy;
+      const rel = swarm(flagged, X, 0, r, true), height = rel.length ? -Math.min(...rel.map((p) => p.y)) + r : 0;
+      const base = gy + rows * pitch + o.below + height;
+      sw = rel.map((p) => ({ ...p, y: p.y + base }));
+    } else {
+      gy = o.yc - (rows * pitch) / 2;
+      sw = swarm(flagged, X, o.yc, r, false);
+    }
+    const layout = grid(zeros, o.x0, gy, o.cols, pitch, o.s).concat(sw.map(({ x, y, n }) => ({ m: n.m, x, y, s: o.s, mode: 'as-face', v: mpShare(n) })));
+    const bottom = Math.max(gy + rows * pitch, ...sw.map((p) => p.y + r));
+    return { layout, zeros: zeros.length, X, gx: o.x0, gy, bottom, o };
+  }
+  const ROLES = [['new', 'New MPs'], ['ret', 'Returning MPs'], ['off', 'Office holders']];
+  const pairList = () => {
+    const out = [];
+    speakersOf('2025').forEach((b) => {
+      const a = mpy(b.m, '2020');
+      if (a && a.role !== 'off' && b.role !== 'off') out.push({ m: b.m, a, b });
+    });
+    return out.sort((p, q) => mpShare(q.b) - mpShare(p.b) || who(p.m).localeCompare(who(q.m)));
+  };
+  const flagWord = () => (state.strict ? 'flagged with high confidence' : 'classified as AI-generated');
+
+  const STEPS = [
+    {
+      year: '2020',
+      build: () => chamber('2020'),
+      copy: () => {
+        const sp = speakersOf('2020'), list = byYear('2020'), segs = list.reduce((a, s) => a + s.segs.filter(counted).length, 0);
+        return {
+          when: longDate(days['2020'][0]),
+          h: segs ? `${segs} flagged passages` : 'Not one flagged passage',
+          p: `${sp.length} MPs gave ${list.length} speeches in the ${words(days['2020'].length).toLowerCase()}-day debate that opened the ${PARLIAMENT[2020]} Parliament. ${segs ? `Pangram flagged ${segs} passages.` : 'Pangram classified <b>every passage</b> as human-written.'}`,
+        };
+      },
+    },
+    {
+      year: '2025',
+      build: () => chamber('2025'),
+      copy: () => {
+        const sp = speakersOf('2025'), f = sp.filter((n) => mpShare(n) > 0);
+        return {
+          when: longDate(days['2025'][0]),
+          h: `${f.length} of ${sp.length} speakers flagged`,
+          p: `The ${PARLIAMENT[2025]} Parliament opens. Each ring fills with the share of that MP's speech ${flagWord()}. Across the debate: <b>${pct1(wordShare(byYear('2025')))} of all words</b>.`,
+        };
+      },
+    },
+    {
+      year: '2025',
+      build: () => {
+        const o = wide
+          ? { x0: 40, cols: 7, s: 1.04, ax0: 420, ax1: BW - 50, yc: BH / 2 + 36 }
+          : { x0: 22, cols: 11, s: 0.66, ax0: 26, ax1: BW - 26, gy: 104, below: 34 };
+        const r = spread(speakersOf('2025'), o);
+        return { layout: r.layout, lab: { kind: 'swarm', ...r } };
+      },
+      copy: () => {
+        const f = speakersOf('2025').filter((n) => mpShare(n) > 0), half = f.filter((n) => mpShare(n) > 0.5).length;
+        const one = f.filter((n) => mpSegs(n) === 1).length;
+        return {
+          when: 'How much',
+          h: half ? `${words(half)} MP${half > 1 ? 's' : ''} had most of their speech flagged` : 'No MP had most of their speech flagged',
+          p: `Half of the ${f.length} flagged MPs had <b>${pct0(median(f.map(mpShare)))} or less</b> of their speech flagged. ${words(one)} had a single flagged passage.`,
+        };
+      },
+    },
+    {
+      year: '2025',
+      build: () => {
+        const lanes = [], layout = [], t0 = wide ? 108 : 76, lh = (BH - t0 - 46) / 3;
+        ROLES.forEach(([key, label], k) => {
+          const list = speakersOf('2025').filter((n) => n.role === key), top = t0 + lh * k, yc = top + lh / 2 + (wide ? 8 : 10);
+          const o = wide ? { x0: 40, cols: 8, s: 0.8, ax0: 420, ax1: BW - 50, yc } : { x0: 16, cols: 5, s: 0.45, ax0: 142, ax1: BW - 22, yc };
+          const r = spread(list, o);
+          layout.push(...r.layout);
+          lanes.push({ key, label, top, base: top + lh - 6, ...r });
+        });
+        return { layout, lab: { kind: 'lanes', lanes } };
+      },
+      copy: () => {
+        const v = Object.fromEntries(ROLES.map(([k]) => [k, wordShare(byYear('2025').filter((s) => s.role === k))]));
+        const top = ROLES.reduce((a, b) => (v[b[0]] > v[a[0]] ? b : a));
+        return { when: 'By role', h: `${top[1]} were flagged most`, p: `Share of words ${flagWord()} in 2025: new MPs <b>${pct1(v.new)}</b>, returning MPs <b>${pct1(v.ret)}</b>, office holders <b>${pct1(v.off)}</b>.` };
+      },
+    },
+    {
+      year: '2025',
+      build: () => {
+        const ps = pairList();
+        let layout;
+        if (wide) {
+          const cols = 7, s = 1.8, cw = (BW - 40) / cols, ch = 140, rows = Math.ceil(ps.length / cols);
+          const y0 = Math.max(84, (BH - rows * ch) / 2 + 20);
+          layout = ps.map((p, k) => ({ m: p.m, x: 20 + (k % cols) * cw + cw / 2, y: y0 + Math.floor(k / cols) * ch + 20 * s + 6, s, mode: 'as-face', v: mpShare(p.b) }));
+        } else {
+          // Phones: a two-column ranked list, read down the first column then the second.
+          const per = Math.ceil(ps.length / 2), pitch = Math.min(34, (BH - 70) / per);
+          layout = ps.map((p, k) => ({ m: p.m, x: 32 + Math.floor(k / per) * 172, y: 56 + (k % per) * pitch, s: 0.72, mode: 'as-face', v: mpShare(p.b) }));
+        }
+        return { layout, lab: { kind: 'pairs', ps, layout } };
+      },
+      copy: () => {
+        const ps = pairList(), before = ps.filter((p) => mpShare(p.a) > 0).length, after = ps.filter((p) => mpShare(p.b) > 0).length;
+        return { when: 'Same MPs, five years apart', h: `From ${words(before).toLowerCase()} to ${after}`, p: `${ps.length} MPs outside government office spoke in both debates. ${words(before)} had text ${flagWord()} in 2020. In 2025, <b>${after} did</b>.` };
+      },
+    },
+  ];
+
+  const shortName = (s, n) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s);
+  function partyKey(g, x, y, parties) {
+    let cx = x;
+    parties.forEach((p) => {
+      svgEl('circle', { class: 'pp ' + p, cx: cx + T * 0.35, cy: y - T * 0.33, r: T * 0.33 }, g);
+      svgEl('text', { x: cx + T * 1.05, y }, g, p);
+      cx += T * 1.05 + p.length * T * 0.66 + T * 1.2;
+    });
+  }
+  function ticks(g, X, y) {
+    [0.01, 0.05, 0.25, 0.5, 1].forEach((v) => {
+      svgEl('line', { x1: X(v), x2: X(v), y1: y, y2: y + 5 }, g);
+      svgEl('text', { x: X(v), y: y + 6 + T * 1.2, 'text-anchor': v === 1 ? 'end' : 'middle' }, g, Math.round(v * 100) + '%');
+    });
+  }
+  function drawUnder(k, b) {
+    const g = svgEl('g', { class: 'layer' + (k === state.step ? ' on' : ''), 'data-k': k }, under);
+    const L = b.lab, ym = wide ? { x: 24, y: 80 } : { x: 16, y: 58 };
+    if (L.kind === 'chamber') {
+      svgEl('text', { class: 'yearmark', ...ym }, g, L.y);
+      const { yAisle, x0, x1, top, rowsG, ROW, AISLE } = L;
+      svgEl('rect', { class: 'table', x: x0 + (x1 - x0) * 0.06, y: yAisle - (wide ? 10 : 7), width: (x1 - x0) * 0.88, height: wide ? 20 : 14, rx: wide ? 10 : 7 }, g);
+      svgEl('text', { class: 'bench', x: x0 - 4, y: top - ROW / 2 - 10 }, g, 'Opposition');
+      svgEl('text', { class: 'bench', x: x0 - 4, y: yAisle + AISLE / 2 + (rowsG - 1) * ROW + ROW / 2 + 10 + T }, g, 'Government');
+      if (L.chair) {
+        const at = wide ? { x: L.chairAt.x, y: L.chairAt.y + 18 + T * 1.3, 'text-anchor': 'middle' } : { x: L.chairAt.x - 16, y: L.chairAt.y + T * 0.35, 'text-anchor': 'end' };
+        svgEl('text', { class: 'bench', ...at }, g, 'Speaker');
+      }
+      const lx = wide ? BW - 236 : 196, ly = wide ? 48 : 28, dy = T * (wide ? 1.9 : 1.65);
+      svgEl('circle', { class: 'k-seat', cx: lx + 6, cy: ly - T * 0.33, r: 4 }, g);
+      svgEl('text', { x: lx + T * 1.5, y: ly }, g, 'No speech scanned');
+      svgEl('circle', { class: 'k-ring', cx: lx + 6, cy: ly + dy - T * 0.33, r: 6 }, g);
+      svgEl('text', { x: lx + T * 1.5, y: ly + dy }, g, wide ? 'Ring: share of speech flagged' : 'Ring: share flagged');
+      partyKey(g, lx, ly + dy * 2, partiesIn(L.y));
+    } else if (L.kind === 'swarm') {
+      svgEl('text', { class: 'yearmark', ...ym }, g, '2025');
+      const ay = L.bottom + 14;
+      svgEl('line', { x1: L.o.ax0, x2: L.o.ax1, y1: ay, y2: ay }, g);
+      ticks(g, L.X, ay);
+      svgEl('text', { x: L.gx, y: L.gy - (wide ? T : 10) }, g, `Nothing flagged · ${L.zeros} MPs`);
+      svgEl('text', { x: L.o.ax1, y: ay + 12 + T * 2.6, 'text-anchor': 'end' }, g, wide ? 'Share of speech flagged (square-root scale)' : 'Share flagged (square-root scale)');
+      partyKey(g, wide ? BW - 200 : BW - 112, wide ? 48 : 40, partiesIn('2025'));
+    } else if (L.kind === 'lanes') {
+      svgEl('text', { class: 'yearmark', ...ym }, g, '2025');
+      L.lanes.forEach((ln, i) => {
+        const t = svgEl('text', { class: 'lane', x: ln.gx, y: ln.top + T }, g, ln.label);
+        svgEl('tspan', { dx: T * 0.8 }, t, `${pct1(wordShare(byYear('2025').filter((s) => s.role === ln.key)))} of words`);
+        svgEl('line', { x1: ln.o.ax0, x2: ln.o.ax1, y1: ln.base, y2: ln.base }, g);
+        if (i === L.lanes.length - 1) {
+          ticks(g, ln.X, ln.base);
+          svgEl('text', { x: ln.gx, y: ln.base + 6 + T * 1.2 }, g, wide ? 'Nothing flagged' : 'None');
+        }
+      });
+    } else if (L.kind === 'pairs') {
+      svgEl('text', { x: wide ? 24 : 16, y: wide ? 44 : 28 }, g, wide ? 'Share of speech flagged, 2020 → 2025' : 'Share flagged, 2020 → 2025');
+      L.layout.forEach((t, i) => {
+        const p = L.ps[i], r = 20 * t.s;
+        const at = wide ? [{ x: t.x, y: t.y + r + 6 + T, 'text-anchor': 'middle' }, { x: t.x, y: t.y + r + 10 + T * 2.2, 'text-anchor': 'middle' }]
+          : [{ x: t.x + r + 8, y: t.y - 2 }, { x: t.x + r + 8, y: t.y + T }];
+        svgEl('text', { class: 'nm', ...at[0] }, g, shortName(who(p.m), wide ? 19 : 18));
+        const v = svgEl('text', { class: 'vv', ...at[1] }, g, `${pct0(mpShare(p.a))} → `);
+        svgEl('tspan', {}, v, pct0(mpShare(p.b)));
+      });
+    }
+  }
+
+  let built = [];
+  function layoutAll() {
+    const r = stage.getBoundingClientRect();
+    wide = r.width > 640;
+    BW = wide ? 1000 : 360; BH = wide ? 700 : 540; T = wide ? 13 : 12.5;
+    const k = Math.min(r.width / BW, r.height / BH);
+    board.style.width = BW + 'px'; board.style.height = BH + 'px';
+    board.style.setProperty('--t', T + 'px');
+    board.style.setProperty('--ym', (wide ? 72 : 54) + 'px');
+    board.style.transform = `translate(${(r.width - BW * k) / 2}px, ${(r.height - BH * k) / 2}px) scale(${k})`;
+    under.setAttribute('viewBox', `0 0 ${BW} ${BH}`);
+    under.setAttribute('width', BW); under.setAttribute('height', BH);
+    under.replaceChildren();
+    built = STEPS.map((st) => st.build());
+    built.forEach((b, i) => drawUnder(i, b));
+    renderSteps();
+  }
+  function apply(k, animate = true) {
+    const b = built[k], seen = new Set(), live = animate && !reduce;
+    under.querySelectorAll('g.layer').forEach((g) => g.classList.toggle('on', +g.dataset.k === k));
+    const rank = new Map([...b.layout].sort((p, q) => p.x - q.x || p.y - q.y).map((t, i) => [t.m, i]));
+    b.layout.forEach((t) => {
+      const n = nodes.get(t.m), d = live ? Math.min(560, rank.get(t.m) * 5) : 0;
+      const tf = `translate(${t.x - 20}px, ${t.y - 20}px) scale(${t.s})`;
+      seen.add(t.m);
+      if (n.classList.contains('gone')) {
+        // Appear in place rather than flying in from wherever the node last was.
+        n.style.transition = 'none';
+        n.style.transform = tf;
+        void n.offsetWidth;
+        n.style.transition = '';
+      }
+      n.style.transitionDelay = d + 'ms';
+      n.style.transform = tf;
+      n.className = 'node ' + t.mode;
+      setArc(n, t.mode === 'as-face' ? t.v : 0, live ? d + 650 : 0);
+      n.__year = STEPS[k].year;
+    });
+    nodes.forEach((n, m) => { if (!seen.has(m)) { n.style.transitionDelay = '0ms'; n.className = 'node gone'; } });
+  }
+  function renderSteps() {
+    const box = $('steps');
+    if (!box.children.length) {
+      STEPS.forEach((st, k) => {
+        const s = el('div', 'step' + (k === state.step ? ' on' : ''), null, box);
+        s.dataset.step = k;
+        const c = el('div', 'card', null, s);
+        el('span', 'when', null, c); el('h2', null, null, c); el('p', null, null, c);
+      });
+    }
+    STEPS.forEach((st, k) => {
+      const c = st.copy(), card = box.children[k].firstChild;
+      card.children[0].textContent = c.when;
+      card.children[1].textContent = c.h;
+      setRich(card.children[2], c.p);
+    });
+  }
+  function setRich(node, text) {
+    node.replaceChildren();
+    text.split(/(<b>.*?<\/b>)/).forEach((part) => {
+      const m = part.match(/^<b>(.*)<\/b>$/);
+      if (m) el('b', null, m[1], node); else if (part) node.append(part);
+    });
+  }
+  function setStep(k) {
+    if (k === state.step) return;
+    state.step = k;
+    [...$('steps').children].forEach((s, i) => s.classList.toggle('on', i === k));
+    hideTip();
+    apply(k);
+  }
+  board.addEventListener('pointermove', (ev) => {
+    const n = ev.target.closest('.node');
+    if (!n || n.classList.contains('gone')) return hideTip();
+    showTip(ev, +n.dataset.m, n.__year || '2025');
+  });
+  board.addEventListener('pointerleave', hideTip);
+  board.addEventListener('click', (ev) => {
+    const n = ev.target.closest('.node.as-face');
+    if (!n) return;
+    const e = mpy(+n.dataset.m, n.__year);
+    if (e) openSpeech(e.main.i, true);
+  });
+
+  // ---------- Reader ----------
+  const flagged = () => byYear('2025').filter((s) => s.segs.some(counted)).sort((a, b) => share(b) - share(a) || b.fa - a.fa);
+  function renderFaces() {
+    const box = $('faces');
+    box.replaceChildren();
+    flagged().forEach((s) => {
+      const b = el('button', 'facebtn', null, box);
+      b.type = 'button';
+      b.dataset.i = s.i;
+      b.setAttribute('aria-pressed', String(s.i === state.current));
+      b.setAttribute('aria-label', `${who(s.m)}, ${pct0(share(s))} flagged`);
+      b.title = who(s.m);
+      const n = makeNode(s.m);
+      b.appendChild(n);
+      setArc(n, share(s));
+      el('span', 'v', pct0(share(s)), b);
+    });
+  }
+  $('faces').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.facebtn');
+    if (b) openSpeech(+b.dataset.i, false);
+  });
+  function renderPicker() {
+    const sel = $('picker');
+    sel.replaceChildren();
+    YEARS.slice().reverse().forEach((y) => {
+      const og = el('optgroup', null, null, sel);
+      og.label = y;
+      byYear(y).sort((a, b) => share(b) - share(a) || a.ord - b.ord).forEach((s) => {
+        const o = el('option', null, `${s.m >= 0 ? who(s.m) : s.label} · ${pct0(share(s))} flagged`, og);
+        o.value = s.i;
+      });
+    });
+    if (state.current != null) sel.value = state.current;
+  }
+  $('picker').addEventListener('change', (e) => openSpeech(+e.target.value, false));
+  const markObserver = 'IntersectionObserver' in window ? new IntersectionObserver((es) => es.forEach((e) => {
+    if (e.isIntersecting) { e.target.classList.remove('pending'); markObserver.unobserve(e.target); }
+  }), { rootMargin: '0px 0px -15% 0px' }) : null;
+  function openSpeech(i, scroll) {
+    const s = S[i];
+    state.current = i;
+    $('picker').value = i;
+    $('faces').querySelectorAll('.facebtn').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.i === i)));
+    const head = $('sp-head');
+    head.replaceChildren();
+    const bn = el('div', 'big-node', null, head);
+    if (s.m >= 0) { const n = makeNode(s.m); bn.appendChild(n); setArc(n, share(s)); }
+    const id = el('div', null, null, head);
+    el('div', 'sp-who', s.m >= 0 ? who(s.m) : s.label, id);
+    const meta = el('div', 'sp-meta', null, id);
+    const badge = el('span', 'badge ' + s.party, null, meta);
+    badge.title = PARTY[s.party] || s.party;
+    el('i', null, null, badge); badge.append(s.party);
+    el('span', null, s.role === 'off' && s.desig && !state.anon ? s.desig : ROLE[s.role], meta);
+    if (!state.anon && s.con) el('span', null, s.con, meta);
+    el('span', null, `${longDate(s.date)} · ${s.words.toLocaleString()} words`, meta);
+    if (!state.anon && s.url) { const a = el('a', null, 'Read in Hansard', meta); a.href = s.url; a.target = '_blank'; a.rel = 'noopener'; }
+    const sh = el('div', 'sp-share', null, head);
+    el('div', 'n', pct1(share(s)), sh);
+    el('div', 'l', `flagged · Pangram verdict ${s.v}`, sh);
+    const mm = el('div', 'minimap', null, head);
+    s.segs.forEach((g, k) => {
+      const b = el('button', counted(g) ? '' : 'off', null, mm);
+      b.type = 'button';
+      b.style.left = (g[0] / s.chars) * 100 + '%';
+      b.style.width = Math.max(0.6, ((g[1] - g[0]) / s.chars) * 100) + '%';
+      b.setAttribute('aria-label', `Go to flagged passage ${k + 1}`);
+      b.addEventListener('click', () => document.getElementById('seg-' + k)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' }));
+    });
+    const body = $('sp-body');
+    body.replaceChildren();
+    if (!s.segs.length) el('p', 'empty', 'Pangram classified every passage of this speech as human-written.', body);
+    const text = s.text, re = /[^\n]+/g, started = new Set();
+    let m;
+    while ((m = re.exec(text))) {
+      const ps = m.index, pe = ps + m[0].length;
+      const row = el('div', 'para', null, body);
+      const p = el('p', null, null, row);
+      const note = el('div', 'note', null, row);
+      let cur = ps;
+      s.segs.forEach((g, k) => {
+        if (g[1] <= ps || g[0] >= pe) return;
+        const a = Math.max(g[0], ps), b = Math.min(g[1], pe);
+        if (a > cur) p.append(text.slice(cur, a));
+        const mk = el('mark', counted(g) ? '' : 'off', text.slice(a, b), p);
+        if (!started.has(k)) {
+          started.add(k);
+          mk.id = 'seg-' + k;
+          note.className = 'note' + (counted(g) ? '' : ' off');
+          el('b', null, counted(g) ? 'AI-generated' : 'Below threshold', note);
+          note.append(`${['Low', 'Medium', 'High'][g[2]]} confidence · score ${g[3].toFixed(2)} · ${g[4]} words`);
+        }
+        cur = b;
+      });
+      if (cur < pe) p.append(text.slice(cur, pe));
+    }
+    if (markObserver && !reduce) body.querySelectorAll('mark:not(.off)').forEach((mk) => { mk.classList.add('pending'); markObserver.observe(mk); });
+    if (scroll) $('reader').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }
+
+  // ---------- Ledger ----------
+  const PITCH = 7, BAR = 5, DAYGAP = 16, ledger = {};
+  function layoutRows(list) {
+    const rows = [...list];
+    if (state.sort === 'spoken') rows.sort((a, b) => a.ord - b.ord);
+    else if (state.sort === 'flag') rows.sort((a, b) => share(b) - share(a) || b.fa - a.fa || a.ord - b.ord);
+    else rows.sort((a, b) => b.words - a.words);
+    let y = 4, last = null;
+    const labels = [];
+    rows.forEach((s) => {
+      if (state.sort === 'spoken' && s.day !== last) { if (last !== null) y += DAYGAP; labels.push({ day: s.day, date: s.date, y }); last = s.day; }
+      s._y = y; y += PITCH;
+    });
+    return { rows, height: y + 4, labels };
+  }
+  function buildLedger() {
+    YEARS.forEach((y) => {
+      const svg = $('svg-' + y);
+      svg.replaceChildren();
+      const W = svg.clientWidth || 400, G = W < 420 ? 48 : 70, x0 = G, w = W - G - 2;
+      const L = layoutRows(byYear(y));
+      svg.setAttribute('viewBox', `0 0 ${W} ${L.height}`);
+      svg.style.height = L.height + 'px';
+      const labG = svgEl('g', {}, svg), rowsG = svgEl('g', {}, svg), rowEls = new Map();
+      byYear(y).forEach((s) => {
+        const g = svgEl('g', { class: 'row', 'data-i': s.i }, rowsG);
+        g.style.transform = `translateY(${s._y}px)`;
+        svgEl('rect', { class: 'hit', x: 0, y: -1, width: W, height: PITCH }, g);
+        let cur = 0;
+        const pieces = [];
+        s.segs.forEach((sg) => { if (sg[0] > cur) pieces.push([cur, sg[0], null]); pieces.push([sg[0], sg[1], sg]); cur = sg[1]; });
+        if (cur < s.chars) pieces.push([cur, s.chars, null]);
+        pieces.forEach(([a, b, sg], k) => {
+          let x = x0 + (a / s.chars) * w, ww = ((b - a) / s.chars) * w;
+          if (k > 0) { x += 0.75; ww -= 0.75; }
+          if (k < pieces.length - 1) ww -= 0.75;
+          const r = svgEl('rect', { x: x.toFixed(2), y: 0, width: Math.max(0.8, ww).toFixed(2), height: BAR, rx: 1, class: sg ? 'p-a' : 'p-h' }, g);
+          r.__seg = sg;
+        });
+        rowEls.set(s.i, g);
+      });
+      ledger[y] = { svg, labG, rowEls, W, G };
+      drawDays(y, L.labels);
+    });
+    ledgerState();
+  }
+  function drawDays(y, labels) {
+    const { labG, G } = ledger[y];
+    labG.replaceChildren();
+    labels.forEach((l) => {
+      const t = svgEl('text', { class: 'daylab', x: 0, y: l.y + 8 }, labG);
+      svgEl('tspan', { x: 0 }, t, 'Day ' + l.day);
+      if (G > 60) svgEl('tspan', { class: 'd', x: 0, dy: 13 }, t, shortDate(l.date));
+    });
+  }
+  function relayoutLedger() {
+    YEARS.forEach((y) => {
+      const L = layoutRows(byYear(y)), { svg, rowEls, W } = ledger[y];
+      L.rows.forEach((s) => (rowEls.get(s.i).style.transform = `translateY(${s._y}px)`));
+      svg.setAttribute('viewBox', `0 0 ${W} ${L.height}`);
+      svg.style.height = L.height + 'px';
+      drawDays(y, L.labels);
+    });
+  }
+  function ledgerState() {
+    YEARS.forEach((y) => {
+      const { svg, rowEls } = ledger[y];
+      svg.querySelectorAll('.p-a').forEach((r) => r.classList.toggle('off', !counted(r.__seg)));
+      rowEls.forEach((g, i) => g.classList.toggle('dim', state.show !== 'all' && S[i].role !== state.show));
+      const list = byYear(y).filter((s) => state.show === 'all' || s.role === state.show);
+      $('st-' + y).textContent = `${list.filter((s) => s.segs.some(counted)).length} of ${list.length} flagged · ${pct1(wordShare(list))} of words`;
+    });
+  }
+  YEARS.forEach((y) => {
+    const svg = $('svg-' + y);
+    svg.addEventListener('pointermove', (ev) => {
+      const g = ev.target.closest('.row');
+      if (!g) return hideTip();
+      const s = S[+g.dataset.i];
+      if (s.m >= 0) showTip(ev, s.m, s.y); else hideTip();
+    });
+    svg.addEventListener('pointerleave', hideTip);
+    svg.addEventListener('click', (ev) => { const g = ev.target.closest('.row'); if (g) openSpeech(+g.dataset.i, true); });
+  });
+
+  // ---------- Method, table, credits ----------
+  function renderMethod() {
+    const y20 = byYear('2020'), y25 = byYear('2025');
+    const segs20 = y20.reduce((a, s) => a + s.segs.length, 0);
+    const all = y25.flatMap((s) => s.segs), short = all.filter((g) => g[4] < 75).length;
+    $('m-detect').textContent = 'Pangram splits each speech into passages and labels each one human-written or AI-generated. A speech’s share is the proportion of its characters in AI-generated passages; group figures weight speeches by length.';
+    $('m-control').textContent = `The 2020 debate came two years before ChatGPT. Pangram found ${segs20 || 'no'} AI-generated passage${segs20 === 1 ? '' : 's'} in its ${y20.length} speeches, which suggests it is not reacting to Hansard’s editing or to parliamentary style.`;
+    $('m-limits').textContent = `${short} of the ${all.length} flagged passages in 2025 are under 75 words, close to the detector's stated resolution of about 50. Figures count only passages Pangram rates high-confidence and at least 75 words long; “All passages” in the top bar adds the rest. Pangram labelled nothing as AI-assisted, so drafting and polishing cannot be told apart.`;
+    $('foot').textContent = `Scanned ${longDate(DATA.meta.scanned)} with Pangram (${DATA.meta.model}, model version ${DATA.meta.version}). Text from the Second Reading Hansard database. Portraits from Wikimedia Commons under the licences listed above.`;
+    const tb = $('tbody');
+    tb.replaceChildren();
+    [...S].sort((a, b) => b.y.localeCompare(a.y) || share(b) - share(a) || a.ord - b.ord).forEach((s) => {
+      const tr = el('tr', null, null, tb);
+      tr.dataset.i = s.i;
+      [s.y, s.m >= 0 ? who(s.m) : s.label, s.party, ROLE[s.role]].forEach((t) => el('td', null, t, tr));
+      el('td', 'r', s.words.toLocaleString(), tr);
+      el('td', null, s.v, tr);
+      el('td', 'r', pct1(s.fa), tr);
+      el('td', 'r', pct1(s.fs), tr);
+    });
+    $('t-sum').textContent = `All ${S.length} speeches as a table`;
+    const cr = $('credits');
+    cr.replaceChildren();
+    DATA.credits.forEach((c) => {
+      const p = el('p', null, null, cr);
+      const a = el('a', null, c.name, p); a.href = c.url; a.target = '_blank'; a.rel = 'noopener';
+      p.append(` · ${c.author} · ${c.license}`);
+    });
+  }
+  $('tbody').addEventListener('click', (ev) => { const tr = ev.target.closest('tr'); if (tr) openSpeech(+tr.dataset.i, true); });
+
+  // ---------- Controls ----------
+  document.querySelectorAll('.seg').forEach((seg) => seg.addEventListener('click', (ev) => {
+    const b = ev.target.closest('button');
+    if (!b) return;
+    seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    const key = seg.dataset.key, val = b.dataset.val;
+    if (key === 'strict') { state.strict = val === '1'; refresh(); }
+    if (key === 'anon') { state.anon = val === '1'; nodes.forEach((n, m) => paintFace(n, m)); refresh(); }
+    if (key === 'show') { state.show = val; ledgerState(); }
+    if (key === 'sort') { state.sort = val; relayoutLedger(); }
+  }));
+  function refresh() {
+    renderHero(false);
+    layoutAll();
+    apply(state.step, false);
+    ledgerState();
+    if (state.sort === 'flag') relayoutLedger();
+    renderFaces();
+    renderPicker();
+    renderMethod();
+    if (state.current != null) openSpeech(state.current, false);
+  }
+
+  // ---------- Boot ----------
+  renderHero(true);
+  layoutAll();
+  apply(0, false);
+  // Desktop steps trigger at mid-screen; on phones, when a card arrives at the bottom of the screen.
+  let io = null;
+  function observeSteps() {
+    if (!('IntersectionObserver' in window)) return;
+    if (io) io.disconnect();
+    const margin = wide ? '-48% 0px -48% 0px' : '-84% 0px -15% 0px';
+    io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) setStep(+e.target.dataset.step); }), { rootMargin: margin });
+    [...$('steps').children].forEach((s) => io.observe(s));
+  }
+  observeSteps();
+  renderFaces();
+  renderPicker();
+  renderMethod();
+  buildLedger();
+  openSpeech(flagged()[0]?.i ?? 0, false);
+  let lastW = innerWidth, timer;
+  addEventListener('resize', () => {
+    if (Math.abs(innerWidth - lastW) < 24) return;
+    lastW = innerWidth;
+    clearTimeout(timer);
+    timer = setTimeout(() => { layoutAll(); apply(state.step, false); observeSteps(); buildLedger(); YEARS.forEach((y) => heroLine(y, false)); }, 150);
+  });
+})();
+</script>
