@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AI Detection Pipeline Verification</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout: a step rail beside one reading column. Each step reads as a lab procedure:
+   what it does, the code that does it, then a Check panel with a command and its expected output. */
+:root {
+  --paper: #eef1f0;
+  --sheet: #fbfcfb;
+  --ink: #14191d;
+  --ink-2: #47515a;
+  --muted: #6f7982;
+  --rule: #d4dbdb;
+  --code-bg: #f4f6f5;
+  --accent: #b4196e;
+  --pass: #1d7347;
+  --warn: #8f5600;
+  --warn-bg: #fbf3e4;
+  --syn-kw: #8a1d5a;
+  --syn-str: #2b6a46;
+  --syn-num: #9a4d00;
+  --syn-fn: #24508f;
+  --display: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --text: "Public Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f1316; --sheet: #161b20; --ink: #e8edf0; --ink-2: #b3bcc4; --muted: #8a949d; --rule: #29323a;
+    --code-bg: #12171b; --accent: #ff6fb1; --pass: #57c690; --warn: #e3a64a; --warn-bg: #2a2214;
+    --syn-kw: #f291c4; --syn-str: #86d2a8; --syn-num: #f1b46e; --syn-fn: #93b4ff; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0f1316; --sheet: #161b20; --ink: #e8edf0; --ink-2: #b3bcc4; --muted: #8a949d; --rule: #29323a;
+  --code-bg: #12171b; --accent: #ff6fb1; --pass: #57c690; --warn: #e3a64a; --warn-bg: #2a2214;
+  --syn-kw: #f291c4; --syn-str: #86d2a8; --syn-num: #f1b46e; --syn-fn: #93b4ff; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--text); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+a:hover { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -0.015em; }
+p, ul { margin: 0; }
+code { font-family: var(--mono); font-size: 0.86em; }
+p code, li code, td code, caption code { background: var(--code-bg); border: 1px solid var(--rule); border-radius: 4px; padding: 0 4px; }
+
+.page { max-width: 78rem; margin-inline: auto; padding-inline: clamp(16px, 4vw, 40px); padding-block: clamp(32px, 6vw, 72px) 64px; display: grid; grid-template-columns: 13.5rem minmax(0, 1fr); gap: clamp(28px, 4vw, 56px); }
+.main { min-width: 0; display: grid; gap: clamp(48px, 7vw, 80px); }
+.measure { max-width: 46rem; }
+
+/* Rail */
+.rail { position: sticky; top: calc(24px + env(safe-area-inset-top, 0px)); align-self: start; font-size: 0.86rem; }
+.rail p { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.rail ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.rail a { display: grid; grid-template-columns: 1.6rem 1fr; padding: 5px 8px; border-radius: 6px; text-decoration: none; color: var(--ink-2); line-height: 1.35; }
+.rail a .n { font-family: var(--mono); color: var(--muted); font-size: 0.8rem; padding-top: 1px; }
+.rail a:hover { background: var(--sheet); color: var(--ink); }
+.rail a.on { background: var(--sheet); color: var(--ink); font-weight: 500; box-shadow: inset 0 0 0 1px var(--rule); }
+.rail a.on .n { color: var(--accent); }
+
+/* Opening */
+.intro { display: grid; gap: 18px; }
+.eyebrow { font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: clamp(2.3rem, 5.4vw, 3.6rem); line-height: 1.04; }
+.lead { font-size: 1.12rem; color: var(--ink-2); }
+.meta { font-size: 0.86rem; color: var(--muted); }
+.confirmed { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-block: 1px solid var(--ink); margin-top: 8px; }
+.confirmed div { padding: 14px 16px 14px 0; display: grid; gap: 2px; min-width: 0; }
+.confirmed div + div { padding-left: 16px; border-left: 1px solid var(--rule); }
+.confirmed b { font-family: var(--display); font-weight: 600; font-size: 1.7rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.confirmed span { font-size: 0.84rem; color: var(--ink-2); line-height: 1.4; }
+.confirmed-cap { font-size: 0.8rem; color: var(--muted); }
+
+/* Pipeline map */
+.pipeline h2, .legend h2 { font-size: 1.35rem; margin-bottom: 14px; }
+.pipeline ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); gap: 8px; counter-reset: none; }
+.pipeline a { display: grid; gap: 4px; align-content: start; height: 100%; padding: 12px 14px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 8px; text-decoration: none; }
+.pipeline a:hover { border-color: var(--ink-2); color: inherit; }
+.pipeline .n { font-family: var(--mono); font-size: 0.74rem; color: var(--accent); }
+.pipeline b { font-weight: 600; font-size: 0.92rem; line-height: 1.3; }
+.pipeline .o { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); overflow-wrap: anywhere; }
+.legend dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 16px; margin: 0; align-items: baseline; }
+.legend dd { margin: 0; color: var(--ink-2); font-size: 0.94rem; }
+
+/* Steps */
+.step { display: grid; gap: 18px; scroll-margin-top: 24px; }
+.step > header { display: grid; gap: 4px; padding-top: 18px; border-top: 1px solid var(--ink); }
+.step h2 { font-size: clamp(1.6rem, 3vw, 2.05rem); line-height: 1.15; }
+.step .src { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+.step > p, .step > ul { max-width: 46rem; color: var(--ink-2); }
+.step > ul { padding-left: 1.2rem; display: grid; gap: 4px; }
+.step b { color: var(--ink); font-weight: 600; }
+
+.code { margin: 0; background: var(--code-bg); border: 1px solid var(--rule); border-radius: 8px; min-width: 0; }
+.code figcaption { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 7px 14px; border-bottom: 1px solid var(--rule); font-family: var(--mono); font-size: 0.72rem; color: var(--muted); }
+pre { margin: 0; overflow-x: auto; }
+.code pre, .cmd pre { padding: 14px 16px; font-family: var(--mono); font-size: 0.8rem; line-height: 1.6; tab-size: 4; }
+pre code { font-size: inherit; background: none; border: 0; padding: 0; }
+
+.check { background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; display: grid; gap: 12px; min-width: 0; }
+.check-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.check-head b { font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+.check-head .what { font-weight: 600; flex: 1 1 14rem; }
+.needs { font-size: 0.74rem; border: 1px solid var(--rule); border-radius: 999px; padding: 1px 9px; color: var(--ink-2); white-space: nowrap; }
+.needs::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; background: var(--muted); }
+.n-folder::before { background: var(--pass); }
+.n-repo::before { background: var(--syn-fn); }
+.n-db::before { background: var(--warn); }
+.check > p { color: var(--ink-2); font-size: 0.94rem; max-width: 44rem; }
+.cmd { position: relative; background: var(--code-bg); border: 1px solid var(--rule); border-radius: 8px; min-width: 0; }
+.cmd pre { padding-right: 72px; }
+.copy { position: absolute; top: 8px; right: 8px; font: 500 0.74rem var(--text); color: var(--ink-2); background: var(--sheet); border: 1px solid var(--rule); border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+.copy:hover { color: var(--ink); border-color: var(--ink-2); }
+.expect { display: grid; gap: 6px; min-width: 0; }
+.expect span { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--pass); font-weight: 600; }
+.expect pre { font-family: var(--mono); font-size: 0.8rem; line-height: 1.6; color: var(--ink); padding: 10px 14px; border-left: 2px solid var(--pass); background: var(--code-bg); border-radius: 0 6px 6px 0; }
+
+.gap { background: var(--warn-bg); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; font-size: 0.94rem; }
+.gap b { color: var(--warn) !important; margin-right: 6px; font-size: 0.74rem; letter-spacing: 0.1em; text-transform: uppercase; }
+
+.anatomy { display: grid; gap: 6px; overflow-x: auto; padding: 4px 0; }
+.anatomy .id, .anatomy .parts { display: grid; grid-template-columns: 3rem 8.5rem 7.5rem 4rem; gap: 0 10px; min-width: 24rem; }
+.anatomy .id span { font-family: var(--mono); font-size: 0.95rem; font-weight: 500; padding-bottom: 6px; border-bottom: 2px solid var(--accent); }
+.anatomy .parts span { font-size: 0.76rem; color: var(--muted); line-height: 1.3; }
+
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); }
+table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: 0.88rem; }
+caption { text-align: left; padding: 10px 14px; color: var(--ink-2); font-size: 0.84rem; border-bottom: 1px solid var(--rule); }
+th, td { padding: 7px 14px; text-align: left; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; }
+th { font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+td.r, th.r { text-align: right; }
+tfoot td { font-weight: 600; border-bottom: 0; }
+
+.open ul { padding-left: 1.2rem; display: grid; gap: 8px; color: var(--ink-2); max-width: 46rem; }
+.open h2 { font-size: 1.6rem; margin-bottom: 12px; padding-top: 18px; border-top: 1px solid var(--ink); }
+.open { display: grid; gap: 12px; scroll-margin-top: 24px; }
+.open > p { max-width: 46rem; color: var(--ink-2); margin: 0; }
+.step h3.sub { font-size: 1.15rem; margin: 6px 0 0; }
+/* Contact sheet: one card per accepted portrait, for checking faces by eye. */
+.sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 8px; }
+.sheet figure { margin: 0; display: grid; grid-template-columns: 48px minmax(0, 1fr); column-gap: 10px; align-content: start;
+  padding: 8px; border: 1px solid var(--rule); border-radius: 8px; background: var(--sheet); font-size: 0.78rem; line-height: 1.35; }
+.sheet img { width: 48px; height: 48px; object-fit: cover; border-radius: 50%; grid-row: 1 / span 3; background: var(--rule); }
+.sheet b { font-size: 0.84rem; font-weight: 600; }
+.sheet span { color: var(--muted); overflow-wrap: anywhere; }
+footer { font-size: 0.84rem; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 14px; display: grid; gap: 4px; }
+
+/* Syntax colours (highlight.js classes) */
+.hljs-keyword, .hljs-meta .hljs-keyword, .hljs-operator.hljs-keyword { color: var(--syn-kw); }
+.hljs-string, .hljs-regexp, .hljs-template-string { color: var(--syn-str); }
+.hljs-number, .hljs-literal { color: var(--syn-num); }
+.hljs-title, .hljs-title.function_, .hljs-built_in { color: var(--syn-fn); }
+.hljs-comment { color: var(--muted); font-style: italic; }
+.hljs-variable, .hljs-params, .hljs-attr { color: var(--ink); }
+
+@media (max-width: 900px) {
+  .page { grid-template-columns: minmax(0, 1fr); }
+  .rail { display: none; }
+  .confirmed { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .confirmed div:nth-child(3) { padding-left: 0; border-left: 0; }
+  .confirmed div:nth-child(n + 3) { border-top: 1px solid var(--rule); }
+}
+@media (max-width: 480px) {
+  .legend dl { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .legend dd { margin-bottom: 8px; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style>
+
+<div class="page">
+  <nav class="rail" aria-label="Steps">
+    <p>Steps</p>
+    <ol><!--NAV--><li><a href="#findings"><span class="n">=</span>Findings so far</a></li><li><a href="#open"><span class="n">?</span>Open questions</a></li></ol>
+  </nav>
+
+  <div class="main">
+    <header class="intro measure">
+      <span class="eyebrow">Second Reading · AI-detection pilot · internal</span>
+      <h1>AI Detection Pipeline Verification</h1>
+      <p class="lead">How speeches get from Hansard to Pangram and back: the President's Address pilot, the wider set of prepared
+        speeches, and the portraits shown in the explorer. Each step shows the code that does the work and a command that checks it.
+        Every expected output and every figure on this page came from running that code on <!--DATE-->.</p>
+      <p class="meta"><!--CODE-->
+        Run every command from the repository root.</p>
+      <div>
+        <div class="confirmed"><!--CONFIRMED--></div>
+      </div>
+    </header>
+
+    <section class="pipeline" aria-labelledby="map-h">
+      <h2 id="map-h">The pipeline</h2>
+      <ol><!--PIPELINE--></ol>
+    </section>
+
+    <section class="legend measure" aria-labelledby="legend-h">
+      <h2 id="legend-h">What each check needs</h2>
+      <dl>
+        <dt><span class="needs n-folder">Results folder</span></dt>
+        <dd>Python 3 and the shared <code>presidents_address</code>, <code>prepared_speeches</code> and <code>photos</code> folders,
+          placed under <code>data/ai_detection/</code>.</dd>
+        <dt><span class="needs n-repo">Repo checkout</span></dt>
+        <dd>The repository with <code>uv</code> installed, plus the results folder. No database, Pangram key or network.</dd>
+        <dt><span class="needs n-db">Repo + database</span></dt>
+        <dd>Also the Second Reading SQLite database, opened read-only. The Drive folder one level above the results holds a copy as
+          <code>parliament.db</code>, <!--DB-->; place it at <code>data/parliament.db</code>.</dd>
+      </dl>
+    </section>
+
+    <!--STEPS-->
+
+    <section class="open" id="findings">
+      <h2>Findings so far</h2>
+      <p>Recomputed from <code>results.jsonl</code> whenever this page is built. Internal: not for publication until Pangram has agreed.</p>
+      <!--FINDINGS-->
+    </section>
+
+    <section class="open" id="open">
+      <h2>Open questions</h2>
+      <ul>
+        <li>Should “high confidence” keep its 75-word minimum, or count every High-confidence passage?</li>
+        <li>Confirm Gerald Giam's 2011–2015 NCMP term, then decide how to override the new-MP label for members who served before 2016.</li>
+        <li>Check every portrait on the contact sheet by eye and confirm the one GODL-India licence permits our use.</li>
+        <li>Fill in or drop any portrait the credit check lists as missing an author, licence or page: the licences require
+          attribution, and an “MP_” file name may be an official portrait re-uploaded to Commons.</li>
+        <li>Confirm the seat-based party rule and the four NCMPs against Elections Department results.</li>
+        <li>Confirm the dashboard's <code>ai_likelihood</code> is the API's <code>ai_assistance_score</code> by scanning two or three
+          Address speeches that already have API results.</li>
+        <li>2021 and 2026 differ in sittings, words and subjects; compare them by debate type as well as overall.</li>
+      </ul>
+    </section>
+
+    <footer>
+      <span>Code excerpts and line numbers are copied from the source files by <code>python/build_pangram_verification.py</code>, so they match the code described above.</span>
+      <span>The facts to verify about MPs (portraits, new or returning, roles, party, seating) are in the separate verification list doc.</span>
+    </footer>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+(() => {
+  if (window.hljs) document.querySelectorAll('pre code[class*="language-"]').forEach((el) => window.hljs.highlightElement(el));
+
+  document.querySelectorAll('.copy').forEach((btn) => btn.addEventListener('click', async () => {
+    const code = btn.parentElement.querySelector('code');
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      btn.textContent = 'Copied';
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(code);
+      const sel = getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      btn.textContent = 'Selected';
+    }
+    setTimeout(() => (btn.textContent = 'Copy'), 1600);
+  }));
+
+  const links = new Map([...document.querySelectorAll('.rail a')].map((a) => [a.getAttribute('href').slice(1), a]));
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      links.forEach((a) => a.classList.remove('on'));
+      links.get(e.target.id)?.classList.add('on');
+    }), { rootMargin: '-30% 0px -60% 0px' });
+    document.querySelectorAll('.step, .open').forEach((s) => io.observe(s));
+  }
+})();
+</script>

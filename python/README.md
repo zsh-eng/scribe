@@ -218,6 +218,19 @@ uses attendance on the debate days, with party taken from each MP's seat.
 uv run build_pangram_explorer.py
 ```
 
+### Verification page
+
+`build_pangram_verification.py` writes `presidents_address/pipeline-verification.html`, which walks
+through the Address pilot, the wider export, dashboard imports and portraits with code excerpts and a
+command that checks each step. Excerpts and line numbers are read from the source files, every expected
+output comes from running its command, and the findings are recomputed from the results, so building it
+re-runs the exports into a temporary folder and runs the test suite. It needs the database, the results
+folders and the photos folder, and sends nothing.
+
+```bash
+uv run build_pangram_verification.py
+```
+
 ## Reruns and offline replay
 
 Each sitting is imported in one SQLite transaction. Replaying a sitting preserves its IDs,
