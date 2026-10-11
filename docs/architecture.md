@@ -47,6 +47,13 @@ Budget data takes a separate, reviewed path: source PDFs → curated release JSO
 `src/lib/budgets.ts` validation/grouping → budget charts. Working CSVs are not the canonical
 chart data. See [source provenance and update procedure](data-sources.md).
 
+## AI-detection research
+
+`export_pangram_speeches.py` → `run_pangram_bulk.py` / `import_pangram_dashboard.py`
+→ `build_pangram_explorer.py`. An internal research pipeline: it reads SQLite but never
+writes it, and its outputs stay in git-ignored `data/ai_detection/`. See the
+[AI-detection guide](ai-detection.md).
+
 ## Evolving the project
 
 Keep the Python directory flat while modules have clear jobs; current script paths are

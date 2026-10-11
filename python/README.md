@@ -122,7 +122,7 @@ cached tokens are a subset of prompt tokens, not an additional total.
 
 An internal pipeline that tests prepared parliamentary speeches with Pangram's AI-text detector.
 Every output goes to `data/ai_detection/`, which is ignored by git because results link named MPs
-to scores.
+to scores. [The guide](../docs/ai-detection.md) explains each transformation and how to verify it.
 
 ### Export
 
